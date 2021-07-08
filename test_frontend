@@ -1,6 +1,6 @@
 #!/bin/bash
 
-cd prod
+
 make
 
 echo ""
@@ -10,14 +10,14 @@ for i in {1..9}
 do 
     echo ""
     echo "core00$i.lat:"
-    ./latc ../lattests/good/core00$i.lat
+    ./latc ./lattests/good/core00$i.lat
 done
 
 for i in {10..28} 31 32
 do 
     echo ""
     echo "core0$i.lat:"
-    ./latc ../lattests/good/core0$i.lat
+    ./latc ./lattests/good/core0$i.lat
 
 done
 
@@ -27,14 +27,14 @@ for i in {1..9}
 do 
     echo ""
     echo "bad00$i.lat:"
-    ./latc ../lattests/bad/bad00$i.lat
+    ./latc ./lattests/bad/bad00$i.lat
 done
 
 for i in {10..13} {15..27}
 do 
     echo ""
     echo "bad0$i.lat:"
-    ./latc ../lattests/bad/bad0$i.lat
+    ./latc ./lattests/bad/bad0$i.lat
 
 done
 
