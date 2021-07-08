@@ -1,0 +1,13 @@
+
+for i in {1..9}
+do 
+    rm ./lattests/good/core00$i
+    rm ./lattests/good/core00$i.ll
+done
+
+for i in {10..28} 31 32
+do 
+    rm ./lattests/good/core0$i
+    rm ./lattests/good/core0$i.ll
+
+done
