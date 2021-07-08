@@ -4,3 +4,5 @@ all:
 clean:
 	rm ./latc
 	rm ./latc_llvm
+
+	./cleanup_tests
