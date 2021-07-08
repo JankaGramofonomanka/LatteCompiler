@@ -1,0 +1,48 @@
+int main() {
+    //int x = 10;
+    //int y;
+    //printInt(x);
+    //(x + 1) = 3;
+    //x = int y = 0;
+    //2 = 3;
+    //x = "asd";
+    //x = func();
+    
+    //x = 2 + "asd";
+    //2 + 4;
+
+    //true;
+    //false;
+
+    //int x = 5;
+    //string s = "asd";
+    //boolean b = true;
+    //return x;
+    //return;
+
+    //x * 4 + 3 % 2;
+
+    //x - y;
+    //x ;
+    //-y;
+
+    //x + y;
+
+
+    //int x, y = 4, z;
+    int x, y;
+    //int x;
+
+    return;
+
+}
+
+/*
+int func() {
+    int x = 2;
+}
+
+int func() {
+    return;
+}
+*/

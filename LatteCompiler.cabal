@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: a94809c7b5ececb0a44f2f7c401cdfc06d7e994c468691b72f63fd669dd50cca
+-- hash: 06ebe090452c0d7ba47908fe7afef666134bdfc6e070869484651e00fbc94654
 
 name:           LatteCompiler
 version:        0.1.0.0
@@ -36,12 +36,24 @@ library
       base >=4.7 && <5
   default-language: Haskell2010
 
-executable LatteCompiler-exe
+executable latc
   main-is: Main.hs
   other-modules:
       Paths_LatteCompiler
   hs-source-dirs:
-      app
+      frontend
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      LatteCompiler
+    , base >=4.7 && <5
+  default-language: Haskell2010
+
+executable latc_llvm
+  main-is: Main.hs
+  other-modules:
+      Paths_LatteCompiler
+  hs-source-dirs:
+      llvm
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       LatteCompiler

@@ -1,0 +1,13 @@
+int main() {
+    boolean x = true;
+    boolean y = !x;
+    if(y && x) {
+        printString("y && x");
+    } else {
+        printString("!y || !x");
+    }
+    return 0;
+}
+
+
+

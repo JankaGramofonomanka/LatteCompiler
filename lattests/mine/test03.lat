@@ -1,0 +1,33 @@
+///*
+int main() {
+//string main() {
+//int main(int x) {
+    return 0;
+}
+//*/
+
+int f1() {
+    return 1;
+}
+
+string f2() {
+    return "QWRETY";
+}
+
+boolean f3() {
+    return True;
+}
+
+void f4() {
+    return;
+}
+
+int f2() {
+//int f5() {
+    return 15;
+}
+
+string f1() {
+//string f6() {
+    return "asdf";
+}

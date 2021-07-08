@@ -1,0 +1,50 @@
+#!/bin/bash
+
+cd ver2
+make
+
+echo ""
+echo "-- C O M P I L A T I O N -------------------------"
+
+for i in {1..9}
+do 
+    echo ""
+    echo "core00$i.lat:"
+    ./latc_llvm ../lattests/good/core00$i.lat
+done
+
+for i in {10..28} 31 32
+do 
+    echo ""
+    echo "core0$i.lat:"
+    ./latc_llvm ../lattests/good/core0$i.lat
+done
+
+make clean
+
+echo ""
+echo "-- E X E C U T I O N -----------------------------"
+
+for i in {1..9}
+do 
+    echo ""
+    echo "core00$i.lat:"
+    echo "-- OUTPUT ------------------------------------"
+    lli ../lattests/good/core00$i
+    echo "-- EXPECTED ----------------------------------"
+    cat ../lattests/good/core00$i.output
+done
+
+for i in {10..28} 31 32
+do 
+    echo ""
+    echo "core0$i.lat:"
+    echo "-- OUTPUT ------------------------------------"
+    lli ../lattests/good/core0$i
+    echo "-- EXPECTED ----------------------------------"
+    cat ../lattests/good/core0$i.output
+
+done
+
+
+
