@@ -8,23 +8,23 @@ Arg. 	   Arg ::= Type PIdent;
 separator  Arg "," ;
 
 -- statements ----------------------------------------------
-Block.     Block ::= "{" [Stmt] "}" ;
+Block.     Block ::= PLBrace [Stmt] PRBrace ;
 separator  Stmt "" ;
-Empty.     Stmt ::= ";" ;
+Empty.     Stmt ::= PSemiColon ;
 BStmt.     Stmt ::= Block ;
-Decl.      Stmt ::= Type [Item] ";" ;
+Decl.      Stmt ::= Type [Item] PSemiColon ;
 NoInit.    Item ::= PIdent ; 
 Init.      Item ::= PIdent "=" Expr ;
 separator nonempty Item "," ;
-Ass.       Stmt ::= PIdent "=" Expr  ";" ;
-Incr.      Stmt ::= PIdent "++"  ";" ;
-Decr.      Stmt ::= PIdent "--"  ";" ;
-Ret.       Stmt ::= PReturn Expr ";" ;
-VRet.      Stmt ::= PReturn ";" ;
-Cond.      Stmt ::= "if" "(" Expr ")" Stmt  ;
-CondElse.  Stmt ::= "if" "(" Expr ")" Stmt "else" Stmt  ;
-While.     Stmt ::= "while" "(" Expr ")" Stmt ;
-SExp.      Stmt ::= Expr  ";" ;
+Ass.       Stmt ::= PIdent "=" Expr PSemiColon ;
+Incr.      Stmt ::= PIdent "++" PSemiColon ;
+Decr.      Stmt ::= PIdent "--" PSemiColon ;
+Ret.       Stmt ::= PReturn Expr PSemiColon ;
+VRet.      Stmt ::= PReturn PSemiColon ;
+Cond.      Stmt ::= PIf "(" Expr ")" Stmt  ;
+CondElse.  Stmt ::= PIf "(" Expr ")" Stmt PElse Stmt ;
+While.     Stmt ::= PWhile "(" Expr ")" Stmt ;
+SExp.      Stmt ::= Expr PSemiColon ;
 
 -- Types ---------------------------------------------------
 Int.       Type ::= PTypeInt ;
@@ -43,12 +43,12 @@ ELitFalse. Expr6 ::= PFalse ;
 EApp.      Expr6 ::= PIdent "(" [Expr] ")" ;
 EString.   Expr6 ::= PString ;
 Neg.       Expr5 ::= PMinus Expr6 ;
-Not.       Expr5 ::= "!" Expr6 ;
+Not.       Expr5 ::= PNot Expr6 ;
 EMul.      Expr4 ::= Expr4 MulOp Expr5 ;
 EAdd.      Expr3 ::= Expr3 AddOp Expr4 ;
 ERel.      Expr2 ::= Expr2 RelOp Expr3 ;
-EAnd.      Expr1 ::= Expr2 "&&" Expr1 ;
-EOr.       Expr ::= Expr1 "||" Expr ;
+EAnd.      Expr1 ::= Expr2 AndOp Expr1 ;
+EOr.       Expr ::= Expr1 OrOp Expr ;
 coercions  Expr 6 ;
 separator  Expr "," ;
 
@@ -64,6 +64,8 @@ GTH.       RelOp ::= PGTH ;
 GE.        RelOp ::= PGE ;
 EQU.       RelOp ::= PEQU ;
 NE.        RelOp ::= PNE ;
+And.       AndOp ::= PAnd ;
+Or.        OrOp  ::= POr ;
 
 -- comments ------------------------------------------------
 comment    "#" ;
@@ -91,8 +93,20 @@ position token PGTH     {">"} ;
 position token PGE      {">="} ;
 position token PEQU     {"=="} ;
 position token PNE      {"!="} ;
+position token PAnd     {"&&"} ;
+position token POr      {"||"} ;
+position token PNot     {"!"} ;
+
+
+position token PLBrace {"{"} ;
+position token PRBrace {"}"} ;
+
+position token PSemiColon {";"} ;
+
+position token PIf      {"if"} ;
+position token PElse    {"else"} ;
+position token PWhile   {"while"} ;
 
 position token PIdent (letter (letter|digit|'_'|'\'')*) ;
 position token PInteger (digit+) ;
 position token PString ('"' ((char - ["\"\\"]) | ('\\' ["\"\\tnrf"]))* '"') ;
-

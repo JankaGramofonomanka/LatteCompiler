@@ -40,6 +40,22 @@ newtype PGE = PGE ((Int,Int),String) deriving (Eq, Ord, Show, Read)
 newtype PEQU = PEQU ((Int,Int),String)
   deriving (Eq, Ord, Show, Read)
 newtype PNE = PNE ((Int,Int),String) deriving (Eq, Ord, Show, Read)
+newtype PAnd = PAnd ((Int,Int),String)
+  deriving (Eq, Ord, Show, Read)
+newtype POr = POr ((Int,Int),String) deriving (Eq, Ord, Show, Read)
+newtype PNot = PNot ((Int,Int),String)
+  deriving (Eq, Ord, Show, Read)
+newtype PLBrace = PLBrace ((Int,Int),String)
+  deriving (Eq, Ord, Show, Read)
+newtype PRBrace = PRBrace ((Int,Int),String)
+  deriving (Eq, Ord, Show, Read)
+newtype PSemiColon = PSemiColon ((Int,Int),String)
+  deriving (Eq, Ord, Show, Read)
+newtype PIf = PIf ((Int,Int),String) deriving (Eq, Ord, Show, Read)
+newtype PElse = PElse ((Int,Int),String)
+  deriving (Eq, Ord, Show, Read)
+newtype PWhile = PWhile ((Int,Int),String)
+  deriving (Eq, Ord, Show, Read)
 newtype PIdent = PIdent ((Int,Int),String)
   deriving (Eq, Ord, Show, Read)
 newtype PInteger = PInteger ((Int,Int),String)
@@ -55,22 +71,22 @@ data TopDef = FnDef Type PIdent [Arg] Block
 data Arg = Arg Type PIdent
   deriving (Eq, Ord, Show, Read)
 
-data Block = Block [Stmt]
+data Block = Block PLBrace [Stmt] PRBrace
   deriving (Eq, Ord, Show, Read)
 
 data Stmt
-    = Empty
+    = Empty PSemiColon
     | BStmt Block
-    | Decl Type [Item]
-    | Ass PIdent Expr
-    | Incr PIdent
-    | Decr PIdent
-    | Ret PReturn Expr
-    | VRet PReturn
-    | Cond Expr Stmt
-    | CondElse Expr Stmt Stmt
-    | While Expr Stmt
-    | SExp Expr
+    | Decl Type [Item] PSemiColon
+    | Ass PIdent Expr PSemiColon
+    | Incr PIdent PSemiColon
+    | Decr PIdent PSemiColon
+    | Ret PReturn Expr PSemiColon
+    | VRet PReturn PSemiColon
+    | Cond PIf Expr Stmt
+    | CondElse PIf Expr Stmt PElse Stmt
+    | While PWhile Expr Stmt
+    | SExp Expr PSemiColon
   deriving (Eq, Ord, Show, Read)
 
 data Item = NoInit PIdent | Init PIdent Expr
@@ -92,12 +108,12 @@ data Expr
     | EApp PIdent [Expr]
     | EString PString
     | Neg PMinus Expr
-    | Not Expr
+    | Not PNot Expr
     | EMul Expr MulOp Expr
     | EAdd Expr AddOp Expr
     | ERel Expr RelOp Expr
-    | EAnd Expr Expr
-    | EOr Expr Expr
+    | EAnd Expr AndOp Expr
+    | EOr Expr OrOp Expr
   deriving (Eq, Ord, Show, Read)
 
 data AddOp = Plus PPlus | Minus PMinus
@@ -108,5 +124,11 @@ data MulOp = Times PTimes | Div PDiv | Mod PMod
 
 data RelOp
     = LTH PLTH | LE PLE | GTH PGTH | GE PGE | EQU PEQU | NE PNE
+  deriving (Eq, Ord, Show, Read)
+
+data AndOp = And PAnd
+  deriving (Eq, Ord, Show, Read)
+
+data OrOp = Or POr
   deriving (Eq, Ord, Show, Read)
 

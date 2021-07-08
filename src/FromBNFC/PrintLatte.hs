@@ -151,6 +151,42 @@ instance Print PNE where
   prt _ (PNE (_,i)) = doc (showString ( i))
 
 
+instance Print PAnd where
+  prt _ (PAnd (_,i)) = doc (showString ( i))
+
+
+instance Print POr where
+  prt _ (POr (_,i)) = doc (showString ( i))
+
+
+instance Print PNot where
+  prt _ (PNot (_,i)) = doc (showString ( i))
+
+
+instance Print PLBrace where
+  prt _ (PLBrace (_,i)) = doc (showString ( i))
+
+
+instance Print PRBrace where
+  prt _ (PRBrace (_,i)) = doc (showString ( i))
+
+
+instance Print PSemiColon where
+  prt _ (PSemiColon (_,i)) = doc (showString ( i))
+
+
+instance Print PIf where
+  prt _ (PIf (_,i)) = doc (showString ( i))
+
+
+instance Print PElse where
+  prt _ (PElse (_,i)) = doc (showString ( i))
+
+
+instance Print PWhile where
+  prt _ (PWhile (_,i)) = doc (showString ( i))
+
+
 instance Print PIdent where
   prt _ (PIdent (_,i)) = doc (showString ( i))
 
@@ -181,22 +217,22 @@ instance Print Arg where
   prtList _ (x:xs) = (concatD [prt 0 x, doc (showString ","), prt 0 xs])
 instance Print Block where
   prt i e = case e of
-    Block stmts -> prPrec i 0 (concatD [doc (showString "{"), prt 0 stmts, doc (showString "}")])
+    Block plbrace stmts prbrace -> prPrec i 0 (concatD [prt 0 plbrace, prt 0 stmts, prt 0 prbrace])
 
 instance Print Stmt where
   prt i e = case e of
-    Empty -> prPrec i 0 (concatD [doc (showString ";")])
+    Empty psemicolon -> prPrec i 0 (concatD [prt 0 psemicolon])
     BStmt block -> prPrec i 0 (concatD [prt 0 block])
-    Decl type_ items -> prPrec i 0 (concatD [prt 0 type_, prt 0 items, doc (showString ";")])
-    Ass pident expr -> prPrec i 0 (concatD [prt 0 pident, doc (showString "="), prt 0 expr, doc (showString ";")])
-    Incr pident -> prPrec i 0 (concatD [prt 0 pident, doc (showString "++"), doc (showString ";")])
-    Decr pident -> prPrec i 0 (concatD [prt 0 pident, doc (showString "--"), doc (showString ";")])
-    Ret preturn expr -> prPrec i 0 (concatD [prt 0 preturn, prt 0 expr, doc (showString ";")])
-    VRet preturn -> prPrec i 0 (concatD [prt 0 preturn, doc (showString ";")])
-    Cond expr stmt -> prPrec i 0 (concatD [doc (showString "if"), doc (showString "("), prt 0 expr, doc (showString ")"), prt 0 stmt])
-    CondElse expr stmt1 stmt2 -> prPrec i 0 (concatD [doc (showString "if"), doc (showString "("), prt 0 expr, doc (showString ")"), prt 0 stmt1, doc (showString "else"), prt 0 stmt2])
-    While expr stmt -> prPrec i 0 (concatD [doc (showString "while"), doc (showString "("), prt 0 expr, doc (showString ")"), prt 0 stmt])
-    SExp expr -> prPrec i 0 (concatD [prt 0 expr, doc (showString ";")])
+    Decl type_ items psemicolon -> prPrec i 0 (concatD [prt 0 type_, prt 0 items, prt 0 psemicolon])
+    Ass pident expr psemicolon -> prPrec i 0 (concatD [prt 0 pident, doc (showString "="), prt 0 expr, prt 0 psemicolon])
+    Incr pident psemicolon -> prPrec i 0 (concatD [prt 0 pident, doc (showString "++"), prt 0 psemicolon])
+    Decr pident psemicolon -> prPrec i 0 (concatD [prt 0 pident, doc (showString "--"), prt 0 psemicolon])
+    Ret preturn expr psemicolon -> prPrec i 0 (concatD [prt 0 preturn, prt 0 expr, prt 0 psemicolon])
+    VRet preturn psemicolon -> prPrec i 0 (concatD [prt 0 preturn, prt 0 psemicolon])
+    Cond pif expr stmt -> prPrec i 0 (concatD [prt 0 pif, doc (showString "("), prt 0 expr, doc (showString ")"), prt 0 stmt])
+    CondElse pif expr stmt1 pelse stmt2 -> prPrec i 0 (concatD [prt 0 pif, doc (showString "("), prt 0 expr, doc (showString ")"), prt 0 stmt1, prt 0 pelse, prt 0 stmt2])
+    While pwhile expr stmt -> prPrec i 0 (concatD [prt 0 pwhile, doc (showString "("), prt 0 expr, doc (showString ")"), prt 0 stmt])
+    SExp expr psemicolon -> prPrec i 0 (concatD [prt 0 expr, prt 0 psemicolon])
   prtList _ [] = (concatD [])
   prtList _ (x:xs) = (concatD [prt 0 x, prt 0 xs])
 instance Print Item where
@@ -224,12 +260,12 @@ instance Print Expr where
     EApp pident exprs -> prPrec i 6 (concatD [prt 0 pident, doc (showString "("), prt 0 exprs, doc (showString ")")])
     EString pstring -> prPrec i 6 (concatD [prt 0 pstring])
     Neg pminus expr -> prPrec i 5 (concatD [prt 0 pminus, prt 6 expr])
-    Not expr -> prPrec i 5 (concatD [doc (showString "!"), prt 6 expr])
+    Not pnot expr -> prPrec i 5 (concatD [prt 0 pnot, prt 6 expr])
     EMul expr1 mulop expr2 -> prPrec i 4 (concatD [prt 4 expr1, prt 0 mulop, prt 5 expr2])
     EAdd expr1 addop expr2 -> prPrec i 3 (concatD [prt 3 expr1, prt 0 addop, prt 4 expr2])
     ERel expr1 relop expr2 -> prPrec i 2 (concatD [prt 2 expr1, prt 0 relop, prt 3 expr2])
-    EAnd expr1 expr2 -> prPrec i 1 (concatD [prt 2 expr1, doc (showString "&&"), prt 1 expr2])
-    EOr expr1 expr2 -> prPrec i 0 (concatD [prt 1 expr1, doc (showString "||"), prt 0 expr2])
+    EAnd expr1 andop expr2 -> prPrec i 1 (concatD [prt 2 expr1, prt 0 andop, prt 1 expr2])
+    EOr expr1 orop expr2 -> prPrec i 0 (concatD [prt 1 expr1, prt 0 orop, prt 0 expr2])
   prtList _ [] = (concatD [])
   prtList _ [x] = (concatD [prt 0 x])
   prtList _ (x:xs) = (concatD [prt 0 x, doc (showString ","), prt 0 xs])
@@ -252,5 +288,13 @@ instance Print RelOp where
     GE pge -> prPrec i 0 (concatD [prt 0 pge])
     EQU pequ -> prPrec i 0 (concatD [prt 0 pequ])
     NE pne -> prPrec i 0 (concatD [prt 0 pne])
+
+instance Print AndOp where
+  prt i e = case e of
+    And pand -> prPrec i 0 (concatD [prt 0 pand])
+
+instance Print OrOp where
+  prt i e = case e of
+    Or por -> prPrec i 0 (concatD [prt 0 por])
 
 

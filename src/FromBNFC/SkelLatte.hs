@@ -63,6 +63,33 @@ transPEQU x = case x of
 transPNE :: PNE -> Result
 transPNE x = case x of
   PNE string -> failure x
+transPAnd :: PAnd -> Result
+transPAnd x = case x of
+  PAnd string -> failure x
+transPOr :: POr -> Result
+transPOr x = case x of
+  POr string -> failure x
+transPNot :: PNot -> Result
+transPNot x = case x of
+  PNot string -> failure x
+transPLBrace :: PLBrace -> Result
+transPLBrace x = case x of
+  PLBrace string -> failure x
+transPRBrace :: PRBrace -> Result
+transPRBrace x = case x of
+  PRBrace string -> failure x
+transPSemiColon :: PSemiColon -> Result
+transPSemiColon x = case x of
+  PSemiColon string -> failure x
+transPIf :: PIf -> Result
+transPIf x = case x of
+  PIf string -> failure x
+transPElse :: PElse -> Result
+transPElse x = case x of
+  PElse string -> failure x
+transPWhile :: PWhile -> Result
+transPWhile x = case x of
+  PWhile string -> failure x
 transPIdent :: PIdent -> Result
 transPIdent x = case x of
   PIdent string -> failure x
@@ -83,21 +110,21 @@ transArg x = case x of
   Arg type_ pident -> failure x
 transBlock :: Block -> Result
 transBlock x = case x of
-  Block stmts -> failure x
+  Block plbrace stmts prbrace -> failure x
 transStmt :: Stmt -> Result
 transStmt x = case x of
-  Empty -> failure x
+  Empty psemicolon -> failure x
   BStmt block -> failure x
-  Decl type_ items -> failure x
-  Ass pident expr -> failure x
-  Incr pident -> failure x
-  Decr pident -> failure x
-  Ret preturn expr -> failure x
-  VRet preturn -> failure x
-  Cond expr stmt -> failure x
-  CondElse expr stmt1 stmt2 -> failure x
-  While expr stmt -> failure x
-  SExp expr -> failure x
+  Decl type_ items psemicolon -> failure x
+  Ass pident expr psemicolon -> failure x
+  Incr pident psemicolon -> failure x
+  Decr pident psemicolon -> failure x
+  Ret preturn expr psemicolon -> failure x
+  VRet preturn psemicolon -> failure x
+  Cond pif expr stmt -> failure x
+  CondElse pif expr stmt1 pelse stmt2 -> failure x
+  While pwhile expr stmt -> failure x
+  SExp expr psemicolon -> failure x
 transItem :: Item -> Result
 transItem x = case x of
   NoInit pident -> failure x
@@ -118,12 +145,12 @@ transExpr x = case x of
   EApp pident exprs -> failure x
   EString pstring -> failure x
   Neg pminus expr -> failure x
-  Not expr -> failure x
+  Not pnot expr -> failure x
   EMul expr1 mulop expr2 -> failure x
   EAdd expr1 addop expr2 -> failure x
   ERel expr1 relop expr2 -> failure x
-  EAnd expr1 expr2 -> failure x
-  EOr expr1 expr2 -> failure x
+  EAnd expr1 andop expr2 -> failure x
+  EOr expr1 orop expr2 -> failure x
 transAddOp :: AddOp -> Result
 transAddOp x = case x of
   Plus pplus -> failure x
@@ -141,4 +168,10 @@ transRelOp x = case x of
   GE pge -> failure x
   EQU pequ -> failure x
   NE pne -> failure x
+transAndOp :: AndOp -> Result
+transAndOp x = case x of
+  And pand -> failure x
+transOrOp :: OrOp -> Result
+transOrOp x = case x of
+  Or por -> failure x
 

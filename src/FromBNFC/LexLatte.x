@@ -21,7 +21,7 @@ $i = [$l $d _ ']          -- identifier character
 $u = [\0-\255]          -- universal: any character
 
 @rsyms =    -- symbols and non-identifier-like reserved words
-   \( | \) | \, | \{ | \} | \; | \= | \+ \+ | \- \- | \! | \& \& | \| \|
+   \( | \) | \, | \= | \+ \+ | \- \-
 
 :-
 "#" [.]* ; -- Toss single line comments
@@ -48,6 +48,15 @@ v o i d { tok (\p s -> PT p (eitherResIdent (T_PTypeVoid . share) s)) }
 \> \= { tok (\p s -> PT p (eitherResIdent (T_PGE . share) s)) }
 \= \= { tok (\p s -> PT p (eitherResIdent (T_PEQU . share) s)) }
 \! \= { tok (\p s -> PT p (eitherResIdent (T_PNE . share) s)) }
+\& \& { tok (\p s -> PT p (eitherResIdent (T_PAnd . share) s)) }
+\| \| { tok (\p s -> PT p (eitherResIdent (T_POr . share) s)) }
+\! { tok (\p s -> PT p (eitherResIdent (T_PNot . share) s)) }
+\{ { tok (\p s -> PT p (eitherResIdent (T_PLBrace . share) s)) }
+\} { tok (\p s -> PT p (eitherResIdent (T_PRBrace . share) s)) }
+\; { tok (\p s -> PT p (eitherResIdent (T_PSemiColon . share) s)) }
+i f { tok (\p s -> PT p (eitherResIdent (T_PIf . share) s)) }
+e l s e { tok (\p s -> PT p (eitherResIdent (T_PElse . share) s)) }
+w h i l e { tok (\p s -> PT p (eitherResIdent (T_PWhile . share) s)) }
 $l ($l | $d | \_ | \')* { tok (\p s -> PT p (eitherResIdent (T_PIdent . share) s)) }
 $d + { tok (\p s -> PT p (eitherResIdent (T_PInteger . share) s)) }
 \" ($u # [\" \\]| \\ [\" \\ t n r f]) * \" { tok (\p s -> PT p (eitherResIdent (T_PString . share) s)) }
@@ -91,6 +100,15 @@ data Tok =
  | T_PGE !String
  | T_PEQU !String
  | T_PNE !String
+ | T_PAnd !String
+ | T_POr !String
+ | T_PNot !String
+ | T_PLBrace !String
+ | T_PRBrace !String
+ | T_PSemiColon !String
+ | T_PIf !String
+ | T_PElse !String
+ | T_PWhile !String
  | T_PIdent !String
  | T_PInteger !String
  | T_PString !String
@@ -146,6 +164,15 @@ prToken t = case t of
   PT _ (T_PGE s) -> s
   PT _ (T_PEQU s) -> s
   PT _ (T_PNE s) -> s
+  PT _ (T_PAnd s) -> s
+  PT _ (T_POr s) -> s
+  PT _ (T_PNot s) -> s
+  PT _ (T_PLBrace s) -> s
+  PT _ (T_PRBrace s) -> s
+  PT _ (T_PSemiColon s) -> s
+  PT _ (T_PIf s) -> s
+  PT _ (T_PElse s) -> s
+  PT _ (T_PWhile s) -> s
   PT _ (T_PIdent s) -> s
   PT _ (T_PInteger s) -> s
   PT _ (T_PString s) -> s
@@ -162,7 +189,7 @@ eitherResIdent tv s = treeFind resWords
                               | s == a = t
 
 resWords :: BTree
-resWords = b ";" 8 (b ")" 4 (b "&&" 2 (b "!" 1 N N) (b "(" 3 N N)) (b "," 6 (b "++" 5 N N) (b "--" 7 N N))) (b "while" 12 (b "else" 10 (b "=" 9 N N) (b "if" 11 N N)) (b "||" 14 (b "{" 13 N N) (b "}" 15 N N)))
+resWords = b "," 4 (b ")" 2 (b "(" 1 N N) (b "++" 3 N N)) (b "=" 6 (b "--" 5 N N) N)
    where b s n = let bs = id s
                   in B bs (TS bs n)
 

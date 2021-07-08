@@ -15,3 +15,5 @@ restart_bnfc
 ./lattests/extensions/struct/*.ll
 ./lattests/extensions/struct/*.bc
 
+latc
+latc_llvm
