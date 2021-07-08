@@ -1,0 +1,98 @@
+-- programs ------------------------------------------------
+
+entrypoints Program ;
+Program.   Program ::= [TopDef] ;
+FnDef.	   TopDef ::= Type PIdent "(" [Arg] ")" Block ;
+separator nonempty TopDef "" ;
+Arg. 	   Arg ::= Type PIdent;
+separator  Arg "," ;
+
+-- statements ----------------------------------------------
+Block.     Block ::= "{" [Stmt] "}" ;
+separator  Stmt "" ;
+Empty.     Stmt ::= ";" ;
+BStmt.     Stmt ::= Block ;
+Decl.      Stmt ::= Type [Item] ";" ;
+NoInit.    Item ::= PIdent ; 
+Init.      Item ::= PIdent "=" Expr ;
+separator nonempty Item "," ;
+Ass.       Stmt ::= PIdent "=" Expr  ";" ;
+Incr.      Stmt ::= PIdent "++"  ";" ;
+Decr.      Stmt ::= PIdent "--"  ";" ;
+Ret.       Stmt ::= PReturn Expr ";" ;
+VRet.      Stmt ::= PReturn ";" ;
+Cond.      Stmt ::= "if" "(" Expr ")" Stmt  ;
+CondElse.  Stmt ::= "if" "(" Expr ")" Stmt "else" Stmt  ;
+While.     Stmt ::= "while" "(" Expr ")" Stmt ;
+SExp.      Stmt ::= Expr  ";" ;
+
+-- Types ---------------------------------------------------
+Int.       Type ::= PTypeInt ;
+Str.       Type ::= PTypeStr ;
+Bool.      Type ::= PTypeBool ;
+Void.      Type ::= PTypeVoid ;
+internal   Fun. Type ::= Type "(" [Type] ")" ;
+separator  Type "," ;
+
+-- Expressions ---------------------------------------------
+
+EVar.      Expr6 ::= PIdent ;
+ELitInt.   Expr6 ::= PInteger ;
+ELitTrue.  Expr6 ::= PTrue ;
+ELitFalse. Expr6 ::= PFalse ;
+EApp.      Expr6 ::= PIdent "(" [Expr] ")" ;
+EString.   Expr6 ::= PString ;
+Neg.       Expr5 ::= PMinus Expr6 ;
+Not.       Expr5 ::= "!" Expr6 ;
+EMul.      Expr4 ::= Expr4 MulOp Expr5 ;
+EAdd.      Expr3 ::= Expr3 AddOp Expr4 ;
+ERel.      Expr2 ::= Expr2 RelOp Expr3 ;
+EAnd.      Expr1 ::= Expr2 "&&" Expr1 ;
+EOr.       Expr ::= Expr1 "||" Expr ;
+coercions  Expr 6 ;
+separator  Expr "," ;
+
+-- operators -----------------------------------------------
+Plus.      AddOp ::= PPlus ;
+Minus.     AddOp ::= PMinus ;
+Times.     MulOp ::= PTimes ;
+Div.       MulOp ::= PDiv ;
+Mod.       MulOp ::= PMod ;
+LTH.       RelOp ::= PLTH ;
+LE.        RelOp ::= PLE ;
+GTH.       RelOp ::= PGTH ;
+GE.        RelOp ::= PGE ;
+EQU.       RelOp ::= PEQU ;
+NE.        RelOp ::= PNE ;
+
+-- comments ------------------------------------------------
+comment    "#" ;
+comment    "//" ;
+comment    "/*" "*/" ;
+
+-- my rules ------------------------------------------------
+position token PTrue {"true"} ;
+position token PFalse {"false"} ;
+position token PReturn {"return"} ;
+
+position token PTypeInt {"int"} ;
+position token PTypeStr {"string"} ;
+position token PTypeBool {"boolean"} ;
+position token PTypeVoid {"void"} ;
+
+position token PPlus    {"+"} ;
+position token PMinus   {"-"} ;
+position token PTimes   {"*"} ;
+position token PDiv     {"/"} ;
+position token PMod     {"%"} ;
+position token PLTH     {"<"} ;
+position token PLE      {"<="} ;
+position token PGTH     {">"} ;
+position token PGE      {">="} ;
+position token PEQU     {"=="} ;
+position token PNE      {"!="} ;
+
+position token PIdent (letter (letter|digit|'_'|'\'')*) ;
+position token PInteger (digit+) ;
+position token PString ('"' ((char - ["\"\\"]) | ('\\' ["\"\\tnrf"]))* '"') ;
+
