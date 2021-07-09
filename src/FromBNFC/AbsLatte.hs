@@ -56,6 +56,10 @@ newtype PElse = PElse ((Int,Int),String)
   deriving (Eq, Ord, Show, Read)
 newtype PWhile = PWhile ((Int,Int),String)
   deriving (Eq, Ord, Show, Read)
+newtype PFor = PFor ((Int,Int),String)
+  deriving (Eq, Ord, Show, Read)
+newtype PNew = PNew ((Int,Int),String)
+  deriving (Eq, Ord, Show, Read)
 newtype PIdent = PIdent ((Int,Int),String)
   deriving (Eq, Ord, Show, Read)
 newtype PInteger = PInteger ((Int,Int),String)
@@ -78,15 +82,16 @@ data Stmt
     = Empty PSemiColon
     | BStmt Block
     | Decl Type [Item] PSemiColon
-    | Ass PIdent Expr PSemiColon
-    | Incr PIdent PSemiColon
-    | Decr PIdent PSemiColon
+    | Ass Var Expr PSemiColon
+    | Incr Var PSemiColon
+    | Decr Var PSemiColon
     | Ret PReturn Expr PSemiColon
     | VRet PReturn PSemiColon
     | Cond PIf Expr Stmt
     | CondElse PIf Expr Stmt PElse Stmt
     | While PWhile Expr Stmt
     | SExp Expr PSemiColon
+    | For PFor Type PIdent Var Stmt
   deriving (Eq, Ord, Show, Read)
 
 data Item = NoInit PIdent | Init PIdent Expr
@@ -98,10 +103,14 @@ data Type
     | Bool PTypeBool
     | Void PTypeVoid
     | Fun Type [Type]
+    | Arr Type
+  deriving (Eq, Ord, Show, Read)
+
+data Var = Var PIdent | Member Var PIdent | Elem Var Expr
   deriving (Eq, Ord, Show, Read)
 
 data Expr
-    = EVar PIdent
+    = EVar Var
     | ELitInt PInteger
     | ELitTrue PTrue
     | ELitFalse PFalse
@@ -114,6 +123,7 @@ data Expr
     | ERel Expr RelOp Expr
     | EAnd Expr AndOp Expr
     | EOr Expr OrOp Expr
+    | NewArr PNew Type Expr
   deriving (Eq, Ord, Show, Read)
 
 data AddOp = Plus PPlus | Minus PMinus

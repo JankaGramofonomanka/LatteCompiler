@@ -187,6 +187,14 @@ instance Print PWhile where
   prt _ (PWhile (_,i)) = doc (showString ( i))
 
 
+instance Print PFor where
+  prt _ (PFor (_,i)) = doc (showString ( i))
+
+
+instance Print PNew where
+  prt _ (PNew (_,i)) = doc (showString ( i))
+
+
 instance Print PIdent where
   prt _ (PIdent (_,i)) = doc (showString ( i))
 
@@ -224,15 +232,16 @@ instance Print Stmt where
     Empty psemicolon -> prPrec i 0 (concatD [prt 0 psemicolon])
     BStmt block -> prPrec i 0 (concatD [prt 0 block])
     Decl type_ items psemicolon -> prPrec i 0 (concatD [prt 0 type_, prt 0 items, prt 0 psemicolon])
-    Ass pident expr psemicolon -> prPrec i 0 (concatD [prt 0 pident, doc (showString "="), prt 0 expr, prt 0 psemicolon])
-    Incr pident psemicolon -> prPrec i 0 (concatD [prt 0 pident, doc (showString "++"), prt 0 psemicolon])
-    Decr pident psemicolon -> prPrec i 0 (concatD [prt 0 pident, doc (showString "--"), prt 0 psemicolon])
+    Ass var expr psemicolon -> prPrec i 0 (concatD [prt 0 var, doc (showString "="), prt 0 expr, prt 0 psemicolon])
+    Incr var psemicolon -> prPrec i 0 (concatD [prt 0 var, doc (showString "++"), prt 0 psemicolon])
+    Decr var psemicolon -> prPrec i 0 (concatD [prt 0 var, doc (showString "--"), prt 0 psemicolon])
     Ret preturn expr psemicolon -> prPrec i 0 (concatD [prt 0 preturn, prt 0 expr, prt 0 psemicolon])
     VRet preturn psemicolon -> prPrec i 0 (concatD [prt 0 preturn, prt 0 psemicolon])
     Cond pif expr stmt -> prPrec i 0 (concatD [prt 0 pif, doc (showString "("), prt 0 expr, doc (showString ")"), prt 0 stmt])
     CondElse pif expr stmt1 pelse stmt2 -> prPrec i 0 (concatD [prt 0 pif, doc (showString "("), prt 0 expr, doc (showString ")"), prt 0 stmt1, prt 0 pelse, prt 0 stmt2])
     While pwhile expr stmt -> prPrec i 0 (concatD [prt 0 pwhile, doc (showString "("), prt 0 expr, doc (showString ")"), prt 0 stmt])
     SExp expr psemicolon -> prPrec i 0 (concatD [prt 0 expr, prt 0 psemicolon])
+    For pfor type_ pident var stmt -> prPrec i 0 (concatD [prt 0 pfor, doc (showString "("), prt 0 type_, prt 0 pident, doc (showString ":"), prt 0 var, doc (showString ")"), prt 0 stmt])
   prtList _ [] = (concatD [])
   prtList _ (x:xs) = (concatD [prt 0 x, prt 0 xs])
 instance Print Item where
@@ -248,12 +257,19 @@ instance Print Type where
     Bool ptypebool -> prPrec i 0 (concatD [prt 0 ptypebool])
     Void ptypevoid -> prPrec i 0 (concatD [prt 0 ptypevoid])
     Fun type_ types -> prPrec i 0 (concatD [prt 0 type_, doc (showString "("), prt 0 types, doc (showString ")")])
+    Arr type_ -> prPrec i 0 (concatD [prt 0 type_, doc (showString "["), doc (showString "]")])
   prtList _ [] = (concatD [])
   prtList _ [x] = (concatD [prt 0 x])
   prtList _ (x:xs) = (concatD [prt 0 x, doc (showString ","), prt 0 xs])
+instance Print Var where
+  prt i e = case e of
+    Var pident -> prPrec i 0 (concatD [prt 0 pident])
+    Member var pident -> prPrec i 0 (concatD [prt 0 var, doc (showString "."), prt 0 pident])
+    Elem var expr -> prPrec i 0 (concatD [prt 0 var, doc (showString "["), prt 0 expr, doc (showString "]")])
+
 instance Print Expr where
   prt i e = case e of
-    EVar pident -> prPrec i 6 (concatD [prt 0 pident])
+    EVar var -> prPrec i 6 (concatD [prt 0 var])
     ELitInt pinteger -> prPrec i 6 (concatD [prt 0 pinteger])
     ELitTrue ptrue -> prPrec i 6 (concatD [prt 0 ptrue])
     ELitFalse pfalse -> prPrec i 6 (concatD [prt 0 pfalse])
@@ -266,6 +282,7 @@ instance Print Expr where
     ERel expr1 relop expr2 -> prPrec i 2 (concatD [prt 2 expr1, prt 0 relop, prt 3 expr2])
     EAnd expr1 andop expr2 -> prPrec i 1 (concatD [prt 2 expr1, prt 0 andop, prt 1 expr2])
     EOr expr1 orop expr2 -> prPrec i 0 (concatD [prt 1 expr1, prt 0 orop, prt 0 expr2])
+    NewArr pnew type_ expr -> prPrec i 0 (concatD [prt 0 pnew, prt 0 type_, doc (showString "["), prt 0 expr, doc (showString "]")])
   prtList _ [] = (concatD [])
   prtList _ [x] = (concatD [prt 0 x])
   prtList _ (x:xs) = (concatD [prt 0 x, doc (showString ","), prt 0 xs])

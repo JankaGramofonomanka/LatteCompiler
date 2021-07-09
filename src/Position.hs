@@ -3,7 +3,7 @@ module Position where
 import FromBNFC.AbsLatte
 
 
-
+{-
 type Pos = (Int, Int)
 fakePos, zeroPos :: Pos
 fakePos = (-1, -1)
@@ -195,7 +195,7 @@ instance HasPosition PElse where
 instance HasPosition PWhile where
   position (PWhile (p, _)) = p
 
-
+-- -}
 
 
 

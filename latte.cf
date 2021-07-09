@@ -1,112 +1,134 @@
 -- programs ------------------------------------------------
 
 entrypoints Program ;
-Program.   Program ::= [TopDef] ;
-FnDef.	   TopDef ::= Type PIdent "(" [Arg] ")" Block ;
+Program.    Program ::= [TopDef] ;
+FnDef.	    TopDef ::= Type PIdent "(" [Arg] ")" Block ;
 separator nonempty TopDef "" ;
-Arg. 	   Arg ::= Type PIdent;
-separator  Arg "," ;
+Arg. 	    Arg ::= Type PIdent;
+separator   Arg "," ;
 
 -- statements ----------------------------------------------
-Block.     Block ::= PLBrace [Stmt] PRBrace ;
-separator  Stmt "" ;
-Empty.     Stmt ::= PSemiColon ;
-BStmt.     Stmt ::= Block ;
-Decl.      Stmt ::= Type [Item] PSemiColon ;
-NoInit.    Item ::= PIdent ; 
-Init.      Item ::= PIdent "=" Expr ;
+Block.      Block ::= PLBrace [Stmt] PRBrace ;
+separator   Stmt "" ;
+Empty.      Stmt ::= PSemiColon ;
+BStmt.      Stmt ::= Block ;
+Decl.       Stmt ::= Type [Item] PSemiColon ;
+NoInit.     Item ::= PIdent ; 
+Init.       Item ::= PIdent "=" Expr ;
 separator nonempty Item "," ;
-Ass.       Stmt ::= PIdent "=" Expr PSemiColon ;
-Incr.      Stmt ::= PIdent "++" PSemiColon ;
-Decr.      Stmt ::= PIdent "--" PSemiColon ;
-Ret.       Stmt ::= PReturn Expr PSemiColon ;
-VRet.      Stmt ::= PReturn PSemiColon ;
-Cond.      Stmt ::= PIf "(" Expr ")" Stmt  ;
-CondElse.  Stmt ::= PIf "(" Expr ")" Stmt PElse Stmt ;
-While.     Stmt ::= PWhile "(" Expr ")" Stmt ;
-SExp.      Stmt ::= Expr PSemiColon ;
+Ass.        Stmt ::= Var "=" Expr PSemiColon ;
+Incr.       Stmt ::= Var "++" PSemiColon ;
+Decr.       Stmt ::= Var "--" PSemiColon ;
+Ret.        Stmt ::= PReturn Expr PSemiColon ;
+VRet.       Stmt ::= PReturn PSemiColon ;
+Cond.       Stmt ::= PIf "(" Expr ")" Stmt  ;
+CondElse.   Stmt ::= PIf "(" Expr ")" Stmt PElse Stmt ;
+While.      Stmt ::= PWhile "(" Expr ")" Stmt ;
+SExp.       Stmt ::= Expr PSemiColon ;
 
 -- Types ---------------------------------------------------
-Int.       Type ::= PTypeInt ;
-Str.       Type ::= PTypeStr ;
-Bool.      Type ::= PTypeBool ;
-Void.      Type ::= PTypeVoid ;
-internal   Fun. Type ::= Type "(" [Type] ")" ;
-separator  Type "," ;
+Int.        Type ::= PTypeInt ;
+Str.        Type ::= PTypeStr ;
+Bool.       Type ::= PTypeBool ;
+Void.       Type ::= PTypeVoid ;
+internal    Fun. Type ::= Type "(" [Type] ")" ;
+separator   Type "," ;
 
 -- Expressions ---------------------------------------------
 
-EVar.      Expr6 ::= PIdent ;
-ELitInt.   Expr6 ::= PInteger ;
-ELitTrue.  Expr6 ::= PTrue ;
-ELitFalse. Expr6 ::= PFalse ;
-EApp.      Expr6 ::= PIdent "(" [Expr] ")" ;
-EString.   Expr6 ::= PString ;
-Neg.       Expr5 ::= PMinus Expr6 ;
-Not.       Expr5 ::= PNot Expr6 ;
-EMul.      Expr4 ::= Expr4 MulOp Expr5 ;
-EAdd.      Expr3 ::= Expr3 AddOp Expr4 ;
-ERel.      Expr2 ::= Expr2 RelOp Expr3 ;
-EAnd.      Expr1 ::= Expr2 AndOp Expr1 ;
-EOr.       Expr ::= Expr1 OrOp Expr ;
-coercions  Expr 6 ;
-separator  Expr "," ;
+EVar.       Expr6 ::= Var ;
+Var.        Var ::= PIdent ;
+ELitInt.    Expr6 ::= PInteger ;
+ELitTrue.   Expr6 ::= PTrue ;
+ELitFalse.  Expr6 ::= PFalse ;
+EApp.       Expr6 ::= PIdent "(" [Expr] ")" ;
+EString.    Expr6 ::= PString ;
+Neg.        Expr5 ::= PMinus Expr6 ;
+Not.        Expr5 ::= PNot Expr6 ;
+EMul.       Expr4 ::= Expr4 MulOp Expr5 ;
+EAdd.       Expr3 ::= Expr3 AddOp Expr4 ;
+ERel.       Expr2 ::= Expr2 RelOp Expr3 ;
+EAnd.       Expr1 ::= Expr2 AndOp Expr1 ;
+EOr.        Expr ::= Expr1 OrOp Expr ;
+coercions   Expr 6 ;
+separator   Expr "," ;
 
 -- operators -----------------------------------------------
-Plus.      AddOp ::= PPlus ;
-Minus.     AddOp ::= PMinus ;
-Times.     MulOp ::= PTimes ;
-Div.       MulOp ::= PDiv ;
-Mod.       MulOp ::= PMod ;
-LTH.       RelOp ::= PLTH ;
-LE.        RelOp ::= PLE ;
-GTH.       RelOp ::= PGTH ;
-GE.        RelOp ::= PGE ;
-EQU.       RelOp ::= PEQU ;
-NE.        RelOp ::= PNE ;
-And.       AndOp ::= PAnd ;
-Or.        OrOp  ::= POr ;
+Plus.       AddOp ::= PPlus ;
+Minus.      AddOp ::= PMinus ;
+Times.      MulOp ::= PTimes ;
+Div.        MulOp ::= PDiv ;
+Mod.        MulOp ::= PMod ;
+LTH.        RelOp ::= PLTH ;
+LE.         RelOp ::= PLE ;
+GTH.        RelOp ::= PGTH ;
+GE.         RelOp ::= PGE ;
+EQU.        RelOp ::= PEQU ;
+NE.         RelOp ::= PNE ;
+And.        AndOp ::= PAnd ;
+Or.         OrOp  ::= POr ;
 
 -- comments ------------------------------------------------
-comment    "#" ;
-comment    "//" ;
-comment    "/*" "*/" ;
-
--- my rules ------------------------------------------------
-position token PTrue {"true"} ;
-position token PFalse {"false"} ;
-position token PReturn {"return"} ;
-
-position token PTypeInt {"int"} ;
-position token PTypeStr {"string"} ;
-position token PTypeBool {"boolean"} ;
-position token PTypeVoid {"void"} ;
-
-position token PPlus    {"+"} ;
-position token PMinus   {"-"} ;
-position token PTimes   {"*"} ;
-position token PDiv     {"/"} ;
-position token PMod     {"%"} ;
-position token PLTH     {"<"} ;
-position token PLE      {"<="} ;
-position token PGTH     {">"} ;
-position token PGE      {">="} ;
-position token PEQU     {"=="} ;
-position token PNE      {"!="} ;
-position token PAnd     {"&&"} ;
-position token POr      {"||"} ;
-position token PNot     {"!"} ;
+comment     "#" ;
+comment     "//" ;
+comment     "/*" "*/" ;
 
 
-position token PLBrace {"{"} ;
-position token PRBrace {"}"} ;
 
-position token PSemiColon {";"} ;
 
-position token PIf      {"if"} ;
-position token PElse    {"else"} ;
-position token PWhile   {"while"} ;
+-- *********************************************************
+-- EXTENSIONS ----------------------------------------------
+-- *********************************************************
 
-position token PIdent (letter (letter|digit|'_'|'\'')*) ;
+
+-- arrays --------------------------------------------------
+Arr.        Type ::= Type "[" "]" ;
+NewArr.     Expr ::= PNew Type "[" Expr "]" ;
+For.        Stmt ::= PFor "(" Type PIdent ":" Var ")" Stmt ;
+
+Member.     Var ::= Var "." PIdent ;
+Elem.       Var ::= Var "[" Expr "]" ;
+
+
+
+-- custom tokens--------------------------------------------
+position token PTrue        {"true"} ;
+position token PFalse       {"false"} ;
+position token PReturn      {"return"} ;
+
+position token PTypeInt     {"int"} ;
+position token PTypeStr     {"string"} ;
+position token PTypeBool    {"boolean"} ;
+position token PTypeVoid    {"void"} ;
+
+position token PPlus        {"+"} ;
+position token PMinus       {"-"} ;
+position token PTimes       {"*"} ;
+position token PDiv         {"/"} ;
+position token PMod         {"%"} ;
+position token PLTH         {"<"} ;
+position token PLE          {"<="} ;
+position token PGTH         {">"} ;
+position token PGE          {">="} ;
+position token PEQU         {"=="} ;
+position token PNE          {"!="} ;
+position token PAnd         {"&&"} ;
+position token POr          {"||"} ;
+position token PNot         {"!"} ;
+
+
+position token PLBrace      {"{"} ;
+position token PRBrace      {"}"} ;
+
+position token PSemiColon   {";"} ;
+
+position token PIf          {"if"} ;
+position token PElse        {"else"} ;
+position token PWhile       {"while"} ;
+position token PFor         {"for"} ;
+
+position token PNew         {"new"} ;
+
+position token PIdent   (letter (letter|digit|'_'|'\'')*) ;
 position token PInteger (digit+) ;
-position token PString ('"' ((char - ["\"\\"]) | ('\\' ["\"\\tnrf"]))* '"') ;
+position token PString  ('"' ((char - ["\"\\"]) | ('\\' ["\"\\tnrf"]))* '"') ;

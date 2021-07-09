@@ -21,7 +21,7 @@ $i = [$l $d _ ']          -- identifier character
 $u = [\0-\255]          -- universal: any character
 
 @rsyms =    -- symbols and non-identifier-like reserved words
-   \( | \) | \, | \= | \+ \+ | \- \-
+   \( | \) | \, | \= | \+ \+ | \- \- | \[ | \] | \: | \.
 
 :-
 "#" [.]* ; -- Toss single line comments
@@ -57,6 +57,8 @@ v o i d { tok (\p s -> PT p (eitherResIdent (T_PTypeVoid . share) s)) }
 i f { tok (\p s -> PT p (eitherResIdent (T_PIf . share) s)) }
 e l s e { tok (\p s -> PT p (eitherResIdent (T_PElse . share) s)) }
 w h i l e { tok (\p s -> PT p (eitherResIdent (T_PWhile . share) s)) }
+f o r { tok (\p s -> PT p (eitherResIdent (T_PFor . share) s)) }
+n e w { tok (\p s -> PT p (eitherResIdent (T_PNew . share) s)) }
 $l ($l | $d | \_ | \')* { tok (\p s -> PT p (eitherResIdent (T_PIdent . share) s)) }
 $d + { tok (\p s -> PT p (eitherResIdent (T_PInteger . share) s)) }
 \" ($u # [\" \\]| \\ [\" \\ t n r f]) * \" { tok (\p s -> PT p (eitherResIdent (T_PString . share) s)) }
@@ -109,6 +111,8 @@ data Tok =
  | T_PIf !String
  | T_PElse !String
  | T_PWhile !String
+ | T_PFor !String
+ | T_PNew !String
  | T_PIdent !String
  | T_PInteger !String
  | T_PString !String
@@ -173,6 +177,8 @@ prToken t = case t of
   PT _ (T_PIf s) -> s
   PT _ (T_PElse s) -> s
   PT _ (T_PWhile s) -> s
+  PT _ (T_PFor s) -> s
+  PT _ (T_PNew s) -> s
   PT _ (T_PIdent s) -> s
   PT _ (T_PInteger s) -> s
   PT _ (T_PString s) -> s
@@ -189,7 +195,7 @@ eitherResIdent tv s = treeFind resWords
                               | s == a = t
 
 resWords :: BTree
-resWords = b "," 4 (b ")" 2 (b "(" 1 N N) (b "++" 3 N N)) (b "=" 6 (b "--" 5 N N) N)
+resWords = b "." 6 (b "++" 3 (b ")" 2 (b "(" 1 N N) N) (b "--" 5 (b "," 4 N N) N)) (b "[" 9 (b "=" 8 (b ":" 7 N N) N) (b "]" 10 N N))
    where b s n = let bs = id s
                   in B bs (TS bs n)
 

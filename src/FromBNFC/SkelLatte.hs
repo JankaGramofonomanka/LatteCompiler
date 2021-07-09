@@ -90,6 +90,12 @@ transPElse x = case x of
 transPWhile :: PWhile -> Result
 transPWhile x = case x of
   PWhile string -> failure x
+transPFor :: PFor -> Result
+transPFor x = case x of
+  PFor string -> failure x
+transPNew :: PNew -> Result
+transPNew x = case x of
+  PNew string -> failure x
 transPIdent :: PIdent -> Result
 transPIdent x = case x of
   PIdent string -> failure x
@@ -116,15 +122,16 @@ transStmt x = case x of
   Empty psemicolon -> failure x
   BStmt block -> failure x
   Decl type_ items psemicolon -> failure x
-  Ass pident expr psemicolon -> failure x
-  Incr pident psemicolon -> failure x
-  Decr pident psemicolon -> failure x
+  Ass var expr psemicolon -> failure x
+  Incr var psemicolon -> failure x
+  Decr var psemicolon -> failure x
   Ret preturn expr psemicolon -> failure x
   VRet preturn psemicolon -> failure x
   Cond pif expr stmt -> failure x
   CondElse pif expr stmt1 pelse stmt2 -> failure x
   While pwhile expr stmt -> failure x
   SExp expr psemicolon -> failure x
+  For pfor type_ pident var stmt -> failure x
 transItem :: Item -> Result
 transItem x = case x of
   NoInit pident -> failure x
@@ -136,9 +143,15 @@ transType x = case x of
   Bool ptypebool -> failure x
   Void ptypevoid -> failure x
   Fun type_ types -> failure x
+  Arr type_ -> failure x
+transVar :: Var -> Result
+transVar x = case x of
+  Var pident -> failure x
+  Member var pident -> failure x
+  Elem var expr -> failure x
 transExpr :: Expr -> Result
 transExpr x = case x of
-  EVar pident -> failure x
+  EVar var -> failure x
   ELitInt pinteger -> failure x
   ELitTrue ptrue -> failure x
   ELitFalse pfalse -> failure x
@@ -151,6 +164,7 @@ transExpr x = case x of
   ERel expr1 relop expr2 -> failure x
   EAnd expr1 andop expr2 -> failure x
   EOr expr1 orop expr2 -> failure x
+  NewArr pnew type_ expr -> failure x
 transAddOp :: AddOp -> Result
 transAddOp x = case x of
   Plus pplus -> failure x

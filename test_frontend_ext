@@ -1,0 +1,19 @@
+#!/bin/bash
+
+
+make
+
+echo ""
+echo "-- ARRAYS ----------------------------------------"
+
+for i in {1..2}
+do 
+    echo ""
+    echo "array00$i.lat:"
+    ./latc ./lattests/extensions/arrays1/array00$i.lat
+done
+
+
+
+
+make clean

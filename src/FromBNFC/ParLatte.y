@@ -18,7 +18,11 @@ import FromBNFC.ErrM
   '++' { PT _ (TS _ 3) }
   ',' { PT _ (TS _ 4) }
   '--' { PT _ (TS _ 5) }
-  '=' { PT _ (TS _ 6) }
+  '.' { PT _ (TS _ 6) }
+  ':' { PT _ (TS _ 7) }
+  '=' { PT _ (TS _ 8) }
+  '[' { PT _ (TS _ 9) }
+  ']' { PT _ (TS _ 10) }
 
 L_PTrue { PT _ (T_PTrue _) }
 L_PFalse { PT _ (T_PFalse _) }
@@ -47,6 +51,8 @@ L_PSemiColon { PT _ (T_PSemiColon _) }
 L_PIf { PT _ (T_PIf _) }
 L_PElse { PT _ (T_PElse _) }
 L_PWhile { PT _ (T_PWhile _) }
+L_PFor { PT _ (T_PFor _) }
+L_PNew { PT _ (T_PNew _) }
 L_PIdent { PT _ (T_PIdent _) }
 L_PInteger { PT _ (T_PInteger _) }
 L_PString { PT _ (T_PString _) }
@@ -81,6 +87,8 @@ PSemiColon    :: { PSemiColon} : L_PSemiColon { PSemiColon (mkPosToken $1)}
 PIf    :: { PIf} : L_PIf { PIf (mkPosToken $1)}
 PElse    :: { PElse} : L_PElse { PElse (mkPosToken $1)}
 PWhile    :: { PWhile} : L_PWhile { PWhile (mkPosToken $1)}
+PFor    :: { PFor} : L_PFor { PFor (mkPosToken $1)}
+PNew    :: { PNew} : L_PNew { PNew (mkPosToken $1)}
 PIdent    :: { PIdent} : L_PIdent { PIdent (mkPosToken $1)}
 PInteger    :: { PInteger} : L_PInteger { PInteger (mkPosToken $1)}
 PString    :: { PString} : L_PString { PString (mkPosToken $1)}
@@ -105,15 +113,16 @@ Stmt :: { Stmt }
 Stmt : PSemiColon { FromBNFC.AbsLatte.Empty $1 }
      | Block { FromBNFC.AbsLatte.BStmt $1 }
      | Type ListItem PSemiColon { FromBNFC.AbsLatte.Decl $1 $2 $3 }
-     | PIdent '=' Expr PSemiColon { FromBNFC.AbsLatte.Ass $1 $3 $4 }
-     | PIdent '++' PSemiColon { FromBNFC.AbsLatte.Incr $1 $3 }
-     | PIdent '--' PSemiColon { FromBNFC.AbsLatte.Decr $1 $3 }
+     | Var '=' Expr PSemiColon { FromBNFC.AbsLatte.Ass $1 $3 $4 }
+     | Var '++' PSemiColon { FromBNFC.AbsLatte.Incr $1 $3 }
+     | Var '--' PSemiColon { FromBNFC.AbsLatte.Decr $1 $3 }
      | PReturn Expr PSemiColon { FromBNFC.AbsLatte.Ret $1 $2 $3 }
      | PReturn PSemiColon { FromBNFC.AbsLatte.VRet $1 $2 }
      | PIf '(' Expr ')' Stmt { FromBNFC.AbsLatte.Cond $1 $3 $5 }
      | PIf '(' Expr ')' Stmt PElse Stmt { FromBNFC.AbsLatte.CondElse $1 $3 $5 $6 $7 }
      | PWhile '(' Expr ')' Stmt { FromBNFC.AbsLatte.While $1 $3 $5 }
      | Expr PSemiColon { FromBNFC.AbsLatte.SExp $1 $2 }
+     | PFor '(' Type PIdent ':' Var ')' Stmt { FromBNFC.AbsLatte.For $1 $3 $4 $6 $8 }
 Item :: { Item }
 Item : PIdent { FromBNFC.AbsLatte.NoInit $1 }
      | PIdent '=' Expr { FromBNFC.AbsLatte.Init $1 $3 }
@@ -124,18 +133,23 @@ Type : PTypeInt { FromBNFC.AbsLatte.Int $1 }
      | PTypeStr { FromBNFC.AbsLatte.Str $1 }
      | PTypeBool { FromBNFC.AbsLatte.Bool $1 }
      | PTypeVoid { FromBNFC.AbsLatte.Void $1 }
+     | Type '[' ']' { FromBNFC.AbsLatte.Arr $1 }
 ListType :: { [Type] }
 ListType : {- empty -} { [] }
          | Type { (:[]) $1 }
          | Type ',' ListType { (:) $1 $3 }
 Expr6 :: { Expr }
-Expr6 : PIdent { FromBNFC.AbsLatte.EVar $1 }
+Expr6 : Var { FromBNFC.AbsLatte.EVar $1 }
       | PInteger { FromBNFC.AbsLatte.ELitInt $1 }
       | PTrue { FromBNFC.AbsLatte.ELitTrue $1 }
       | PFalse { FromBNFC.AbsLatte.ELitFalse $1 }
       | PIdent '(' ListExpr ')' { FromBNFC.AbsLatte.EApp $1 $3 }
       | PString { FromBNFC.AbsLatte.EString $1 }
       | '(' Expr ')' { $2 }
+Var :: { Var }
+Var : PIdent { FromBNFC.AbsLatte.Var $1 }
+    | Var '.' PIdent { FromBNFC.AbsLatte.Member $1 $3 }
+    | Var '[' Expr ']' { FromBNFC.AbsLatte.Elem $1 $3 }
 Expr5 :: { Expr }
 Expr5 : PMinus Expr6 { FromBNFC.AbsLatte.Neg $1 $2 }
       | PNot Expr6 { FromBNFC.AbsLatte.Not $1 $2 }
@@ -155,6 +169,7 @@ Expr1 : Expr2 AndOp Expr1 { FromBNFC.AbsLatte.EAnd $1 $2 $3 }
 Expr :: { Expr }
 Expr : Expr1 OrOp Expr { FromBNFC.AbsLatte.EOr $1 $2 $3 }
      | Expr1 { $1 }
+     | PNew Type '[' Expr ']' { FromBNFC.AbsLatte.NewArr $1 $2 $4 }
 ListExpr :: { [Expr] }
 ListExpr : {- empty -} { [] }
          | Expr { (:[]) $1 }
