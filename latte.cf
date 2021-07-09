@@ -41,7 +41,7 @@ Var.        Var ::= PIdent ;
 ELitInt.    Expr6 ::= PInteger ;
 ELitTrue.   Expr6 ::= PTrue ;
 ELitFalse.  Expr6 ::= PFalse ;
-EApp.       Expr6 ::= PIdent "(" [Expr] ")" ;
+EApp.       Expr6 ::= Var "(" [Expr] ")" ;
 EString.    Expr6 ::= PString ;
 Neg.        Expr5 ::= PMinus Expr6 ;
 Not.        Expr5 ::= PNot Expr6 ;
@@ -89,12 +89,27 @@ For.        Stmt ::= PFor "(" Type PIdent ":" Var ")" Stmt ;
 Member.     Var ::= Var "." PIdent ;
 Elem.       Var ::= Var "[" Expr "]" ;
 
+-- structs / classes ---------------------------------------
+BaseClassDef.   TopDef ::= PClass PIdent ClassBody ;
+ChildClassDef.  TopDef ::= PClass PIdent PExtends PIdent ClassBody ;
+
+ClassBody.  ClassBody ::= PLBrace [MemberDecl] PRBrace ;
+AttrDecl.   MemberDecl ::= Type PIdent PSemiColon ;
+MethodDecl. MemberDecl ::= TopDef ;
+separator MemberDecl "" ;
+Custom.     Type ::= PIdent ;
+NewObj.     Expr ::= PNew PIdent ;
+Cast.       Expr5 ::= "(" Type ")" Expr6 ;
 
 
--- custom tokens--------------------------------------------
+
+-- *********************************************************
+-- CUSTOM TOKENS--------------------------------------------
+-- *********************************************************
+
 position token PTrue        {"true"} ;
 position token PFalse       {"false"} ;
-position token PReturn      {"return"} ;
+
 
 position token PTypeInt     {"int"} ;
 position token PTypeStr     {"string"} ;
@@ -127,7 +142,11 @@ position token PElse        {"else"} ;
 position token PWhile       {"while"} ;
 position token PFor         {"for"} ;
 
+position token PReturn      {"return"} ;
 position token PNew         {"new"} ;
+
+position token PClass       {"class"} ;
+position token PExtends     {"extends"} ;
 
 position token PIdent   (letter (letter|digit|'_'|'\'')*) ;
 position token PInteger (digit+) ;

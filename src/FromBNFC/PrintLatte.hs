@@ -87,10 +87,6 @@ instance Print PFalse where
   prt _ (PFalse (_,i)) = doc (showString ( i))
 
 
-instance Print PReturn where
-  prt _ (PReturn (_,i)) = doc (showString ( i))
-
-
 instance Print PTypeInt where
   prt _ (PTypeInt (_,i)) = doc (showString ( i))
 
@@ -191,8 +187,20 @@ instance Print PFor where
   prt _ (PFor (_,i)) = doc (showString ( i))
 
 
+instance Print PReturn where
+  prt _ (PReturn (_,i)) = doc (showString ( i))
+
+
 instance Print PNew where
   prt _ (PNew (_,i)) = doc (showString ( i))
+
+
+instance Print PClass where
+  prt _ (PClass (_,i)) = doc (showString ( i))
+
+
+instance Print PExtends where
+  prt _ (PExtends (_,i)) = doc (showString ( i))
 
 
 instance Print PIdent where
@@ -215,6 +223,8 @@ instance Print Program where
 instance Print TopDef where
   prt i e = case e of
     FnDef type_ pident args block -> prPrec i 0 (concatD [prt 0 type_, prt 0 pident, doc (showString "("), prt 0 args, doc (showString ")"), prt 0 block])
+    BaseClassDef pclass pident classbody -> prPrec i 0 (concatD [prt 0 pclass, prt 0 pident, prt 0 classbody])
+    ChildClassDef pclass pident1 pextends pident2 classbody -> prPrec i 0 (concatD [prt 0 pclass, prt 0 pident1, prt 0 pextends, prt 0 pident2, prt 0 classbody])
   prtList _ [x] = (concatD [prt 0 x])
   prtList _ (x:xs) = (concatD [prt 0 x, prt 0 xs])
 instance Print Arg where
@@ -258,6 +268,7 @@ instance Print Type where
     Void ptypevoid -> prPrec i 0 (concatD [prt 0 ptypevoid])
     Fun type_ types -> prPrec i 0 (concatD [prt 0 type_, doc (showString "("), prt 0 types, doc (showString ")")])
     Arr type_ -> prPrec i 0 (concatD [prt 0 type_, doc (showString "["), doc (showString "]")])
+    Custom pident -> prPrec i 0 (concatD [prt 0 pident])
   prtList _ [] = (concatD [])
   prtList _ [x] = (concatD [prt 0 x])
   prtList _ (x:xs) = (concatD [prt 0 x, doc (showString ","), prt 0 xs])
@@ -273,7 +284,7 @@ instance Print Expr where
     ELitInt pinteger -> prPrec i 6 (concatD [prt 0 pinteger])
     ELitTrue ptrue -> prPrec i 6 (concatD [prt 0 ptrue])
     ELitFalse pfalse -> prPrec i 6 (concatD [prt 0 pfalse])
-    EApp pident exprs -> prPrec i 6 (concatD [prt 0 pident, doc (showString "("), prt 0 exprs, doc (showString ")")])
+    EApp var exprs -> prPrec i 6 (concatD [prt 0 var, doc (showString "("), prt 0 exprs, doc (showString ")")])
     EString pstring -> prPrec i 6 (concatD [prt 0 pstring])
     Neg pminus expr -> prPrec i 5 (concatD [prt 0 pminus, prt 6 expr])
     Not pnot expr -> prPrec i 5 (concatD [prt 0 pnot, prt 6 expr])
@@ -283,6 +294,8 @@ instance Print Expr where
     EAnd expr1 andop expr2 -> prPrec i 1 (concatD [prt 2 expr1, prt 0 andop, prt 1 expr2])
     EOr expr1 orop expr2 -> prPrec i 0 (concatD [prt 1 expr1, prt 0 orop, prt 0 expr2])
     NewArr pnew type_ expr -> prPrec i 0 (concatD [prt 0 pnew, prt 0 type_, doc (showString "["), prt 0 expr, doc (showString "]")])
+    NewObj pnew pident -> prPrec i 0 (concatD [prt 0 pnew, prt 0 pident])
+    Cast type_ expr -> prPrec i 5 (concatD [doc (showString "("), prt 0 type_, doc (showString ")"), prt 6 expr])
   prtList _ [] = (concatD [])
   prtList _ [x] = (concatD [prt 0 x])
   prtList _ (x:xs) = (concatD [prt 0 x, doc (showString ","), prt 0 xs])
@@ -314,4 +327,14 @@ instance Print OrOp where
   prt i e = case e of
     Or por -> prPrec i 0 (concatD [prt 0 por])
 
+instance Print ClassBody where
+  prt i e = case e of
+    ClassBody plbrace memberdecls prbrace -> prPrec i 0 (concatD [prt 0 plbrace, prt 0 memberdecls, prt 0 prbrace])
+
+instance Print MemberDecl where
+  prt i e = case e of
+    AttrDecl type_ pident psemicolon -> prPrec i 0 (concatD [prt 0 type_, prt 0 pident, prt 0 psemicolon])
+    MethodDecl topdef -> prPrec i 0 (concatD [prt 0 topdef])
+  prtList _ [] = (concatD [])
+  prtList _ (x:xs) = (concatD [prt 0 x, prt 0 xs])
 

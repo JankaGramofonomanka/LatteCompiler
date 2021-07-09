@@ -15,9 +15,6 @@ transPTrue x = case x of
 transPFalse :: PFalse -> Result
 transPFalse x = case x of
   PFalse string -> failure x
-transPReturn :: PReturn -> Result
-transPReturn x = case x of
-  PReturn string -> failure x
 transPTypeInt :: PTypeInt -> Result
 transPTypeInt x = case x of
   PTypeInt string -> failure x
@@ -93,9 +90,18 @@ transPWhile x = case x of
 transPFor :: PFor -> Result
 transPFor x = case x of
   PFor string -> failure x
+transPReturn :: PReturn -> Result
+transPReturn x = case x of
+  PReturn string -> failure x
 transPNew :: PNew -> Result
 transPNew x = case x of
   PNew string -> failure x
+transPClass :: PClass -> Result
+transPClass x = case x of
+  PClass string -> failure x
+transPExtends :: PExtends -> Result
+transPExtends x = case x of
+  PExtends string -> failure x
 transPIdent :: PIdent -> Result
 transPIdent x = case x of
   PIdent string -> failure x
@@ -111,6 +117,8 @@ transProgram x = case x of
 transTopDef :: TopDef -> Result
 transTopDef x = case x of
   FnDef type_ pident args block -> failure x
+  BaseClassDef pclass pident classbody -> failure x
+  ChildClassDef pclass pident1 pextends pident2 classbody -> failure x
 transArg :: Arg -> Result
 transArg x = case x of
   Arg type_ pident -> failure x
@@ -144,6 +152,7 @@ transType x = case x of
   Void ptypevoid -> failure x
   Fun type_ types -> failure x
   Arr type_ -> failure x
+  Custom pident -> failure x
 transVar :: Var -> Result
 transVar x = case x of
   Var pident -> failure x
@@ -155,7 +164,7 @@ transExpr x = case x of
   ELitInt pinteger -> failure x
   ELitTrue ptrue -> failure x
   ELitFalse pfalse -> failure x
-  EApp pident exprs -> failure x
+  EApp var exprs -> failure x
   EString pstring -> failure x
   Neg pminus expr -> failure x
   Not pnot expr -> failure x
@@ -165,6 +174,8 @@ transExpr x = case x of
   EAnd expr1 andop expr2 -> failure x
   EOr expr1 orop expr2 -> failure x
   NewArr pnew type_ expr -> failure x
+  NewObj pnew pident -> failure x
+  Cast type_ expr -> failure x
 transAddOp :: AddOp -> Result
 transAddOp x = case x of
   Plus pplus -> failure x
@@ -188,4 +199,11 @@ transAndOp x = case x of
 transOrOp :: OrOp -> Result
 transOrOp x = case x of
   Or por -> failure x
+transClassBody :: ClassBody -> Result
+transClassBody x = case x of
+  ClassBody plbrace memberdecls prbrace -> failure x
+transMemberDecl :: MemberDecl -> Result
+transMemberDecl x = case x of
+  AttrDecl type_ pident psemicolon -> failure x
+  MethodDecl topdef -> failure x
 

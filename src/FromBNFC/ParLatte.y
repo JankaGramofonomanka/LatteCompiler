@@ -26,7 +26,6 @@ import FromBNFC.ErrM
 
 L_PTrue { PT _ (T_PTrue _) }
 L_PFalse { PT _ (T_PFalse _) }
-L_PReturn { PT _ (T_PReturn _) }
 L_PTypeInt { PT _ (T_PTypeInt _) }
 L_PTypeStr { PT _ (T_PTypeStr _) }
 L_PTypeBool { PT _ (T_PTypeBool _) }
@@ -52,7 +51,10 @@ L_PIf { PT _ (T_PIf _) }
 L_PElse { PT _ (T_PElse _) }
 L_PWhile { PT _ (T_PWhile _) }
 L_PFor { PT _ (T_PFor _) }
+L_PReturn { PT _ (T_PReturn _) }
 L_PNew { PT _ (T_PNew _) }
+L_PClass { PT _ (T_PClass _) }
+L_PExtends { PT _ (T_PExtends _) }
 L_PIdent { PT _ (T_PIdent _) }
 L_PInteger { PT _ (T_PInteger _) }
 L_PString { PT _ (T_PString _) }
@@ -62,7 +64,6 @@ L_PString { PT _ (T_PString _) }
 
 PTrue    :: { PTrue} : L_PTrue { PTrue (mkPosToken $1)}
 PFalse    :: { PFalse} : L_PFalse { PFalse (mkPosToken $1)}
-PReturn    :: { PReturn} : L_PReturn { PReturn (mkPosToken $1)}
 PTypeInt    :: { PTypeInt} : L_PTypeInt { PTypeInt (mkPosToken $1)}
 PTypeStr    :: { PTypeStr} : L_PTypeStr { PTypeStr (mkPosToken $1)}
 PTypeBool    :: { PTypeBool} : L_PTypeBool { PTypeBool (mkPosToken $1)}
@@ -88,7 +89,10 @@ PIf    :: { PIf} : L_PIf { PIf (mkPosToken $1)}
 PElse    :: { PElse} : L_PElse { PElse (mkPosToken $1)}
 PWhile    :: { PWhile} : L_PWhile { PWhile (mkPosToken $1)}
 PFor    :: { PFor} : L_PFor { PFor (mkPosToken $1)}
+PReturn    :: { PReturn} : L_PReturn { PReturn (mkPosToken $1)}
 PNew    :: { PNew} : L_PNew { PNew (mkPosToken $1)}
+PClass    :: { PClass} : L_PClass { PClass (mkPosToken $1)}
+PExtends    :: { PExtends} : L_PExtends { PExtends (mkPosToken $1)}
 PIdent    :: { PIdent} : L_PIdent { PIdent (mkPosToken $1)}
 PInteger    :: { PInteger} : L_PInteger { PInteger (mkPosToken $1)}
 PString    :: { PString} : L_PString { PString (mkPosToken $1)}
@@ -97,6 +101,8 @@ Program :: { Program }
 Program : ListTopDef { FromBNFC.AbsLatte.Program $1 }
 TopDef :: { TopDef }
 TopDef : Type PIdent '(' ListArg ')' Block { FromBNFC.AbsLatte.FnDef $1 $2 $4 $6 }
+       | PClass PIdent ClassBody { FromBNFC.AbsLatte.BaseClassDef $1 $2 $3 }
+       | PClass PIdent PExtends PIdent ClassBody { FromBNFC.AbsLatte.ChildClassDef $1 $2 $3 $4 $5 }
 ListTopDef :: { [TopDef] }
 ListTopDef : TopDef { (:[]) $1 } | TopDef ListTopDef { (:) $1 $2 }
 Arg :: { Arg }
@@ -134,6 +140,7 @@ Type : PTypeInt { FromBNFC.AbsLatte.Int $1 }
      | PTypeBool { FromBNFC.AbsLatte.Bool $1 }
      | PTypeVoid { FromBNFC.AbsLatte.Void $1 }
      | Type '[' ']' { FromBNFC.AbsLatte.Arr $1 }
+     | PIdent { FromBNFC.AbsLatte.Custom $1 }
 ListType :: { [Type] }
 ListType : {- empty -} { [] }
          | Type { (:[]) $1 }
@@ -143,7 +150,7 @@ Expr6 : Var { FromBNFC.AbsLatte.EVar $1 }
       | PInteger { FromBNFC.AbsLatte.ELitInt $1 }
       | PTrue { FromBNFC.AbsLatte.ELitTrue $1 }
       | PFalse { FromBNFC.AbsLatte.ELitFalse $1 }
-      | PIdent '(' ListExpr ')' { FromBNFC.AbsLatte.EApp $1 $3 }
+      | Var '(' ListExpr ')' { FromBNFC.AbsLatte.EApp $1 $3 }
       | PString { FromBNFC.AbsLatte.EString $1 }
       | '(' Expr ')' { $2 }
 Var :: { Var }
@@ -154,6 +161,7 @@ Expr5 :: { Expr }
 Expr5 : PMinus Expr6 { FromBNFC.AbsLatte.Neg $1 $2 }
       | PNot Expr6 { FromBNFC.AbsLatte.Not $1 $2 }
       | Expr6 { $1 }
+      | '(' Type ')' Expr6 { FromBNFC.AbsLatte.Cast $2 $4 }
 Expr4 :: { Expr }
 Expr4 : Expr4 MulOp Expr5 { FromBNFC.AbsLatte.EMul $1 $2 $3 }
       | Expr5 { $1 }
@@ -170,6 +178,7 @@ Expr :: { Expr }
 Expr : Expr1 OrOp Expr { FromBNFC.AbsLatte.EOr $1 $2 $3 }
      | Expr1 { $1 }
      | PNew Type '[' Expr ']' { FromBNFC.AbsLatte.NewArr $1 $2 $4 }
+     | PNew PIdent { FromBNFC.AbsLatte.NewObj $1 $2 }
 ListExpr :: { [Expr] }
 ListExpr : {- empty -} { [] }
          | Expr { (:[]) $1 }
@@ -192,6 +201,14 @@ AndOp :: { AndOp }
 AndOp : PAnd { FromBNFC.AbsLatte.And $1 }
 OrOp :: { OrOp }
 OrOp : POr { FromBNFC.AbsLatte.Or $1 }
+ClassBody :: { ClassBody }
+ClassBody : PLBrace ListMemberDecl PRBrace { FromBNFC.AbsLatte.ClassBody $1 (reverse $2) $3 }
+MemberDecl :: { MemberDecl }
+MemberDecl : Type PIdent PSemiColon { FromBNFC.AbsLatte.AttrDecl $1 $2 $3 }
+           | TopDef { FromBNFC.AbsLatte.MethodDecl $1 }
+ListMemberDecl :: { [MemberDecl] }
+ListMemberDecl : {- empty -} { [] }
+               | ListMemberDecl MemberDecl { flip (:) $1 $2 }
 {
 
 returnM :: a -> Err a

@@ -13,6 +13,28 @@ do
     ./latc ./lattests/extensions/arrays1/array00$i.lat
 done
 
+echo ""
+echo "-- STRUCTS ---------------------------------------"
+
+echo ""
+echo "list.lat:"
+./latc ./lattests/extensions/struct/list.lat
+
+
+echo ""
+echo "-- CLASSES ---------------------------------------"
+
+for file in counter linked points queue
+do 
+    echo ""
+    echo "$file.lat:"
+    ./latc ./lattests/extensions/objects1/$file.lat
+done
+
+echo ""
+echo "shapes.lat:"
+./latc ./lattests/extensions/objects2/shapes.lat
+
 
 
 

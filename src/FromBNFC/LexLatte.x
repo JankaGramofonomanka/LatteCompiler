@@ -32,7 +32,6 @@ $white+ ;
 @rsyms { tok (\p s -> PT p (eitherResIdent (TV . share) s)) }
 t r u e { tok (\p s -> PT p (eitherResIdent (T_PTrue . share) s)) }
 f a l s e { tok (\p s -> PT p (eitherResIdent (T_PFalse . share) s)) }
-r e t u r n { tok (\p s -> PT p (eitherResIdent (T_PReturn . share) s)) }
 i n t { tok (\p s -> PT p (eitherResIdent (T_PTypeInt . share) s)) }
 s t r i n g { tok (\p s -> PT p (eitherResIdent (T_PTypeStr . share) s)) }
 b o o l e a n { tok (\p s -> PT p (eitherResIdent (T_PTypeBool . share) s)) }
@@ -58,7 +57,10 @@ i f { tok (\p s -> PT p (eitherResIdent (T_PIf . share) s)) }
 e l s e { tok (\p s -> PT p (eitherResIdent (T_PElse . share) s)) }
 w h i l e { tok (\p s -> PT p (eitherResIdent (T_PWhile . share) s)) }
 f o r { tok (\p s -> PT p (eitherResIdent (T_PFor . share) s)) }
+r e t u r n { tok (\p s -> PT p (eitherResIdent (T_PReturn . share) s)) }
 n e w { tok (\p s -> PT p (eitherResIdent (T_PNew . share) s)) }
+c l a s s { tok (\p s -> PT p (eitherResIdent (T_PClass . share) s)) }
+e x t e n d s { tok (\p s -> PT p (eitherResIdent (T_PExtends . share) s)) }
 $l ($l | $d | \_ | \')* { tok (\p s -> PT p (eitherResIdent (T_PIdent . share) s)) }
 $d + { tok (\p s -> PT p (eitherResIdent (T_PInteger . share) s)) }
 \" ($u # [\" \\]| \\ [\" \\ t n r f]) * \" { tok (\p s -> PT p (eitherResIdent (T_PString . share) s)) }
@@ -86,7 +88,6 @@ data Tok =
  | TC !String         -- character literals
  | T_PTrue !String
  | T_PFalse !String
- | T_PReturn !String
  | T_PTypeInt !String
  | T_PTypeStr !String
  | T_PTypeBool !String
@@ -112,7 +113,10 @@ data Tok =
  | T_PElse !String
  | T_PWhile !String
  | T_PFor !String
+ | T_PReturn !String
  | T_PNew !String
+ | T_PClass !String
+ | T_PExtends !String
  | T_PIdent !String
  | T_PInteger !String
  | T_PString !String
@@ -152,7 +156,6 @@ prToken t = case t of
   PT _ (TC s)   -> s
   PT _ (T_PTrue s) -> s
   PT _ (T_PFalse s) -> s
-  PT _ (T_PReturn s) -> s
   PT _ (T_PTypeInt s) -> s
   PT _ (T_PTypeStr s) -> s
   PT _ (T_PTypeBool s) -> s
@@ -178,7 +181,10 @@ prToken t = case t of
   PT _ (T_PElse s) -> s
   PT _ (T_PWhile s) -> s
   PT _ (T_PFor s) -> s
+  PT _ (T_PReturn s) -> s
   PT _ (T_PNew s) -> s
+  PT _ (T_PClass s) -> s
+  PT _ (T_PExtends s) -> s
   PT _ (T_PIdent s) -> s
   PT _ (T_PInteger s) -> s
   PT _ (T_PString s) -> s

@@ -11,8 +11,6 @@ newtype PTrue = PTrue ((Int,Int),String)
   deriving (Eq, Ord, Show, Read)
 newtype PFalse = PFalse ((Int,Int),String)
   deriving (Eq, Ord, Show, Read)
-newtype PReturn = PReturn ((Int,Int),String)
-  deriving (Eq, Ord, Show, Read)
 newtype PTypeInt = PTypeInt ((Int,Int),String)
   deriving (Eq, Ord, Show, Read)
 newtype PTypeStr = PTypeStr ((Int,Int),String)
@@ -58,7 +56,13 @@ newtype PWhile = PWhile ((Int,Int),String)
   deriving (Eq, Ord, Show, Read)
 newtype PFor = PFor ((Int,Int),String)
   deriving (Eq, Ord, Show, Read)
+newtype PReturn = PReturn ((Int,Int),String)
+  deriving (Eq, Ord, Show, Read)
 newtype PNew = PNew ((Int,Int),String)
+  deriving (Eq, Ord, Show, Read)
+newtype PClass = PClass ((Int,Int),String)
+  deriving (Eq, Ord, Show, Read)
+newtype PExtends = PExtends ((Int,Int),String)
   deriving (Eq, Ord, Show, Read)
 newtype PIdent = PIdent ((Int,Int),String)
   deriving (Eq, Ord, Show, Read)
@@ -69,7 +73,10 @@ newtype PString = PString ((Int,Int),String)
 data Program = Program [TopDef]
   deriving (Eq, Ord, Show, Read)
 
-data TopDef = FnDef Type PIdent [Arg] Block
+data TopDef
+    = FnDef Type PIdent [Arg] Block
+    | BaseClassDef PClass PIdent ClassBody
+    | ChildClassDef PClass PIdent PExtends PIdent ClassBody
   deriving (Eq, Ord, Show, Read)
 
 data Arg = Arg Type PIdent
@@ -104,6 +111,7 @@ data Type
     | Void PTypeVoid
     | Fun Type [Type]
     | Arr Type
+    | Custom PIdent
   deriving (Eq, Ord, Show, Read)
 
 data Var = Var PIdent | Member Var PIdent | Elem Var Expr
@@ -114,7 +122,7 @@ data Expr
     | ELitInt PInteger
     | ELitTrue PTrue
     | ELitFalse PFalse
-    | EApp PIdent [Expr]
+    | EApp Var [Expr]
     | EString PString
     | Neg PMinus Expr
     | Not PNot Expr
@@ -124,6 +132,8 @@ data Expr
     | EAnd Expr AndOp Expr
     | EOr Expr OrOp Expr
     | NewArr PNew Type Expr
+    | NewObj PNew PIdent
+    | Cast Type Expr
   deriving (Eq, Ord, Show, Read)
 
 data AddOp = Plus PPlus | Minus PMinus
@@ -140,5 +150,12 @@ data AndOp = And PAnd
   deriving (Eq, Ord, Show, Read)
 
 data OrOp = Or POr
+  deriving (Eq, Ord, Show, Read)
+
+data ClassBody = ClassBody PLBrace [MemberDecl] PRBrace
+  deriving (Eq, Ord, Show, Read)
+
+data MemberDecl
+    = AttrDecl Type PIdent PSemiColon | MethodDecl TopDef
   deriving (Eq, Ord, Show, Read)
 
