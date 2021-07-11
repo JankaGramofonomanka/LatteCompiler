@@ -99,7 +99,8 @@ MethodDecl. MemberDecl ::= TopDef ;
 separator MemberDecl "" ;
 Custom.     Type ::= PIdent ;
 NewObj.     Expr ::= PNew PIdent ;
-Cast.       Expr5 ::= "(" Type ")" Expr6 ;
+Cast.       Expr5 ::= "(" Type ")" Expr5 ;
+CastE.      Expr5 ::= "(" Expr ")" Expr5 ;
 
 
 

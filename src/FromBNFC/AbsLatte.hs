@@ -134,6 +134,7 @@ data Expr
     | NewArr PNew Type Expr
     | NewObj PNew PIdent
     | Cast Type Expr
+    | CastE Expr Expr
   deriving (Eq, Ord, Show, Read)
 
 data AddOp = Plus PPlus | Minus PMinus

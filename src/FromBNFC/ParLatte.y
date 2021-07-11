@@ -161,7 +161,8 @@ Expr5 :: { Expr }
 Expr5 : PMinus Expr6 { FromBNFC.AbsLatte.Neg $1 $2 }
       | PNot Expr6 { FromBNFC.AbsLatte.Not $1 $2 }
       | Expr6 { $1 }
-      | '(' Type ')' Expr6 { FromBNFC.AbsLatte.Cast $2 $4 }
+      | '(' Type ')' Expr5 { FromBNFC.AbsLatte.Cast $2 $4 }
+      | '(' Expr ')' Expr5 { FromBNFC.AbsLatte.CastE $2 $4 }
 Expr4 :: { Expr }
 Expr4 : Expr4 MulOp Expr5 { FromBNFC.AbsLatte.EMul $1 $2 $3 }
       | Expr5 { $1 }

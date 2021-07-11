@@ -176,6 +176,7 @@ transExpr x = case x of
   NewArr pnew type_ expr -> failure x
   NewObj pnew pident -> failure x
   Cast type_ expr -> failure x
+  CastE expr1 expr2 -> failure x
 transAddOp :: AddOp -> Result
 transAddOp x = case x of
   Plus pplus -> failure x
