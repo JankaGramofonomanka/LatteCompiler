@@ -17,3 +17,5 @@ restart_bnfc
 
 latc
 latc_llvm
+
+.toignore/
