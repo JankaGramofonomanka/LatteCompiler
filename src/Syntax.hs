@@ -5,33 +5,13 @@ module Syntax where
 
 
 type Pos = (Int, Int)
-newtype Func = Func ()
-data MemberId t where
-  AttrId :: ClassIdent -> Ident t -> MemberId t
-  MethId :: ClassIdent -> FuncIdent -> MemberId Func
-
-newtype Class = Class ()
-newtype Array a = Array ()
-
 
   
-data Ident a = Ident Pos String deriving (Ord, Show, Read)
-type FuncIdent = Ident Func
-type ClassIdent = Ident Class
+data Ident = Ident Pos String deriving (Eq, Ord, Show, Read)
 
-instance Eq (Ident a) where
-  Ident _ x == Ident _ y = x == y
+data SInt = SInt Pos Int deriving (Eq, Ord, Show, Read)
 
-
-data SInt = SInt Pos Int deriving (Ord, Show, Read)
-
-instance Eq SInt where
-  SInt _ i == SInt _ j = i == j
-
-data SStr = SStr Pos String deriving (Ord, Show, Read)
-
-instance Eq SStr where
-  SStr _ s1 == SStr _ s2 = s1 == s2
+data SStr = SStr Pos String deriving (Eq, Ord, Show, Read)
 
 data Program where
   Program :: Pos -> [TopDef] -> Program
@@ -40,116 +20,102 @@ data Program where
 data TopDef where
   FnDef :: Pos
         -> Type
-        -> FuncIdent
+        -> Ident
         -> [Param]
         -> Block
         -> TopDef
 
   ClassDef  :: Pos
-            -> ClassIdent
-            -> Maybe ClassIdent
+            -> Ident
+            -> Maybe Ident
             -> ClassBody
             -> TopDef
 
-  --deriving (Show, Read)
-
-instance Eq TopDef where
-  (==) (FnDef p1 _ _ _ _)   (FnDef p2 _ _ _ _)  = p1 == p2
-  (==) (ClassDef p1 _ _ _)  (ClassDef p2 _ _ _) = p1 == p2
-  (==) _ _                                      = False
-
-instance Ord TopDef where
-  (<=) def1 def2 = pos def1 <= pos def2 where
-    pos (FnDef p _ _ _ _) = p
-    pos (ClassDef p _ _ _) = p
-  
+  deriving (Eq, Ord, Show, Read) 
 
 
-data Param where 
-  Param :: Type -> Ident a -> Param
-  
-  -- deriving (Eq, Ord, Show, Read)
+data Param = Param Type Ident deriving (Eq, Ord, Show, Read)
 
-
-data Block = Block Pos [Stmt] -- deriving (Eq, Ord, Show, Read)
+data Block = Block Pos [Stmt] deriving (Eq, Ord, Show, Read)
 
 data Stmt where
   Empty     :: Pos -> Stmt
   BStmt     :: Pos -> Block -> Stmt
-  Decl      :: Pos -> Type -> [Item a] -> Stmt
-  Ass       :: Pos -> Var a -> Expr a -> Stmt
-  Incr      :: Pos -> Var a -> Stmt
-  Decr      :: Pos -> Var a -> Stmt
-  Ret       :: Pos -> Expr a -> Stmt
+  Decl      :: Pos -> Type -> [Item] -> Stmt
+  Ass       :: Pos -> Var -> Expr -> Stmt
+  Incr      :: Pos -> Var -> Stmt
+  Decr      :: Pos -> Var -> Stmt
+  Ret       :: Pos -> Expr -> Stmt
   VRet      :: Pos -> Stmt
-  Cond      :: Pos -> Expr Bool -> Stmt
-  CondElse  :: Pos -> Expr Bool -> Stmt -> Stmt -> Stmt
-  While     :: Pos -> Expr Bool -> Stmt -> Stmt
-  SExp      :: Pos -> Expr a -> Stmt
+  Cond      :: Pos -> Expr -> Stmt -> Stmt
+  CondElse  :: Pos -> Expr -> Stmt -> Stmt -> Stmt
+  While     :: Pos -> Expr -> Stmt -> Stmt
+  SExp      :: Pos -> Expr -> Stmt
+  For       :: Pos -> Type -> Ident -> Var -> Stmt -> Stmt
 
-  -- deriving (Eq, Ord, Show, Read)
+  deriving (Eq, Ord, Show, Read)
 
-data Item a where
-  NoInit  :: Ident a -> Item a
-  Init    :: Ident a -> Expr a -> Item a
+data Item where
+  NoInit  :: Ident -> Item
+  Init    :: Ident -> Expr -> Item
 
-  -- deriving (Eq, Ord, Show, Read)
+  deriving (Eq, Ord, Show, Read)
 
 data Type where
   Int     :: Pos -> Type
   Str     :: Pos -> Type
   Bool    :: Pos -> Type
   Void    :: Pos -> Type
-  -- Fun     :: Type -> [Type] -> Type
   Arr     :: Type -> Type
-  Custom  :: Ident a -> Type
+  Custom  :: Ident -> Type
 
-  -- deriving (Eq, Ord, Show, Read)
+  deriving (Eq, Ord, Show, Read)
 
-data Var a where
-  Var     :: Pos -> Ident a -> Var a
-  Fun     :: Pos -> FuncIdent -> Var Func
-  Member  :: Pos -> MemberId t -> Var t
-  Elem    :: Pos -> Var (Array a) -> Expr Int -> Var a
+data Var where
+  Var     :: Pos -> Ident -> Var
+  Fun     :: Pos -> Ident -> Var
+  Member  :: Pos -> Var -> Ident -> Var
+  Elem    :: Pos -> Var -> Expr -> Var
   
-  -- deriving (Eq, Ord, Show, Read)
+  deriving (Eq, Ord, Show, Read)
 
-data Expr a where
-  EVar      :: Pos -> Var b -> Expr b
-  ELitInt   :: Pos -> Int -> Expr Int
-  ELitBool  :: Pos -> Bool -> Expr Bool
-  EApp      :: Pos -> Var Func -> [AnyExpr] -> Expr b
-  EString   :: Pos -> String -> Expr String
-  Neg       :: Pos -> Expr Int -> Expr Int
-  Not       :: Pos -> Expr Bool -> Expr Bool
-  EOp       :: Pos -> BinOp -> Expr Int -> Expr Int -> Expr Int
-  ERel      :: Pos -> RelOp b -> Expr b -> Expr b -> Expr Bool
-  EBool     :: Pos -> BoolOp -> Expr Bool -> Expr Bool -> Expr Bool
-  NewArr    :: Pos -> Type -> Expr Int -> Expr (Array b)
-  NewObj    :: Pos -> Ident b -> Expr b
-  Cast      :: Pos -> Type -> Expr b
+data Expr where
+  EVar      :: Pos -> Var -> Expr
+  ELitInt   :: Pos -> SInt -> Expr
+  ELitBool  :: Pos -> Bool -> Expr
+  EApp      :: Pos -> Var -> [Expr] -> Expr
+  EString   :: Pos -> SStr -> Expr
+  Neg       :: Pos -> Expr -> Expr
+  Not       :: Pos -> Expr -> Expr
+  EOp       :: Pos -> BinOp -> Expr -> Expr -> Expr
+  ERel      :: Pos -> RelOp -> Expr -> Expr -> Expr
+  EBool     :: Pos -> BoolOp -> Expr -> Expr -> Expr
+  NewArr    :: Pos -> Type -> Expr -> Expr
+  NewObj    :: Pos -> Ident -> Expr
+  Cast      :: Pos -> Type -> Expr -> Expr
 
-  -- deriving (Eq, Ord, Show, Read)
+  deriving (Eq, Ord, Show, Read)
 
-data AnyExpr where
-  Arg :: Pos -> Expr a -> AnyExpr
 
-data BinOp = BinOp Pos  (Int -> Int -> Int)
+data BinOp = Plus Pos | Minus Pos | Times Pos | Div Pos | Mod Pos
+  deriving (Eq, Ord, Show, Read)
 
-data RelOp a = RelOp Pos (a -> a -> Bool)
+data RelOp = LTH Pos | LE Pos | GTH Pos | GE Pos | EQU Pos | NE Pos
+  deriving (Eq, Ord, Show, Read)
 
-type BoolOp = RelOp Bool
+data BoolOp = And Pos | Or Pos
+  deriving (Eq, Ord, Show, Read)
 
 
 
 data ClassBody = ClassBody Pos [MemberDecl]
-  -- deriving (Eq, Ord, Show, Read)
+  deriving (Eq, Ord, Show, Read)
 
 data MemberDecl where
-  AttrDecl :: Pos -> Type -> Ident (MemberId t) -> MemberDecl
+  AttrDecl :: Pos -> Type -> Ident -> MemberDecl
   MethodDecl :: TopDef -> MemberDecl
   
-  -- deriving (Eq, Ord, Show, Read)
+  deriving (Eq, Ord, Show, Read)
 
 
 
