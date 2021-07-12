@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 6c28ce55a30111f4259e99c18824e8aa42241a453d38eb0850fcef55ecb015d1
+-- hash: 9e550c30d851c7885488da65c50e3a5279a15660182d8445f5d197b51f154521
 
 name:           LatteCompiler
 version:        0.1.0.0
@@ -35,6 +35,7 @@ library
       FromBNFC.SkelLatte
       FromBNFC.TestLatte
       Position
+      Syntax
   other-modules:
       Paths_LatteCompiler
   hs-source-dirs:
