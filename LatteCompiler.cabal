@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 268b8a9dafc8040581d86923840bfc6234928b4663be69ac0f615a40004cab2e
+-- hash: 5fbd158e9a20661eba6ae46b2caec8ed41efad406c9de1fd14e43e940de0e6d1
 
 name:           LatteCompiler
 version:        0.1.0.0
@@ -27,7 +27,7 @@ source-repository head
 
 library
   exposed-modules:
-      Debloater
+      Errors
       FromBNFC.AbsLatte
       FromBNFC.ErrM
       FromBNFC.LexLatte
@@ -35,9 +35,13 @@ library
       FromBNFC.PrintLatte
       FromBNFC.SkelLatte
       FromBNFC.TestLatte
+      LangElemClasses
       Position
-      Syntax
-      SyntaxGADT
+      Step1.State
+      Syntax.Debloater
+      Syntax.Syntax
+      Syntax.SyntaxGADT
+      Syntax.SyntaxPosition
   other-modules:
       Paths_LatteCompiler
   hs-source-dirs:
@@ -45,6 +49,8 @@ library
   build-depends:
       array
     , base >=4.7 && <5
+    , containers
+    , mtl
   default-language: Haskell2010
 
 executable latc
@@ -58,6 +64,8 @@ executable latc
       LatteCompiler
     , array
     , base >=4.7 && <5
+    , containers
+    , mtl
   default-language: Haskell2010
 
 executable latc_llvm
@@ -71,6 +79,8 @@ executable latc_llvm
       LatteCompiler
     , array
     , base >=4.7 && <5
+    , containers
+    , mtl
   default-language: Haskell2010
 
 test-suite LatteCompiler-test
@@ -85,4 +95,6 @@ test-suite LatteCompiler-test
       LatteCompiler
     , array
     , base >=4.7 && <5
+    , containers
+    , mtl
   default-language: Haskell2010

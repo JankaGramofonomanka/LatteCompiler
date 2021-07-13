@@ -1,6 +1,6 @@
 {-# LANGUAGE GADTs #-}
 
-module Syntax where
+module Syntax.Syntax where
 
 
 

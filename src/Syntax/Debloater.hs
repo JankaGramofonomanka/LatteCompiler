@@ -3,11 +3,11 @@
 {-# LANGUAGE FlexibleInstances #-}
 
 
-module Debloater where
+module Syntax.Debloater where
 
 
 import qualified FromBNFC.AbsLatte as Bloated
-import Syntax
+import Syntax.Syntax
 import Position (position)
 
 

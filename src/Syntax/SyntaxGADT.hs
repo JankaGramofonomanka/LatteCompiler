@@ -1,11 +1,12 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE KindSignatures #-}
 
-module SyntaxGADT where
+module Syntax.SyntaxGADT where
 
 
 
 type Pos = (Int, Int)
+newtype Void = Vd ()
 newtype Func = Func ()
 data MemberId t where
   AttrId :: Var a -> Ident t -> MemberId t
@@ -15,7 +16,8 @@ newtype Class = Class ()
 newtype Array a = Array ()
 
 data Any (a :: * -> *) where
-  Any :: a b -> Any a
+  --Any :: a b -> Any a
+  Any :: Type b -> a b -> Any a
 
 
   
@@ -43,7 +45,7 @@ data Program where
 
 data TopDef where
   FnDef :: Pos
-        -> Type
+        -> Type t
         -> FuncIdent
         -> [Param]
         -> Block
@@ -70,7 +72,7 @@ instance Ord TopDef where
 
 
 data Param where 
-  Param :: Type -> Ident a -> Param
+  Param :: Type a -> Ident a -> Param
   
   -- deriving (Eq, Ord, Show, Read)
 
@@ -80,7 +82,7 @@ data Block = Block Pos [Stmt] -- deriving (Eq, Ord, Show, Read)
 data Stmt where
   Empty     :: Pos -> Stmt
   BStmt     :: Pos -> Block -> Stmt
-  Decl      :: Pos -> Type -> [Item a] -> Stmt
+  Decl      :: Pos -> Type a -> [Item a] -> Stmt
   Ass       :: Pos -> Var a -> Expr a -> Stmt
   Incr      :: Pos -> Var a -> Stmt
   Decr      :: Pos -> Var a -> Stmt
@@ -90,7 +92,7 @@ data Stmt where
   CondElse  :: Pos -> Expr Bool -> Stmt -> Stmt -> Stmt
   While     :: Pos -> Expr Bool -> Stmt -> Stmt
   SExp      :: Pos -> Expr a -> Stmt
-  For       :: Pos -> Type -> Ident a -> Var (Array a) -> Stmt -> Stmt
+  For       :: Pos -> Type a -> Ident a -> Var (Array a) -> Stmt -> Stmt
 
   -- deriving (Eq, Ord, Show, Read)
 
@@ -100,13 +102,13 @@ data Item a where
 
   -- deriving (Eq, Ord, Show, Read)
 
-data Type where
-  Int     :: Pos -> Type
-  Str     :: Pos -> Type
-  Bool    :: Pos -> Type
-  Void    :: Pos -> Type
-  Arr     :: Type -> Type
-  Custom  :: Ident a -> Type
+data Type a where
+  Int     :: Pos -> Type Int
+  Str     :: Pos -> Type String
+  Bool    :: Pos -> Type Bool
+  Void    :: Pos -> Type Void
+  Arr     :: Type b-> Type (Array b)
+  Custom  :: Ident a -> Type a
 
   -- deriving (Eq, Ord, Show, Read)
 
@@ -129,9 +131,9 @@ data Expr a where
   EOp       :: Pos -> BinOp -> Expr Int -> Expr Int -> Expr Int
   ERel      :: Pos -> RelOp b -> Expr b -> Expr b -> Expr Bool
   EBool     :: Pos -> BoolOp -> Expr Bool -> Expr Bool -> Expr Bool
-  NewArr    :: Pos -> Type -> Expr Int -> Expr (Array b)
+  NewArr    :: Pos -> Type b -> Expr Int -> Expr (Array b)
   NewObj    :: Pos -> Ident b -> Expr b
-  Cast      :: Pos -> Type -> Expr b -> Expr c
+  Cast      :: Pos -> Type c -> Expr b -> Expr c
 
   -- deriving (Eq, Ord, Show, Read)
 
@@ -150,7 +152,7 @@ data ClassBody = ClassBody Pos [MemberDecl]
   -- deriving (Eq, Ord, Show, Read)
 
 data MemberDecl where
-  AttrDecl :: Pos -> Type -> Ident t -> MemberDecl
+  AttrDecl :: Pos -> Type t -> Ident t -> MemberDecl
   MethodDecl :: TopDef -> MemberDecl
   
   -- deriving (Eq, Ord, Show, Read)
