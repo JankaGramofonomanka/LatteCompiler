@@ -2,7 +2,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GADTs #-}
 
-module Step1.State where
+module TypeCheck.State where
 
 import qualified Data.Map as M
 import Control.Monad.State
@@ -32,7 +32,7 @@ data ClassInfo = ClassInfo {
   methods :: FuncMap
 }
 
-data Step1State = Step1State { 
+data TypeCheckState = TypeCheckState { 
   varMap :: VarMap,
   funcMap :: FuncMap,
   classMap :: ClassMap
@@ -40,7 +40,7 @@ data Step1State = Step1State {
 
 
 
-getVarInt :: (MonadState Step1State m, MonadError Error m)
+getVarInt :: (MonadState TypeCheckState m, MonadError Error m)
   => A.Ident -> m (Ident Int)
 getVarInt id = do
   varMap <- gets varMap
@@ -53,7 +53,7 @@ getVarInt id = do
   where
     int = Int fakePos
 
-getVarStr :: (MonadState Step1State m, MonadError Error m)
+getVarStr :: (MonadState TypeCheckState m, MonadError Error m)
   => A.Ident -> m (Ident String)
 getVarStr id = do
   varMap <- gets varMap
@@ -66,7 +66,7 @@ getVarStr id = do
   where
     str = Str fakePos
 
-getVarBool :: (MonadState Step1State m, MonadError Error m)
+getVarBool :: (MonadState TypeCheckState m, MonadError Error m)
   => A.Ident -> m (Ident Bool)
 getVarBool id = do
   varMap <- gets varMap
@@ -80,7 +80,7 @@ getVarBool id = do
     bool = Bool fakePos
 
 
-getFuncInfo :: (MonadState Step1State m, MonadError Error m)
+getFuncInfo :: (MonadState TypeCheckState m, MonadError Error m)
   => A.Ident -> m FuncInfo
 getFuncInfo id = do
   varMap <- gets funcMap
@@ -88,7 +88,7 @@ getFuncInfo id = do
     Nothing   -> throwError $ noSuchFuncError (position id) id
     Just info -> return info
     
-getClassInfo :: (MonadState Step1State m, MonadError Error m)
+getClassInfo :: (MonadState TypeCheckState m, MonadError Error m)
   => A.Ident -> m ClassInfo
 getClassInfo id = do
   varMap <- gets classMap
@@ -96,13 +96,13 @@ getClassInfo id = do
     Nothing   -> throwError $ noSuchClassError (position id) id
     Just info -> return info
 
-getFunc :: (MonadState Step1State m, MonadError Error m)
+getFunc :: (MonadState TypeCheckState m, MonadError Error m)
   => A.Ident -> m FuncIdent
 getFunc id = do
   info <- getFuncInfo id
   return $ funcId info
     
-getClass :: (MonadState Step1State m, MonadError Error m)
+getClass :: (MonadState TypeCheckState m, MonadError Error m)
   => A.Ident -> m ClassIdent
 getClass id = do
   info <- getClassInfo id
