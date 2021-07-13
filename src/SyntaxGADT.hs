@@ -1,4 +1,5 @@
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE KindSignatures #-}
 
 module Syntax where
 
@@ -12,6 +13,9 @@ data MemberId t where
 
 newtype Class = Class ()
 newtype Array a = Array ()
+
+data Any (a :: * -> *) where
+  Any :: a b -> Any a
 
 
   
@@ -119,7 +123,7 @@ data Expr a where
   EVar      :: Pos -> Var b -> Expr b
   ELitInt   :: Pos -> SInt -> Expr Int
   ELitBool  :: Pos -> Bool -> Expr Bool
-  EApp      :: Pos -> Var Func -> [AnyExpr] -> Expr b
+  EApp      :: Pos -> Var Func -> [Any Expr] -> Expr b
   EString   :: Pos -> SStr -> Expr String
   Neg       :: Pos -> Expr Int -> Expr Int
   Not       :: Pos -> Expr Bool -> Expr Bool
@@ -132,8 +136,8 @@ data Expr a where
 
   -- deriving (Eq, Ord, Show, Read)
 
-data AnyExpr where
-  AnyExpr :: Pos -> Expr a -> AnyExpr
+--data AnyExpr where
+--  AnyExpr :: Pos -> Expr a -> AnyExpr
 
 data BinOp = BinOp Pos  (Int -> Int -> Int)
 
