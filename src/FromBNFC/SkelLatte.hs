@@ -116,12 +116,12 @@ transProgram x = case x of
   Program topdefs -> failure x
 transTopDef :: TopDef -> Result
 transTopDef x = case x of
-  FnDef type_ pident args block -> failure x
+  FnDef type_ pident params block -> failure x
   BaseClassDef pclass pident classbody -> failure x
   ChildClassDef pclass pident1 pextends pident2 classbody -> failure x
-transArg :: Arg -> Result
-transArg x = case x of
-  Arg type_ pident -> failure x
+transParam :: Param -> Result
+transParam x = case x of
+  Param type_ pident -> failure x
 transBlock :: Block -> Result
 transBlock x = case x of
   Block plbrace stmts prbrace -> failure x
@@ -150,7 +150,6 @@ transType x = case x of
   Str ptypestr -> failure x
   Bool ptypebool -> failure x
   Void ptypevoid -> failure x
-  Fun type_ types -> failure x
   Arr type_ -> failure x
   Custom pident -> failure x
 transVar :: Var -> Result

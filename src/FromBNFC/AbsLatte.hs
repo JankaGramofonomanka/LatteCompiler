@@ -74,12 +74,12 @@ data Program = Program [TopDef]
   deriving (Eq, Ord, Show, Read)
 
 data TopDef
-    = FnDef Type PIdent [Arg] Block
+    = FnDef Type PIdent [Param] Block
     | BaseClassDef PClass PIdent ClassBody
     | ChildClassDef PClass PIdent PExtends PIdent ClassBody
   deriving (Eq, Ord, Show, Read)
 
-data Arg = Arg Type PIdent
+data Param = Param Type PIdent
   deriving (Eq, Ord, Show, Read)
 
 data Block = Block PLBrace [Stmt] PRBrace
@@ -109,7 +109,6 @@ data Type
     | Str PTypeStr
     | Bool PTypeBool
     | Void PTypeVoid
-    | Fun Type [Type]
     | Arr Type
     | Custom PIdent
   deriving (Eq, Ord, Show, Read)

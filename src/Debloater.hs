@@ -55,8 +55,8 @@ instance ToBeDebloated Bloated.TopDef TopDef where
         (debloat classBody)
 
 
-instance ToBeDebloated Bloated.Arg Param where
-  debloat (Bloated.Arg t id) = Param (debloat t) (debloat id)
+instance ToBeDebloated Bloated.Param Param where
+  debloat (Bloated.Param t id) = Param (debloat t) (debloat id)
 
 
 instance ToBeDebloated Bloated.Block Block where
@@ -105,7 +105,6 @@ instance ToBeDebloated Bloated.Type Type where
     Bloated.Arr elemType -> Arr (debloat elemType)
     Bloated.Custom classId -> Custom (debloat classId)
 
-    Bloated.Fun retType argTypes -> error "not a primitive type"
 
     where
       pos = position t

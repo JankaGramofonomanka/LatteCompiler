@@ -100,17 +100,17 @@ PString    :: { PString} : L_PString { PString (mkPosToken $1)}
 Program :: { Program }
 Program : ListTopDef { FromBNFC.AbsLatte.Program $1 }
 TopDef :: { TopDef }
-TopDef : Type PIdent '(' ListArg ')' Block { FromBNFC.AbsLatte.FnDef $1 $2 $4 $6 }
+TopDef : Type PIdent '(' ListParam ')' Block { FromBNFC.AbsLatte.FnDef $1 $2 $4 $6 }
        | PClass PIdent ClassBody { FromBNFC.AbsLatte.BaseClassDef $1 $2 $3 }
        | PClass PIdent PExtends PIdent ClassBody { FromBNFC.AbsLatte.ChildClassDef $1 $2 $3 $4 $5 }
 ListTopDef :: { [TopDef] }
 ListTopDef : TopDef { (:[]) $1 } | TopDef ListTopDef { (:) $1 $2 }
-Arg :: { Arg }
-Arg : Type PIdent { FromBNFC.AbsLatte.Arg $1 $2 }
-ListArg :: { [Arg] }
-ListArg : {- empty -} { [] }
-        | Arg { (:[]) $1 }
-        | Arg ',' ListArg { (:) $1 $3 }
+Param :: { Param }
+Param : Type PIdent { FromBNFC.AbsLatte.Param $1 $2 }
+ListParam :: { [Param] }
+ListParam : {- empty -} { [] }
+          | Param { (:[]) $1 }
+          | Param ',' ListParam { (:) $1 $3 }
 Block :: { Block }
 Block : PLBrace ListStmt PRBrace { FromBNFC.AbsLatte.Block $1 (reverse $2) $3 }
 ListStmt :: { [Stmt] }

@@ -1,7 +1,7 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE KindSignatures #-}
 
-module Syntax where
+module SyntaxGADT where
 
 
 
@@ -105,7 +105,6 @@ data Type where
   Str     :: Pos -> Type
   Bool    :: Pos -> Type
   Void    :: Pos -> Type
-  -- Fun     :: Type -> [Type] -> Type
   Arr     :: Type -> Type
   Custom  :: Ident a -> Type
 

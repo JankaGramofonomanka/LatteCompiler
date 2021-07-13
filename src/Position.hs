@@ -126,8 +126,8 @@ instance HasPosition TopDef where
     ChildClassDef kw _ _ _ _  -> position kw
 
 
-instance HasPosition Arg where
-  position (Arg t _) = position t
+instance HasPosition Param where
+  position (Param t _) = position t
 
 
 instance HasPosition Block where
@@ -162,7 +162,6 @@ instance HasPosition Type where
     Str kw    -> position kw
     Bool kw   -> position kw
     Void kw   -> position kw
-    Fun tt _  -> position tt
     Arr tt    -> position tt
     Custom id -> position id
 

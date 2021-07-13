@@ -2,10 +2,10 @@
 
 entrypoints Program ;
 Program.    Program ::= [TopDef] ;
-FnDef.	    TopDef ::= Type PIdent "(" [Arg] ")" Block ;
+FnDef.      TopDef ::= Type PIdent "(" [Param] ")" Block ;
 separator nonempty TopDef "" ;
-Arg. 	    Arg ::= Type PIdent;
-separator   Arg "," ;
+Param.      Param ::= Type PIdent;
+separator   Param "," ;
 
 -- statements ----------------------------------------------
 Block.      Block ::= PLBrace [Stmt] PRBrace ;
@@ -31,7 +31,6 @@ Int.        Type ::= PTypeInt ;
 Str.        Type ::= PTypeStr ;
 Bool.       Type ::= PTypeBool ;
 Void.       Type ::= PTypeVoid ;
-internal    Fun. Type ::= Type "(" [Type] ")" ;
 separator   Type "," ;
 
 -- Expressions ---------------------------------------------

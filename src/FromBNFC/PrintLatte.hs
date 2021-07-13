@@ -222,14 +222,14 @@ instance Print Program where
 
 instance Print TopDef where
   prt i e = case e of
-    FnDef type_ pident args block -> prPrec i 0 (concatD [prt 0 type_, prt 0 pident, doc (showString "("), prt 0 args, doc (showString ")"), prt 0 block])
+    FnDef type_ pident params block -> prPrec i 0 (concatD [prt 0 type_, prt 0 pident, doc (showString "("), prt 0 params, doc (showString ")"), prt 0 block])
     BaseClassDef pclass pident classbody -> prPrec i 0 (concatD [prt 0 pclass, prt 0 pident, prt 0 classbody])
     ChildClassDef pclass pident1 pextends pident2 classbody -> prPrec i 0 (concatD [prt 0 pclass, prt 0 pident1, prt 0 pextends, prt 0 pident2, prt 0 classbody])
   prtList _ [x] = (concatD [prt 0 x])
   prtList _ (x:xs) = (concatD [prt 0 x, prt 0 xs])
-instance Print Arg where
+instance Print Param where
   prt i e = case e of
-    Arg type_ pident -> prPrec i 0 (concatD [prt 0 type_, prt 0 pident])
+    Param type_ pident -> prPrec i 0 (concatD [prt 0 type_, prt 0 pident])
   prtList _ [] = (concatD [])
   prtList _ [x] = (concatD [prt 0 x])
   prtList _ (x:xs) = (concatD [prt 0 x, doc (showString ","), prt 0 xs])
@@ -266,7 +266,6 @@ instance Print Type where
     Str ptypestr -> prPrec i 0 (concatD [prt 0 ptypestr])
     Bool ptypebool -> prPrec i 0 (concatD [prt 0 ptypebool])
     Void ptypevoid -> prPrec i 0 (concatD [prt 0 ptypevoid])
-    Fun type_ types -> prPrec i 0 (concatD [prt 0 type_, doc (showString "("), prt 0 types, doc (showString ")")])
     Arr type_ -> prPrec i 0 (concatD [prt 0 type_, doc (showString "["), doc (showString "]")])
     Custom pident -> prPrec i 0 (concatD [prt 0 pident])
   prtList _ [] = (concatD [])
