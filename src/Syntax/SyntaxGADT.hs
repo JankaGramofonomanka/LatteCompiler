@@ -7,6 +7,7 @@ module Syntax.SyntaxGADT where
 
 type Pos = (Int, Int)
 newtype Void = Vd ()
+newtype Custom = Cst ()
 newtype Func = Func ()
 data MemberId t where
   AttrId :: Var a -> Ident t -> MemberId t
@@ -107,8 +108,8 @@ data Type a where
   Str     :: Pos -> Type String
   Bool    :: Pos -> Type Bool
   Void    :: Pos -> Type Void
-  Arr     :: Type b-> Type (Array b)
-  Custom  :: Ident a -> Type a
+  Arr     :: Type b -> Type (Array b)
+  Custom  :: Ident Custom -> Type Custom
 
   -- deriving (Eq, Ord, Show, Read)
 

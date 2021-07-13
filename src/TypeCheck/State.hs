@@ -1,6 +1,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE KindSignatures #-}
 
 module TypeCheck.State where
 
@@ -15,84 +16,88 @@ import Errors
 import Syntax.SyntaxPosition
 import LangElemClasses
 
-type VarMap = M.Map String (Any Ident)
+type IdentMap = M.Map String IdentInfo
 type FuncMap = M.Map String FuncInfo
 type ClassMap = M.Map String ClassInfo
 
-data FuncInfo = FuncInfo {
-  funcId :: FuncIdent,
-  retType :: Any Type,
-  paramTypes :: [Any Type]
-}
+data IdentInfo where
+  IdentInfo :: { varId :: Ident a, varType :: Type a } -> IdentInfo
+
+data FuncInfo where
+  FuncInfo :: {
+    funcId :: FuncIdent,
+    retType :: Type a,
+    paramTypes :: [Any Type]
+  } -> FuncInfo
 
 data ClassInfo = ClassInfo {
   classId :: ClassIdent,
   parent :: Maybe ClassInfo,
-  attributes :: VarMap,
+  attributes :: IdentMap,
   methods :: FuncMap
 }
 
 data TypeCheckState = TypeCheckState { 
-  varMap :: VarMap,
+  idMap :: IdentMap,
   funcMap :: FuncMap,
   classMap :: ClassMap
 }
 
+newtype X1 (a :: * -> *) b = X1 (a b)
+newtype X2 (a :: * -> *) (b :: * -> *) c = X2 (a (b c))
+toX2 :: e (a b) -> X2 e a b
+toX2 = X2
+
+fromX2 :: X2 e a b -> e (a b)
+fromX2 (X2 x) = x
+
+filterT :: (MonadError Error m) => Error -> Type a -> Type b -> e b -> m (e a)
+filterT _ (Int _)  (Int _)  x = return x
+filterT _ (Str _)  (Str _)  x = return x
+filterT _ (Bool _) (Bool _) x = return x
+filterT err (Arr t1) (Arr t2) x = do
+  xx <- filterT err t1 t2 (toX2 x)
+  
+  return $ fromX2 xx
 
 
-getVarInt :: (MonadState TypeCheckState m, MonadError Error m)
-  => A.Ident -> m (Ident Int)
-getVarInt id = do
-  varMap <- gets varMap
-  case M.lookup (name id) varMap of
-    Nothing -> throwError $ noSuchVarError (position id) id
-    Just (Any (Int _) x)  -> return x
-    Just (Any t x)        -> throwError 
-                              $ wrongTypeError (position id) id int t
+filterT err (Custom id1) (Custom id2) x = do
+  if id1 == id2 then
+    return x
+  else
+    throwError err
 
-  where
-    int = Int fakePos
+filterT err expected actual x = throwError err
 
-getVarStr :: (MonadState TypeCheckState m, MonadError Error m)
-  => A.Ident -> m (Ident String)
-getVarStr id = do
-  varMap <- gets varMap
-  case M.lookup (name id) varMap of
-    Nothing -> throwError $ noSuchVarError (position id) id
-    Just (Any (Str _) x)  -> return x
-    Just (Any t x)        -> throwError 
-                              $ wrongTypeError (position id) id str t
+getIdentInfo :: (MonadState TypeCheckState m, MonadError Error m)
+  => A.Ident -> m IdentInfo
+getIdentInfo id = do
+  idMap <- gets idMap
+  case M.lookup (name id) idMap of
+    Nothing   -> throwError $ noSuchVarError (position id) id
+    Just info -> return info
 
-  where
-    str = Str fakePos
-
-getVarBool :: (MonadState TypeCheckState m, MonadError Error m)
-  => A.Ident -> m (Ident Bool)
-getVarBool id = do
-  varMap <- gets varMap
-  case M.lookup (name id) varMap of
-    Nothing -> throwError $ noSuchVarError (position id) id
-    Just (Any (Bool _) x) -> return x
-    Just (Any t x)        -> throwError 
-                              $ wrongTypeError (position id) id bool t
-
-  where
-    bool = Bool fakePos
+getIdent :: (MonadState TypeCheckState m, MonadError Error m)
+  => Type a -> A.Ident -> m (Ident a)
+getIdent expT id = do
+  (IdentInfo x actT) <- getIdentInfo id
+  let err = wrongVarTypeError (position id) id expT actT 
+  filterT err expT actT x
 
 
 getFuncInfo :: (MonadState TypeCheckState m, MonadError Error m)
   => A.Ident -> m FuncInfo
 getFuncInfo id = do
-  varMap <- gets funcMap
-  case M.lookup (name id) varMap of
+  idMap <- gets funcMap
+  case M.lookup (name id) idMap of
     Nothing   -> throwError $ noSuchFuncError (position id) id
     Just info -> return info
     
 getClassInfo :: (MonadState TypeCheckState m, MonadError Error m)
   => A.Ident -> m ClassInfo
 getClassInfo id = do
-  varMap <- gets classMap
-  case M.lookup (name id) varMap of
+  idMap <- gets classMap
+  case M.lookup (name id) idMap of
     Nothing   -> throwError $ noSuchClassError (position id) id
     Just info -> return info
 
@@ -108,4 +113,20 @@ getClass id = do
   info <- getClassInfo id
   return $ classId info
 
+{-
+getVar :: (MonadState TypeCheckState m, MonadError Error m)
+  => Type a -> A.Var -> m (Var a)
+getVar t var = case var of
+  A.Var p id -> do
+    x <- getIdent t id
+    return $ Var p x
 
+  A.Fun p id -> throwError $ notAVarError p id
+
+  A.Member p v id -> do
+    owner <- getVarClass v
+    return x
+
+  A.Elem p arr i -> do
+    return x
+-- -}

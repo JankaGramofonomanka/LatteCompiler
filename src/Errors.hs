@@ -20,11 +20,12 @@ noSuchClassError p i
   = OnePosError p $ "Class " ++ name i ++ " does not exist"
 
 
-wrongTypeError :: (IsIdent i, IsType t1, IsType t2)
+wrongVarTypeError :: (IsIdent i, IsType t1, IsType t2)
   => Pos-> i -> t1 -> t2 -> Error
-wrongTypeError p i expected actual = OnePosError p 
+wrongVarTypeError p i expected actual = OnePosError p 
   $ "Wrong type of variable " ++ name i 
     ++ ". Expected: " ++ toStr expected
     ++ ", Actual: " ++ toStr actual
 
-
+notAVarError :: IsIdent i => Pos -> i -> Error
+notAVarError p id = OnePosError p $ name id ++ " is not a variable"
