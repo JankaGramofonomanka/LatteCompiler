@@ -29,3 +29,14 @@ wrongVarTypeError p i expected actual = OnePosError p
 
 notAVarError :: IsIdent i => Pos -> i -> Error
 notAVarError p id = OnePosError p $ name id ++ " is not a variable"
+
+noAttributeError :: (IsType cls, IsIdent i) => Pos -> cls -> i -> Error
+noAttributeError p cls id = OnePosError p
+  $ "Class " ++ toStr cls ++ " has no member " ++ name id
+
+noArrAttrError :: IsIdent i => Pos -> i -> Error
+noArrAttrError p id = OnePosError p
+  $ "Array has no member " ++ name id
+
+notAnArrayArror :: IsVar v => Pos -> v -> Error
+notAnArrayArror p v = OnePosError p $ printVar v ++ " is not an array"

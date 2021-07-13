@@ -9,9 +9,7 @@ type Pos = (Int, Int)
 newtype Void = Vd ()
 newtype Custom = Cst ()
 newtype Func = Func ()
-data MemberId t where
-  AttrId :: Var a -> Ident t -> MemberId t
-  MethId :: Var a -> FuncIdent -> MemberId Func
+
 
 newtype Class = Class ()
 newtype Array a = Array ()
@@ -116,7 +114,7 @@ data Type a where
 data Var a where
   Var     :: Pos -> Ident a -> Var a
   Fun     :: Pos -> FuncIdent -> Var Func
-  Member  :: Pos -> MemberId t -> Var t
+  Member  :: Pos -> Var a -> Ident t -> Var t
   Elem    :: Pos -> Var (Array a) -> Expr Int -> Var a
   
   -- deriving (Eq, Ord, Show, Read)
@@ -141,7 +139,7 @@ data Expr a where
 --data AnyExpr where
 --  AnyExpr :: Pos -> Expr a -> AnyExpr
 
-data BinOp = BinOp Pos  (Int -> Int -> Int)
+data BinOp = BinOp Pos (Int -> Int -> Int)
 
 data RelOp a = RelOp Pos (a -> a -> Bool)
 

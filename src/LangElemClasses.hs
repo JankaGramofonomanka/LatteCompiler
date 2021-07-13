@@ -57,8 +57,29 @@ instance IsType (GS.Type a) where
 
 
 
+-- IsVar ----------------------------------------------------------------------
+class IsVar v where
+  printVar :: v -> String
 
+instance IsVar BNFC.Var where
+  printVar var = case var of
+    BNFC.Var id       -> name id
+    BNFC.Member v id  -> printVar v ++ "." ++ name id
+    BNFC.Elem v e     -> printVar v ++ "[_]"
 
-
+instance IsVar S.Var where
+  printVar var = case var of
+    S.Var     p id    -> name id
+    S.Fun     p id    -> name id
+    S.Member  p v id  -> printVar v ++ "." ++ name id
+    S.Elem    p v e   -> printVar v ++ "[_]"
+    
+instance IsVar (GS.Var a) where
+  printVar var = case var of
+    GS.Var    p id    -> name id
+    GS.Fun    p id    -> name id
+    GS.Member p v id  -> printVar v ++ "." ++ name id
+    GS.Elem   p v e   -> printVar v ++ "[_]"
+    
 
 
