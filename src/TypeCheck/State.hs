@@ -178,8 +178,50 @@ getClass id = do
   return $ classId info
 
 
-getCallableInfo :: MonadError Error m => S.Var -> m FuncInfo
-getCallableInfo v = throwTODO
+-------------------------------------------------------------------------------
+getCallableVarAndInfo :: (MonadState TypeCheckState m, MonadError Error m)
+  => S.Var -> m (Var Func, FuncInfo)
+getCallableVarAndInfo var = case var of
+  S.Var p id -> throwError $ notAVarError p id
+
+  S.Fun p id -> do
+    info <- getFuncInfo id
+    
+    return (Var p (funcId info), info)
+
+  S.Member p v id -> do
+    
+    Any _ vType <- getTypeOfVar v
+    owner <- getVar vType v
+    
+    -- TODO a redundant code
+    case vType of
+
+      Arr _ -> throwError $ noArrMethodError mamberPos id
+      
+      Custom cls -> do
+        info <- getClassInfo cls
+        case M.lookup (name id) (methods info) of
+          Nothing -> throwError $ noClsMethodError mamberPos vType id
+          Just methodInfo -> return (Member p owner $ debloat id, methodInfo)
+      
+      _ -> throwError $ noMethodError mamberPos vType id
+    
+      where mamberPos = position id
+
+  S.Elem p v e -> throwError $ notAFuncError p var
+
+getCallableInfo :: (MonadState TypeCheckState m, MonadError Error m)
+  => S.Var -> m FuncInfo
+getCallableInfo v = do
+  (_, info) <- getCallableVarAndInfo v
+  return info
+
+getCallableVar :: (MonadState TypeCheckState m, MonadError Error m)
+  => S.Var -> m (Var Func)
+getCallableVar v = do
+  (var, _) <- getCallableVarAndInfo v
+  return var
 
 
 -------------------------------------------------------------------------------
@@ -264,8 +306,6 @@ getTypeOfVar v = case v of
 
 
 
-getCallableVar :: MonadError Error m => S.Var -> m (Var Func)
-getCallableVar v = throwTODO
 
 -------------------------------------------------------------------------------
 getExpr :: (MonadState TypeCheckState m, MonadError Error m)

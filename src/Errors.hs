@@ -52,6 +52,18 @@ noArrAttrError :: IsIdent i => Pos -> i -> Error
 noArrAttrError p id = OnePosError p
   $ "Array has no member " ++ name id
 
+noMethodError :: (IsIdent i, IsType t) => Pos -> t -> i -> Error
+noMethodError p t id = OnePosError p
+  $ "Type " ++ toStr t ++ " has no method " ++ name id
+
+noClsMethodError :: (IsIdent i, IsType t) => Pos -> t -> i -> Error
+noClsMethodError p t id = OnePosError p
+  $ "Class " ++ toStr t ++ " has no method " ++ name id
+
+noArrMethodError :: IsIdent i => Pos -> i -> Error
+noArrMethodError p id = OnePosError p
+  $ "Array has no method " ++ name id
+
 notAnArrayArror :: IsVar v => Pos -> v -> Error
 notAnArrayArror p v = OnePosError p $ printVar v ++ " is not an array"
 
@@ -61,3 +73,6 @@ wrongOpTypeError p op t = OnePosError p
   $ "Values of type " ++ toStr t
     ++ " are incompatibile with operator " ++ printOp op
 
+notAFuncError :: IsVar v => Pos -> v -> Error
+notAFuncError p var = OnePosError p
+  $ printVar var ++ " is not a function"

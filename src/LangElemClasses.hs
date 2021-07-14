@@ -205,3 +205,5 @@ instance IsOp GS.BoolOp where
   printOp op = case op of
     GS.And _ -> "&&"
     GS.Or _  -> "||"
+
+
