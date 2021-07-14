@@ -27,6 +27,20 @@ wrongVarTypeError p i expected actual = OnePosError p
     ++ ". Expected: " ++ toStr expected
     ++ ", Actual: " ++ toStr actual
 
+wrongLitTypeError :: (IsLit l, IsType t1, IsType t2)
+  => Pos-> l -> t1 -> t2 -> Error
+wrongLitTypeError p l expected actual = OnePosError p 
+  $ "Wrong type of literal " ++ printLit l 
+    ++ ". Expected: " ++ toStr expected
+    ++ ", Actual: " ++ toStr actual
+
+wrongExprType :: (IsExpr e, IsType t1, IsType t2)
+  => Pos -> e -> t1 -> t2 -> Error
+wrongExprType p e expected actual = OnePosError p
+  $ "Wrong type of expression"
+    ++ ". Expected: " ++ toStr expected
+    ++ ", Actual: " ++ toStr actual
+
 notAVarError :: IsIdent i => Pos -> i -> Error
 notAVarError p id = OnePosError p $ name id ++ " is not a variable"
 

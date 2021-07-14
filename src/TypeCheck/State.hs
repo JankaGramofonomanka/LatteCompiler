@@ -9,13 +9,14 @@ import qualified Data.Map as M
 import Control.Monad.State
 import Control.Monad.Except
 
-import qualified Syntax.Syntax as A
+import qualified Syntax.Syntax as S
 import Syntax.SyntaxGADT
 import Position
 import Errors
 import Syntax.SyntaxPosition
 import Syntax.SyntaxGADTPosition
 import LangElemClasses
+import Syntax.Debloater
 
 
 int :: Type Int
@@ -72,7 +73,6 @@ filterT err (Arr t1) (Arr t2) x = do
   
   return $ fromX2 xx
 
-
 filterT err (Custom id1) (Custom id2) x = do
   if id1 == id2 then
     return x
@@ -80,6 +80,25 @@ filterT err (Custom id1) (Custom id2) x = do
     throwError err
 
 filterT err expected actual x = throwError err
+
+filterST :: (MonadError Error m) => Error -> Type a -> S.Type -> m (Type a)
+filterST _ t@(Int _)  (S.Int _)   = return t
+filterST _ t@(Str _)  (S.Str _)   = return t
+filterST _ t@(Bool _) (S.Bool _)  = return t
+filterST err (Arr t1) (S.Arr t2) = do
+  t <- filterST err t1 t2
+  
+  return $ Arr t
+
+filterST err t@(Custom id1) (S.Custom id2) = do
+  if name id1 == name id2 then
+    return t
+  else
+    throwError err
+
+filterST err expected actual = throwError err
+
+
 
 getIdentInfo :: 
   ( MonadState TypeCheckState m,
@@ -133,29 +152,37 @@ getClassInfo id = do
     Nothing   -> throwError $ noSuchClassError (position id) id
     Just info -> return info
 
-getFunc :: (MonadState TypeCheckState m, MonadError Error m)
-  => A.Ident -> m FuncIdent
+getFunc ::   ( MonadState TypeCheckState m,
+    MonadError Error m,
+    IsIdent i,
+    HasPosition i
+  )
+  => i -> m FuncIdent
 getFunc id = do
   info <- getFuncInfo id
   return $ funcId info
     
-getClass :: (MonadState TypeCheckState m, MonadError Error m)
-  => A.Ident -> m ClassIdent
+getClass ::   ( MonadState TypeCheckState m,
+    MonadError Error m,
+    IsIdent i,
+    HasPosition i
+  )
+  => i -> m ClassIdent
 getClass id = do
   info <- getClassInfo id
   return $ classId info
 
--- {-
+
 getVar :: (MonadState TypeCheckState m, MonadError Error m)
-  => Type a -> A.Var -> m (Var a)
+  => Type a -> S.Var -> m (Var a)
 getVar t var = case var of
-  A.Var p id -> do
+  S.Var p id -> do
     x <- getIdent t id
     return $ Var p x
 
-  A.Fun p id -> throwError $ notAVarError p id
+  S.Fun p id -> throwError $ notAVarError p id
 
-  A.Member p v id -> do
+  S.Member p v id -> do
     
     Any _ vType <- getTypeOfVar v
     owner <- getVar vType v
@@ -166,7 +193,7 @@ getVar t var = case var of
         unless (name id == lengthAttr) $ throwError $ noArrAttrError p id
         return $ Member p owner memberId
 
-        where memberId = Ident (position id) (name id)
+        where memberId = debloat id
 
       Custom cls -> do
         info <- getClassInfo cls
@@ -174,30 +201,30 @@ getVar t var = case var of
           Nothing -> throwError $ noAttributeError p vType id
           Just (IdentInfo _ t) -> return $ Member p owner memberId
 
-        where memberId = Ident (position id) (name id)
+        where memberId = debloat id
       
       _ -> throwError $ noAttributeError p vType id
     
     
 
-  A.Elem p v e -> do
+  S.Elem p v e -> do
     arr <- getVar (Arr t) v
     i <- getExpr int e
     
     return $ Elem p arr i
--- -}
+
 
 getTypeOfVar :: (MonadState TypeCheckState m, MonadError Error m)
-  => A.Var
+  => S.Var
   -> m (Any Type)
 getTypeOfVar v = case v of
-  A.Var p id -> do
+  S.Var p id -> do
     IdentInfo x t <- getIdentInfo id
     return $ Any t t
 
-  A.Fun p id -> throwError $ notAVarError p id
+  S.Fun p id -> throwError $ notAVarError p id
 
-  A.Member p v id -> do
+  S.Member p v id -> do
     Any _ vType <- getTypeOfVar v
 
     -- TODO a lot of redundant code
@@ -214,7 +241,7 @@ getTypeOfVar v = case v of
       
       _ -> throwError $ noAttributeError p vType id
 
-  A.Elem p v e -> do
+  S.Elem p v e -> do
     Any _ vType <- getTypeOfVar v
 
     case vType of
@@ -226,6 +253,77 @@ getTypeOfVar v = case v of
 
 
 getExpr :: (MonadState TypeCheckState m, MonadError Error m)
-  => Type a -> A.Expr -> m (Expr a)
-getExpr t e = throwError $ SimpleError "TODO"
+  => Type a -> S.Expr -> m (Expr a)
+getExpr t expr = case expr of
+  S.EVar p v -> do
+    var <- getVar t v
+    return $ EVar p var
+    
+
+  S.ELitInt p i -> do
+    let err = wrongLitTypeError p i t int
+    filterT err t int $ ELitInt p ii
+    
+    where ii = debloat i
+    
+  S.ELitBool p b -> do
+    let err = wrongLitTypeError p b t bool
+    filterT err t bool $ ELitBool p b
+
+  S.EApp p var args -> throwError $ SimpleError "TODO"
+
+  S.EString p s -> do
+    let err = wrongLitTypeError p s t bool
+    filterT err t str $ EString p ss
+
+    where ss = debloat s
+
+  S.Neg p e -> do
+    okExpr <- getExpr int e
+
+    let err = wrongExprType p expr t int
+    filterT err t int $ Neg p okExpr
+
+  S.Not p e -> do
+    okExpr <- getExpr bool e
+
+    let err = wrongExprType p expr t bool
+    filterT err t bool $ Not p okExpr
+
+  S.EOp       p op lhs rhs -> throwError $ SimpleError "TODO"
+  S.ERel      p op lhs rhs -> throwError $ SimpleError "TODO"
+  S.EBool     p op lhs rhs -> throwError $ SimpleError "TODO"
+  
+  S.NewArr p elemType intExpr -> do
+    i <- getExpr int intExpr
+
+    let err = wrongExprType p expr t (S.Arr elemType)
+    filterST err t (S.Arr elemType)
+
+    case t of
+      Arr elemT -> return $ NewArr p elemT i
+      _ -> throwError err
+      
+
+  S.NewObj p clsId -> do
+    cls <- getClass clsId
+
+    let err = wrongExprType p expr t (Custom cls)
+    filterT err t (Custom cls) $ NewObj p (Custom cls)
+
+  S.Cast p tt e -> do
+    Any _ eType <- getTypeOfExpr e
+    okExpr <- getExpr eType e
+    
+    let err = wrongExprType p expr t tt
+    ttt <- filterST err t tt
+    
+    return $ Cast p ttt okExpr
+
+getTypeOfExpr :: (MonadState TypeCheckState m, MonadError Error m)
+  => S.Expr
+  -> m (Any Type)
+getTypeOfExpr v = throwError $ SimpleError "TODO"
+
+
 

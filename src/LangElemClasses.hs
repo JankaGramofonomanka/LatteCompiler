@@ -1,5 +1,6 @@
 {-# LANGUAGE GADTs #-}
 
+
 module LangElemClasses where
 
 import qualified FromBNFC.AbsLatte as BNFC
@@ -81,5 +82,51 @@ instance IsVar (GS.Var a) where
     GS.Member p v id  -> printVar v ++ "." ++ name id
     GS.Elem   p v e   -> printVar v ++ "[_]"
     
+
+
+-- IsLit ----------------------------------------------------------------------
+class IsLit l where
+  printLit :: l -> String
+
+instance IsLit BNFC.PInteger where
+  printLit (BNFC.PInteger (_, i)) = show i
+
+instance IsLit S.SInt where
+  printLit (S.SInt _ i) = show i
+
+instance IsLit GS.SInt where
+  printLit (GS.SInt _ i) = show i
+
+
+instance IsLit BNFC.PString where
+  printLit (BNFC.PString (_, s)) = show s
+
+instance IsLit S.SStr where
+  printLit (S.SStr _ s) = show s
+
+instance IsLit GS.SStr where
+  printLit (GS.SStr _ s) = show s
+
+
+instance IsLit BNFC.PTrue where
+  printLit (BNFC.PTrue (_, _)) = show True
+
+instance IsLit BNFC.PFalse where
+  printLit (BNFC.PFalse (_, _)) = show False
+
+instance IsLit Bool where
+  printLit True = show True
+  printLit False = show False
+
+
+
+-- IsExpr ---------------------------------------------------------------------
+class IsExpr e where
+
+instance IsExpr BNFC.Expr where
+
+instance IsExpr S.Expr where
+
+instance IsExpr (GS.Expr a) where
 
 

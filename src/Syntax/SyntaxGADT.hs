@@ -107,7 +107,7 @@ data Type a where
   Bool    :: Pos -> Type Bool
   Void    :: Pos -> Type Void
   Arr     :: Type b -> Type (Array b)
-  Custom  :: Ident Custom -> Type Custom
+  Custom  :: Ident Class -> Type Custom
 
   -- deriving (Eq, Ord, Show, Read)
 
@@ -131,7 +131,7 @@ data Expr a where
   ERel      :: Pos -> RelOp b -> Expr b -> Expr b -> Expr Bool
   EBool     :: Pos -> BoolOp -> Expr Bool -> Expr Bool -> Expr Bool
   NewArr    :: Pos -> Type b -> Expr Int -> Expr (Array b)
-  NewObj    :: Pos -> Ident b -> Expr b
+  NewObj    :: Pos -> Type Custom -> Expr Custom
   Cast      :: Pos -> Type c -> Expr b -> Expr c
 
   -- deriving (Eq, Ord, Show, Read)
