@@ -29,6 +29,9 @@ str = Str fakePos
 lengthAttr :: String
 lengthAttr = "length"
 
+throwTODO :: MonadError Error m => m a
+throwTODO = throwError $ SimpleError "TODO"
+
 type IdentMap = M.Map String IdentInfo
 type FuncMap = M.Map String FuncInfo
 type ClassMap = M.Map String ClassInfo
@@ -152,7 +155,8 @@ getClassInfo id = do
     Nothing   -> throwError $ noSuchClassError (position id) id
     Just info -> return info
 
-getFunc ::   ( MonadState TypeCheckState m,
+getFunc ::
+  ( MonadState TypeCheckState m,
     MonadError Error m,
     IsIdent i,
     HasPosition i
@@ -162,7 +166,8 @@ getFunc id = do
   info <- getFuncInfo id
   return $ funcId info
     
-getClass ::   ( MonadState TypeCheckState m,
+getClass ::
+  ( MonadState TypeCheckState m,
     MonadError Error m,
     IsIdent i,
     HasPosition i
@@ -171,6 +176,10 @@ getClass ::   ( MonadState TypeCheckState m,
 getClass id = do
   info <- getClassInfo id
   return $ classId info
+
+
+getCallableInfo :: MonadError Error m => S.Var -> m FuncInfo
+getCallableInfo v = throwTODO
 
 
 -------------------------------------------------------------------------------
@@ -253,6 +262,11 @@ getTypeOfVar v = case v of
 
       _ -> throwError $ notAnArrayArror (position e) v
 
+
+
+getCallableVar :: MonadError Error m => S.Var -> m (Var Func)
+getCallableVar v = throwTODO
+
 -------------------------------------------------------------------------------
 getExpr :: (MonadState TypeCheckState m, MonadError Error m)
   => Type a -> S.Expr -> m (Expr a)
@@ -321,7 +335,15 @@ getExpr t expr = case expr of
     filterT err t bool $ EBool p (debloat op) okLHS okRHS
   
   ---------------------------------------------------------------------
-  S.EApp p var args -> throwError $ SimpleError "TODO"
+  S.EApp p v args -> do
+    FuncInfo _ retType paramTypes <- getCallableInfo v
+    okV <- getCallableVar v
+    okArgs <- validateArgs args paramTypes
+    
+    let err = wrongExprType p expr t retType
+    okRetType <- filterT err t retType retType
+
+    return $ EApp p okV okArgs
   
   ---------------------------------------------------------------------
   S.NewArr p elemType intExpr -> do
@@ -353,7 +375,7 @@ getExpr t expr = case expr of
 
 getTypeOfExpr :: (MonadState TypeCheckState m, MonadError Error m)
   => S.Expr -> m (Any Type)
-getTypeOfExpr expr = throwError $ SimpleError "TODO"
+getTypeOfExpr expr = throwTODO
 
 
 
@@ -367,7 +389,8 @@ getOp t op = case (op, t) of
   (S.NE  p, _)      -> return $ NE  p
   
   (r, t) -> throwError $ wrongOpTypeError (position op) r t
-  
 
 
+validateArgs :: MonadError Error m => [S.Expr] -> [Any Type] -> m [Any Expr]
+validateArgs args paramTypes = throwTODO
 
