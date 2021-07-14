@@ -56,7 +56,7 @@ data TopDef where
             -> ClassBody
             -> TopDef
 
-  --deriving (Show, Read)
+
 
 instance Eq TopDef where
   (==) (FnDef p1 _ _ _ _)   (FnDef p2 _ _ _ _)  = p1 == p2
@@ -73,10 +73,10 @@ instance Ord TopDef where
 data Param where 
   Param :: Type a -> Ident a -> Param
   
-  -- deriving (Eq, Ord, Show, Read)
 
 
-data Block = Block Pos [Stmt] -- deriving (Eq, Ord, Show, Read)
+
+data Block = Block Pos [Stmt]
 
 data Stmt where
   Empty     :: Pos -> Stmt
@@ -93,13 +93,13 @@ data Stmt where
   SExp      :: Pos -> Expr a -> Stmt
   For       :: Pos -> Type a -> Ident a -> Var (Array a) -> Stmt -> Stmt
 
-  -- deriving (Eq, Ord, Show, Read)
+
 
 data Item a where
   NoInit  :: Ident a -> Item a
   Init    :: Ident a -> Expr a -> Item a
 
-  -- deriving (Eq, Ord, Show, Read)
+
 
 data Type a where
   Int     :: Pos -> Type Int
@@ -109,15 +109,13 @@ data Type a where
   Arr     :: Type b -> Type (Array b)
   Custom  :: Ident Class -> Type Custom
 
-  -- deriving (Eq, Ord, Show, Read)
 
 data Var a where
   Var     :: Pos -> Ident a -> Var a
   Fun     :: Pos -> FuncIdent -> Var Func
   Member  :: Pos -> Var a -> Ident t -> Var t
   Elem    :: Pos -> Var (Array a) -> Expr Int -> Var a
-  
-  -- deriving (Eq, Ord, Show, Read)
+
 
 data Expr a where
   EVar      :: Pos -> Var b -> Expr b
@@ -134,27 +132,34 @@ data Expr a where
   NewObj    :: Pos -> Type Custom -> Expr Custom
   Cast      :: Pos -> Type c -> Expr b -> Expr c
 
-  -- deriving (Eq, Ord, Show, Read)
 
---data AnyExpr where
---  AnyExpr :: Pos -> Expr a -> AnyExpr
 
-data BinOp = BinOp Pos (Int -> Int -> Int)
+data BinOp = Plus Pos | Minus Pos | Times Pos | Div Pos | Mod Pos
+  deriving (Eq, Ord, Show, Read)
 
-data RelOp a = RelOp Pos (a -> a -> Bool)
+data RelOp a where
+  LTH :: Pos -> RelOp Int
+  LE  :: Pos -> RelOp Int
+  GTH :: Pos -> RelOp Int
+  GE  :: Pos -> RelOp Int
+  EQU :: Pos -> RelOp b
+  NE  :: Pos -> RelOp b
+  
 
-type BoolOp = RelOp Bool
+data BoolOp = And Pos | Or Pos
+  deriving (Eq, Ord, Show, Read)
+
 
 
 
 data ClassBody = ClassBody Pos [MemberDecl]
-  -- deriving (Eq, Ord, Show, Read)
+
 
 data MemberDecl where
   AttrDecl :: Pos -> Type t -> Ident t -> MemberDecl
   MethodDecl :: TopDef -> MemberDecl
   
-  -- deriving (Eq, Ord, Show, Read)
+
 
 
 

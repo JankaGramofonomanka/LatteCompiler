@@ -129,4 +129,79 @@ instance IsExpr S.Expr where
 
 instance IsExpr (GS.Expr a) where
 
+-- IsOp -----------------------------------------------------------------------
+class IsOp op where
+  printOp :: op -> String
 
+instance IsOp BNFC.AddOp where
+  printOp op = case op of
+    BNFC.Plus  _ -> "+"
+    BNFC.Minus _ -> "-"
+  
+
+instance IsOp BNFC.MulOp where
+  printOp op = case op of
+    BNFC.Times _  -> "*"
+    BNFC.Div _    -> "/"
+    BNFC.Mod _    -> "%"
+
+instance IsOp BNFC.RelOp where
+  printOp op = case op of
+    BNFC.LTH  _ -> "<"
+    BNFC.LE   _ -> "<="
+    BNFC.GTH  _ -> ">"
+    BNFC.GE   _ -> ">="
+    BNFC.EQU  _ -> "=="
+    BNFC.NE   _ -> "!="
+
+instance IsOp BNFC.AndOp where
+  printOp op = case op of
+    BNFC.And _ -> "&&"
+
+instance IsOp BNFC.OrOp  where
+  printOp op = case op of
+    BNFC.Or _ -> "||"
+
+instance IsOp S.BinOp where
+  printOp op = case op of
+    S.Plus  _ -> "+"
+    S.Minus _ -> "-"
+    S.Times _  -> "*"
+    S.Div _    -> "/"
+    S.Mod _    -> "%"
+
+instance IsOp S.RelOp where
+  printOp op = case op of
+    S.LTH  _ -> "<"
+    S.LE   _ -> "<="
+    S.GTH  _ -> ">"
+    S.GE   _ -> ">="
+    S.EQU  _ -> "=="
+    S.NE   _ -> "!="
+
+instance IsOp S.BoolOp where
+  printOp op = case op of
+    S.And _ -> "&&"
+    S.Or _  -> "||"
+
+instance IsOp GS.BinOp where
+  printOp op = case op of
+    GS.Plus  _ -> "+"
+    GS.Minus _ -> "-"
+    GS.Times _  -> "*"
+    GS.Div _    -> "/"
+    GS.Mod _    -> "%"
+
+instance IsOp (GS.RelOp a) where
+  printOp op = case op of
+    GS.LTH  _ -> "<"
+    GS.LE   _ -> "<="
+    GS.GTH  _ -> ">"
+    GS.GE   _ -> ">="
+    GS.EQU  _ -> "=="
+    GS.NE   _ -> "!="
+
+instance IsOp GS.BoolOp where
+  printOp op = case op of
+    GS.And _ -> "&&"
+    GS.Or _  -> "||"

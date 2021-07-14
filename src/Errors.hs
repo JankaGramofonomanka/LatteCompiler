@@ -54,3 +54,10 @@ noArrAttrError p id = OnePosError p
 
 notAnArrayArror :: IsVar v => Pos -> v -> Error
 notAnArrayArror p v = OnePosError p $ printVar v ++ " is not an array"
+
+
+wrongOpTypeError :: (IsOp op, IsType t) => Pos -> op -> t -> Error
+wrongOpTypeError p op t = OnePosError p
+  $ "Values of type " ++ toStr t
+    ++ " are incompatibile with operator " ++ printOp op
+

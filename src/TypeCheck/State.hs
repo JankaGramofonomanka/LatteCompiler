@@ -257,6 +257,8 @@ getTypeOfVar v = case v of
 getExpr :: (MonadState TypeCheckState m, MonadError Error m)
   => Type a -> S.Expr -> m (Expr a)
 getExpr t expr = case expr of
+
+  ---------------------------------------------------------------------
   S.EVar p v -> do
     var <- getVar t v
     return $ EVar p var
@@ -272,14 +274,13 @@ getExpr t expr = case expr of
     let err = wrongLitTypeError p b t bool
     filterT err t bool $ ELitBool p b
 
-  S.EApp p var args -> throwError $ SimpleError "TODO"
-
   S.EString p s -> do
     let err = wrongLitTypeError p s t bool
     filterT err t str $ EString p ss
 
     where ss = debloat s
 
+  ---------------------------------------------------------------------
   S.Neg p e -> do
     okExpr <- getExpr int e
 
@@ -292,10 +293,37 @@ getExpr t expr = case expr of
     let err = wrongExprType p expr t bool
     filterT err t bool $ Not p okExpr
 
-  S.EOp       p op lhs rhs -> throwError $ SimpleError "TODO"
-  S.ERel      p op lhs rhs -> throwError $ SimpleError "TODO"
-  S.EBool     p op lhs rhs -> throwError $ SimpleError "TODO"
+  ---------------------------------------------------------------------
+  S.EOp p op lhs rhs -> do
+    okLHS <- getExpr int lhs
+    okRHS <- getExpr int rhs
+
+    let err = wrongExprType p expr t int
+    filterT err t int $ EOp p (debloat op) okLHS okRHS
+
+
+  S.ERel p op lhs rhs -> do
+    Any _ lhsType <- getTypeOfExpr lhs
+
+    okOp <- getOp lhsType op
+
+    okLHS <- getExpr lhsType lhs
+    okRHS <- getExpr lhsType rhs
+
+    let err = wrongExprType p expr t lhsType
+    filterT err t bool $ ERel p okOp okLHS okRHS
+
+  S.EBool p op lhs rhs -> do
+    okLHS <- getExpr bool lhs
+    okRHS <- getExpr bool rhs
+
+    let err = wrongExprType p expr t bool
+    filterT err t bool $ EBool p (debloat op) okLHS okRHS
   
+  ---------------------------------------------------------------------
+  S.EApp p var args -> throwError $ SimpleError "TODO"
+  
+  ---------------------------------------------------------------------
   S.NewArr p elemType intExpr -> do
     i <- getExpr int intExpr
 
@@ -322,10 +350,24 @@ getExpr t expr = case expr of
     
     return $ Cast p ttt okExpr
 
+
 getTypeOfExpr :: (MonadState TypeCheckState m, MonadError Error m)
-  => S.Expr
-  -> m (Any Type)
-getTypeOfExpr v = throwError $ SimpleError "TODO"
+  => S.Expr -> m (Any Type)
+getTypeOfExpr expr = throwError $ SimpleError "TODO"
+
+
+
+getOp :: MonadError Error m => Type a -> S.RelOp -> m (RelOp a)
+getOp t op = case (op, t) of
+  (S.LTH p, Int _)  -> return $ LTH p
+  (S.LE  p, Int _)  -> return $ LE  p
+  (S.GTH p, Int _)  -> return $ GTH p
+  (S.GE  p, Int _)  -> return $ GE  p
+  (S.EQU p, _)      -> return $ EQU p
+  (S.NE  p, _)      -> return $ NE  p
+  
+  (r, t) -> throwError $ wrongOpTypeError (position op) r t
+  
 
 
 

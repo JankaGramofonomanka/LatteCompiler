@@ -18,7 +18,7 @@ class ToBeDebloated bloated clean where
   debloat :: bloated -> clean
 
 
-  
+-- AbsLatte to Syntax ---------------------------------------------------------
 instance ToBeDebloated Bloated.PIdent S.Ident where
   debloat (Bloated.PIdent (pos, x)) = S.Ident pos x
 
@@ -202,6 +202,8 @@ instance ToBeDebloated Bloated.MemberDecl S.MemberDecl where
   
     where pos = position memberDecl
 
+-- Syntax to SyntaxGADT -------------------------------------------------------
+-- only some elements can be easily "debloated"
 
 instance ToBeDebloated S.Ident (GS.Ident a) where
   debloat (S.Ident pos x) = GS.Ident pos x
@@ -216,11 +218,19 @@ instance ToBeDebloated S.SStr GS.SStr where
   debloat (S.SStr pos str) = GS.SStr pos str
 
 
+instance ToBeDebloated S.BinOp GS.BinOp where
+  debloat op = case op of
+    S.Plus  p -> GS.Plus  p
+    S.Minus p -> GS.Minus p
+    S.Times p -> GS.Times p
+    S.Div   p -> GS.Div   p
+    S.Mod   p -> GS.Mod   p
 
 
-
-
-
+instance ToBeDebloated S.BoolOp GS.BoolOp where
+  debloat op = case op of
+    S.And p -> GS.And p
+    S.Or  p -> GS.Or  p
 
 
 

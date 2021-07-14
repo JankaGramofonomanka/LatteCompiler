@@ -97,11 +97,24 @@ instance HasPosition (Expr a) where
 
 
 instance HasPosition BinOp where
-    position (BinOp p _) = p
-
+  position (Plus  p) = p
+  position (Minus p) = p
+  position (Times p) = p
+  position (Div   p) = p
+  position (Mod   p) = p
 
 instance HasPosition (RelOp a) where
-    position (RelOp p _) = p
+  position (LTH p) = p
+  position (LE  p) = p
+  position (GTH p) = p
+  position (GE  p) = p
+  position (EQU p) = p
+  position (NE  p) = p
+
+instance HasPosition BoolOp where
+  position (And p) = p
+  position (Or  p) = p
+
     
 
 
