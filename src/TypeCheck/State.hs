@@ -173,6 +173,7 @@ getClass id = do
   return $ classId info
 
 
+-------------------------------------------------------------------------------
 getVar :: (MonadState TypeCheckState m, MonadError Error m)
   => Type a -> S.Var -> m (Var a)
 getVar t var = case var of
@@ -190,22 +191,20 @@ getVar t var = case var of
     -- TODO a lot of redundant code
     case vType of
       Arr t -> do
-        unless (name id == lengthAttr) $ throwError $ noArrAttrError p id
-        return $ Member p owner memberId
+        unless (name id == lengthAttr)
+          $ throwError $ noArrAttrError mamberPos id
+        return $ Member p owner $ debloat id
 
-        where memberId = debloat id
 
       Custom cls -> do
         info <- getClassInfo cls
         case M.lookup (name id) (attributes info) of
-          Nothing -> throwError $ noAttributeError p vType id
-          Just (IdentInfo _ t) -> return $ Member p owner memberId
-
-        where memberId = debloat id
+          Nothing -> throwError $ noAttributeError mamberPos vType id
+          Just (IdentInfo _ t) -> return $ Member p owner $ debloat id
       
-      _ -> throwError $ noAttributeError p vType id
+      _ -> throwError $ noAttributeError mamberPos vType id
     
-    
+      where mamberPos = position id
 
   S.Elem p v e -> do
     arr <- getVar (Arr t) v
@@ -230,16 +229,19 @@ getTypeOfVar v = case v of
     -- TODO a lot of redundant code
     case vType of
       Arr t -> do
-        unless (name id == lengthAttr) $ throwError $ noArrAttrError p id
+        unless (name id == lengthAttr)
+          $ throwError $ noArrAttrError memberPos id
         return $ Any int int
 
       Custom cls -> do
         info <- getClassInfo cls
         case M.lookup (name id) (attributes info) of
-          Nothing -> throwError $ noAttributeError p vType id
+          Nothing -> throwError $ noAttributeError memberPos vType id
           Just (IdentInfo _ t) -> return $ Any t t
       
-      _ -> throwError $ noAttributeError p vType id
+      _ -> throwError $ noAttributeError memberPos vType id
+
+      where memberPos = position id
 
   S.Elem p v e -> do
     Any _ vType <- getTypeOfVar v
@@ -249,9 +251,9 @@ getTypeOfVar v = case v of
         i <- getExpr int e
         return $ Any t t
 
-      _ -> throwError $ notAnArrayArror p v
+      _ -> throwError $ notAnArrayArror (position e) v
 
-
+-------------------------------------------------------------------------------
 getExpr :: (MonadState TypeCheckState m, MonadError Error m)
   => Type a -> S.Expr -> m (Expr a)
 getExpr t expr = case expr of
