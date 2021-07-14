@@ -15,8 +15,11 @@ newtype Class = Class ()
 newtype Array a = Array ()
 
 data Any (a :: * -> *) where
-  --Any :: a b -> Any a
   Any :: Type b -> a b -> Any a
+
+
+data AnyType where
+  AnyT :: Type a -> AnyType
 
 
   

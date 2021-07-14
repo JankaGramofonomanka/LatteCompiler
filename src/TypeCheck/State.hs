@@ -26,6 +26,18 @@ bool = Bool fakePos
 str :: Type String
 str = Str fakePos
 
+
+anyType :: S.Type -> AnyType
+anyType t = case t of
+  S.Int   p         -> AnyT $ Int p
+  S.Str   p         -> AnyT $ Int p
+  S.Bool  p         -> AnyT $ Int p
+  S.Void  p         -> AnyT $ Int p
+  S.Arr   elemType  -> case anyType elemType of
+                        AnyT tt -> AnyT $ Arr tt
+
+  S.Custom cls      -> AnyT $ Custom (debloat cls)
+
 lengthAttr :: String
 lengthAttr = "length"
 
@@ -191,7 +203,7 @@ getCallableVarAndInfo var = case var of
 
   S.Member p v id -> do
     
-    Any _ vType <- getTypeOfVar v
+    AnyT vType <- getTypeOfVar v
     owner <- getVar vType v
     
     -- TODO a redundant code
@@ -225,6 +237,7 @@ getCallableVar v = do
 
 
 -------------------------------------------------------------------------------
+-- TODO - write getAnyVar and use it in getVar and getTypeOfVar
 getVar :: (MonadState TypeCheckState m, MonadError Error m)
   => Type a -> S.Var -> m (Var a)
 getVar t var = case var of
@@ -236,7 +249,7 @@ getVar t var = case var of
 
   S.Member p v id -> do
     
-    Any _ vType <- getTypeOfVar v
+    AnyT vType <- getTypeOfVar v
     owner <- getVar vType v
     
     -- TODO a lot of redundant code
@@ -266,41 +279,41 @@ getVar t var = case var of
 
 getTypeOfVar :: (MonadState TypeCheckState m, MonadError Error m)
   => S.Var
-  -> m (Any Type)
+  -> m AnyType
 getTypeOfVar v = case v of
   S.Var p id -> do
     IdentInfo x t <- getIdentInfo id
-    return $ Any t t
+    return $ AnyT t
 
   S.Fun p id -> throwError $ notAVarError p id
 
   S.Member p v id -> do
-    Any _ vType <- getTypeOfVar v
+    AnyT vType <- getTypeOfVar v
 
     -- TODO a lot of redundant code
     case vType of
       Arr t -> do
         unless (name id == lengthAttr)
           $ throwError $ noArrAttrError memberPos id
-        return $ Any int int
+        return $ AnyT int
 
       Custom cls -> do
         info <- getClassInfo cls
         case M.lookup (name id) (attributes info) of
           Nothing -> throwError $ noAttributeError memberPos vType id
-          Just (IdentInfo _ t) -> return $ Any t t
+          Just (IdentInfo _ t) -> return $ AnyT t
       
       _ -> throwError $ noAttributeError memberPos vType id
 
       where memberPos = position id
 
   S.Elem p v e -> do
-    Any _ vType <- getTypeOfVar v
+    AnyT vType <- getTypeOfVar v
 
     case vType of
       Arr t -> do
         i <- getExpr int e
-        return $ Any t t
+        return $ AnyT t
 
       _ -> throwError $ notAnArrayArror (position e) v
 
@@ -308,6 +321,7 @@ getTypeOfVar v = case v of
 
 
 -------------------------------------------------------------------------------
+-- TODO - write getAnyexpr and use it in getExpr and getTypeOfExpr
 getExpr :: (MonadState TypeCheckState m, MonadError Error m)
   => Type a -> S.Expr -> m (Expr a)
 getExpr t expr = case expr of
@@ -357,7 +371,7 @@ getExpr t expr = case expr of
 
 
   S.ERel p op lhs rhs -> do
-    Any _ lhsType <- getTypeOfExpr lhs
+    AnyT lhsType <- getTypeOfExpr lhs
 
     okOp <- getOp lhsType op
 
@@ -404,7 +418,7 @@ getExpr t expr = case expr of
     filterT err t (Custom cls) $ NewObj p (Custom cls)
 
   S.Cast p tt e -> do
-    Any _ eType <- getTypeOfExpr e
+    AnyT eType <- getTypeOfExpr e
     okExpr <- getExpr eType e
     
     let err = wrongExprType p expr t tt
@@ -414,8 +428,76 @@ getExpr t expr = case expr of
 
 
 getTypeOfExpr :: (MonadState TypeCheckState m, MonadError Error m)
-  => S.Expr -> m (Any Type)
-getTypeOfExpr expr = throwTODO
+  => S.Expr -> m AnyType
+getTypeOfExpr expr = case expr of
+
+  ---------------------------------------------------------------------
+  S.EVar p v      -> getTypeOfVar v    
+  S.ELitInt p i   -> return $ AnyT int
+  S.ELitBool p b  -> return $ AnyT bool
+  S.EString p s   -> return $ AnyT str
+
+  ---------------------------------------------------------------------
+  S.Neg p e -> do
+    getExpr int e
+    return $ AnyT int
+    
+  S.Not p e -> do
+    getExpr bool e
+    return $ AnyT bool
+
+  ---------------------------------------------------------------------
+  S.EOp p op lhs rhs -> do
+    getExpr int lhs
+    getExpr int rhs
+
+    return $ AnyT int
+
+
+  S.ERel p op lhs rhs -> do
+    AnyT lhsType <- getTypeOfExpr lhs
+
+    getOp lhsType op
+    getExpr lhsType lhs
+    getExpr lhsType rhs
+
+    return $ AnyT bool
+
+  S.EBool p op lhs rhs -> do
+    getExpr bool lhs
+    getExpr bool rhs
+
+    return $ AnyT bool
+  
+  ---------------------------------------------------------------------
+  S.EApp p v args -> do
+    FuncInfo _ retType paramTypes <- getCallableInfo v
+    getCallableVar v
+    validateArgs p v args paramTypes
+    
+    return $ AnyT retType
+  
+  ---------------------------------------------------------------------
+  S.NewArr p elemType intExpr -> do
+    getExpr int intExpr
+
+    case anyType elemType of
+      AnyT elemT -> return $ AnyT $ Arr elemT
+
+
+  S.NewObj p clsId -> do
+    cls <- getClass clsId
+
+    return $ AnyT (Custom cls)
+
+
+  S.Cast p tt e -> do
+    AnyT eType <- getTypeOfExpr e
+    getExpr eType e
+    
+    case anyType tt of
+      AnyT ttt -> return $ AnyT ttt
+
 
 
 
