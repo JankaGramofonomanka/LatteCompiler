@@ -378,7 +378,7 @@ getExpr t expr = case expr of
   S.EApp p v args -> do
     FuncInfo _ retType paramTypes <- getCallableInfo v
     okV <- getCallableVar v
-    okArgs <- validateArgs args paramTypes
+    okArgs <- validateArgs p v args paramTypes
     
     let err = wrongExprType p expr t retType
     okRetType <- filterT err t retType retType
@@ -431,6 +431,21 @@ getOp t op = case (op, t) of
   (r, t) -> throwError $ wrongOpTypeError (position op) r t
 
 
-validateArgs :: MonadError Error m => [S.Expr] -> [Any Type] -> m [Any Expr]
-validateArgs args paramTypes = throwTODO
+validateArgs :: (MonadState TypeCheckState m, MonadError Error m)
+  => Pos -> S.Var -> [S.Expr] -> [Any Type] -> m [Any Expr]
+validateArgs p v args paramTypes = do
+  if length args /= length paramTypes then
+    throwError $ wrongNOParamsError p v (length paramTypes) (length args)
+
+  else
+    go (zip args paramTypes)
+
+  where
+
+    go :: (MonadState TypeCheckState m, MonadError Error m)
+      => [(S.Expr, Any Type)] -> m [Any Expr]
+    go [] = return []
+    go ((expr, Any _ t) : rest) = do
+      okExpr <- getExpr t expr
+      go rest
 

@@ -2,10 +2,10 @@
 {-# LANGUAGE KindSignatures #-}
 
 module Syntax.SyntaxGADT where
+import Position (Pos)
 
 
 
-type Pos = (Int, Int)
 newtype Void = Vd ()
 newtype Custom = Cst ()
 newtype Func = Func ()

@@ -3,8 +3,6 @@ module Syntax.SyntaxPosition where
 import Syntax.Syntax
 import Position (HasPosition, position)
 
-type Pos = (Int, Int)
-
 
   
 instance HasPosition Ident where

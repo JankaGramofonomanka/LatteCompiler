@@ -5,7 +5,6 @@ module Syntax.SyntaxGADTPosition where
 import Syntax.SyntaxGADT
 import Position (HasPosition, position)
 
-type Pos = (Int, Int)
 
 
   
