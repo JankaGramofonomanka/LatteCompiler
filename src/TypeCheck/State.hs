@@ -96,24 +96,6 @@ filterT err (Custom id1) (Custom id2) x = do
 
 filterT err expected actual x = throwError err
 
-filterST :: (MonadError Error m) => Error -> Type a -> S.Type -> m (Type a)
-filterST _ t@(Int _)  (S.Int _)   = return t
-filterST _ t@(Str _)  (S.Str _)   = return t
-filterST _ t@(Bool _) (S.Bool _)  = return t
-filterST err (Arr t1) (S.Arr t2) = do
-  t <- filterST err t1 t2
-  
-  return $ Arr t
-
-filterST err t@(Custom id1) (S.Custom id2) = do
-  if name id1 == name id2 then
-    return t
-  else
-    throwError err
-
-filterST err expected actual = throwError err
-
-
 
 getIdentInfo :: 
   ( MonadState TypeCheckState m,
