@@ -56,7 +56,7 @@ data FuncInfo where
   FuncInfo :: {
     funcId :: FuncIdent,
     retType :: Type a,
-    paramTypes :: [Any Type]
+    paramTypes :: [AnyType]
   } -> FuncInfo
 
 data ClassInfo = ClassInfo {
@@ -376,7 +376,7 @@ getOp t op = case (op, t) of
 
 
 validateArgs :: (MonadState TypeCheckState m, MonadError Error m)
-  => Pos -> S.Var -> [S.Expr] -> [Any Type] -> m [Any Expr]
+  => Pos -> S.Var -> [S.Expr] -> [AnyType] -> m [Any Expr]
 validateArgs p v args paramTypes = do
   if length args /= length paramTypes then
     throwError $ wrongNOParamsError p v (length paramTypes) (length args)
@@ -387,9 +387,9 @@ validateArgs p v args paramTypes = do
   where
 
     go :: (MonadState TypeCheckState m, MonadError Error m)
-      => [(S.Expr, Any Type)] -> m [Any Expr]
+      => [(S.Expr, AnyType)] -> m [Any Expr]
     go [] = return []
-    go ((expr, Any _ t) : rest) = do
+    go ((expr, AnyT t) : rest) = do
       okExpr <- getExpr t expr
       go rest
 
@@ -400,6 +400,17 @@ putVarScope :: MonadState TypeCheckState m => VarScope -> m ()
 putVarScope scope = do
   TypeCheckState { varScope = _, .. } <- get
   put $ TypeCheckState { varScope = scope, .. }
+
+putFuncMap :: MonadState TypeCheckState m => FuncMap -> m ()
+putFuncMap fnMap = do
+  TypeCheckState { funcMap = _, .. } <- get
+  put $ TypeCheckState { funcMap = fnMap, .. }
+
+putClassMap :: MonadState TypeCheckState m => ClassMap -> m ()
+putClassMap clsMap = do
+  TypeCheckState { classMap = _, .. } <- get
+  put $ TypeCheckState { classMap = clsMap, .. }
+
 
 declareId :: (MonadState TypeCheckState m, MonadError Error m)
   => S.Type -> S.Ident -> m ()
@@ -417,3 +428,18 @@ declareId t id = case anyType t of
       Just newScope -> putVarScope newScope
 
 
+declareFunc :: (MonadState TypeCheckState m, MonadError Error m)
+  => S.Ident -> S.Type -> [S.Type] -> m ()
+declareFunc id retType argTypes = case anyType retType of
+  AnyT retT -> do
+    
+    fnMap <- gets funcMap
+    case M.lookup (name id) fnMap of
+      Just FuncInfo { funcId = f, .. } -> throwError
+        $ funcAlredyDeclaredError (position id) id (position f)
+      
+      Nothing -> do
+        let info = FuncInfo (debloat id) retT (map anyType argTypes)
+        let newFnMap = M.insert (name id) info fnMap
+        putFuncMap newFnMap
+        

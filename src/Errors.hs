@@ -104,4 +104,7 @@ varAlredyDeclaredError :: IsIdent i => Pos -> i -> Pos -> Error
 varAlredyDeclaredError p id declaredAt = OnePosError p
   $ "Variable " ++ name id ++ " alredy declared at " ++ show declaredAt
 
+funcAlredyDeclaredError :: IsIdent i => Pos -> i -> Pos -> Error
+funcAlredyDeclaredError p id declaredAt = OnePosError p
+  $ "Function " ++ name id ++ " alredy declared at " ++ show declaredAt
 
