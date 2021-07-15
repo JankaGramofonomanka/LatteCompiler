@@ -186,24 +186,36 @@ getCallableVarAndInfo var = case var of
 
   S.Member p v id -> do
     
-    AnyT vType <- getTypeOfVar v
-    owner <- getVar vType v
+    Any ownerType owner <- getAnyVar v
     
-    case vType of
+    case ownerType of
 
       Arr _ -> throwError $ noArrMethodError memberPos id
       
       Custom cls -> do
         info <- getClassInfo cls
-        case M.lookup (name id) (methods info) of
-          Nothing -> throwError $ noClsMethodError memberPos vType id
-          Just methodInfo -> return (Member p owner $ debloat id, methodInfo)
+        let err = noClsMethodError memberPos ownerType id
+        methodInfo <- getMethodInfo err info id
+
+        return (Member p owner $ debloat id, methodInfo)
+        
       
-      _ -> throwError $ noMethodError memberPos vType id
+      _ -> throwError $ noMethodError memberPos ownerType id
     
       where memberPos = position id
 
   S.Elem p v e -> throwError $ notAFuncError p var
+
+  where
+
+  getMethodInfo :: MonadError Error m
+    => Error -> ClassInfo -> S.Ident -> m FuncInfo
+  getMethodInfo err info id = case M.lookup (name id) (methods info) of
+    Just methodInfo -> return methodInfo
+    Nothing -> case parent info of
+      Nothing         -> throwError err
+      Just parentInfo -> getMethodInfo err parentInfo id
+
 
 getCallableInfo :: (MonadState TypeCheckState m, MonadError Error m)
   => S.Var -> m FuncInfo
@@ -232,7 +244,6 @@ getAnyVar var = case var of
   S.Member p v id -> do
     
     Any ownerType owner <- getAnyVar v
-    --owner <- getVar vType v
 
     case ownerType of
       Arr t -> do
@@ -442,4 +453,7 @@ declareFunc id retType argTypes = case anyType retType of
         let info = FuncInfo (debloat id) retT (map anyType argTypes)
         let newFnMap = M.insert (name id) info fnMap
         putFuncMap newFnMap
-        
+
+declareClass :: (MonadState TypeCheckState m, MonadError Error m)
+  => S.Ident -> Maybe S.Ident -> S.ClassBody -> m ()
+declareClass _ _ _ = throwTODO
