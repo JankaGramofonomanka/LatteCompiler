@@ -137,7 +137,7 @@ getIdent ::
   => Type a -> i -> m (Ident a)
 getIdent expT id = do
   (IdentInfo x actT) <- getIdentInfo id
-  let err = wrongVarTypeError (position id) id expT actT 
+  let err = wrongIdentTypeError (position id) id expT actT 
   filterT err expT actT x
 
 
@@ -209,17 +209,17 @@ getCallableVarAndInfo var = case var of
     -- TODO a redundant code
     case vType of
 
-      Arr _ -> throwError $ noArrMethodError mamberPos id
+      Arr _ -> throwError $ noArrMethodError memberPos id
       
       Custom cls -> do
         info <- getClassInfo cls
         case M.lookup (name id) (methods info) of
-          Nothing -> throwError $ noClsMethodError mamberPos vType id
+          Nothing -> throwError $ noClsMethodError memberPos vType id
           Just methodInfo -> return (Member p owner $ debloat id, methodInfo)
       
-      _ -> throwError $ noMethodError mamberPos vType id
+      _ -> throwError $ noMethodError memberPos vType id
     
-      where mamberPos = position id
+      where memberPos = position id
 
   S.Elem p v e -> throwError $ notAFuncError p var
 
@@ -238,85 +238,61 @@ getCallableVar v = do
 
 -------------------------------------------------------------------------------
 -- TODO - write getAnyVar and use it in getVar and getTypeOfVar
-getVar :: (MonadState TypeCheckState m, MonadError Error m)
-  => Type a -> S.Var -> m (Var a)
-getVar t var = case var of
-  S.Var p id -> do
-    x <- getIdent t id
-    return $ Var p x
-
-  S.Fun p id -> throwError $ notAVarError p id
-
-  S.Member p v id -> do
-    
-    AnyT vType <- getTypeOfVar v
-    owner <- getVar vType v
-    
-    -- TODO a lot of redundant code
-    case vType of
-      Arr t -> do
-        unless (name id == lengthAttr)
-          $ throwError $ noArrAttrError mamberPos id
-        return $ Member p owner $ debloat id
-
-
-      Custom cls -> do
-        info <- getClassInfo cls
-        case M.lookup (name id) (attributes info) of
-          Nothing -> throwError $ noAttributeError mamberPos vType id
-          Just (IdentInfo _ t) -> return $ Member p owner $ debloat id
-      
-      _ -> throwError $ noAttributeError mamberPos vType id
-    
-      where mamberPos = position id
-
-  S.Elem p v e -> do
-    arr <- getVar (Arr t) v
-    i <- getExpr int e
-    
-    return $ Elem p arr i
-
-
-getTypeOfVar :: (MonadState TypeCheckState m, MonadError Error m)
-  => S.Var
-  -> m AnyType
-getTypeOfVar v = case v of
+getAnyVar :: (MonadState TypeCheckState m, MonadError Error m)
+  => S.Var -> m (Any Var)
+getAnyVar var = case var of
   S.Var p id -> do
     IdentInfo x t <- getIdentInfo id
-    return $ AnyT t
+    
+    return $ Any t $ Var p x
 
   S.Fun p id -> throwError $ notAVarError p id
 
   S.Member p v id -> do
-    AnyT vType <- getTypeOfVar v
+    
+    Any ownerType owner <- getAnyVar v
+    --owner <- getVar vType v
 
-    -- TODO a lot of redundant code
-    case vType of
+    case ownerType of
       Arr t -> do
         unless (name id == lengthAttr)
           $ throwError $ noArrAttrError memberPos id
-        return $ AnyT int
+        return $ Any int $ Member p owner $ debloat id
 
       Custom cls -> do
         info <- getClassInfo cls
         case M.lookup (name id) (attributes info) of
-          Nothing -> throwError $ noAttributeError memberPos vType id
-          Just (IdentInfo _ t) -> return $ AnyT t
+          Nothing -> throwError $ noAttributeError memberPos ownerType id
+          Just (IdentInfo _ t) -> return $ Any t $ Member p owner $ debloat id
       
-      _ -> throwError $ noAttributeError memberPos vType id
+      _ -> throwError $ noAttributeError memberPos ownerType id
 
       where memberPos = position id
 
   S.Elem p v e -> do
-    AnyT vType <- getTypeOfVar v
+    Any arrType arr <- getAnyVar v
 
-    case vType of
+    case arrType of
       Arr t -> do
         i <- getExpr int e
-        return $ AnyT t
+        return $ Any t $ Elem p arr i
 
       _ -> throwError $ notAnArrayArror (position e) v
 
+getVar :: (MonadState TypeCheckState m, MonadError Error m)
+  => Type a -> S.Var -> m (Var a)
+
+getVar t var = do
+  Any tt v <- getAnyVar var
+  
+  let err = wrongVarTypeError (position var) var t tt
+  filterT err t tt v
+
+getTypeOfVar :: (MonadState TypeCheckState m, MonadError Error m)
+  => S.Var -> m AnyType
+getTypeOfVar var = do
+  Any tt v <- getAnyVar var
+  return $ AnyT tt
 
 
 

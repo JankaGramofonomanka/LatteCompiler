@@ -20,10 +20,17 @@ noSuchClassError p i
   = OnePosError p $ "Class " ++ name i ++ " does not exist"
 
 
-wrongVarTypeError :: (IsIdent i, IsType t1, IsType t2)
+wrongIdentTypeError :: (IsIdent i, IsType t1, IsType t2)
   => Pos-> i -> t1 -> t2 -> Error
-wrongVarTypeError p i expected actual = OnePosError p 
+wrongIdentTypeError p i expected actual = OnePosError p 
   $ "Wrong type of variable " ++ name i 
+    ++ ". Expected: " ++ toStr expected
+    ++ ", Actual: " ++ toStr actual
+  
+wrongVarTypeError :: (IsVar v, IsType t1, IsType t2)
+  => Pos-> v -> t1 -> t2 -> Error
+wrongVarTypeError p v expected actual = OnePosError p 
+  $ "Wrong type of value " ++ printVar v
     ++ ". Expected: " ++ toStr expected
     ++ ", Actual: " ++ toStr actual
 
