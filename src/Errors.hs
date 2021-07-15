@@ -118,3 +118,13 @@ attrAlredyDeclaredError p attrId clsId declaredAt = OnePosError p
   $ "Attribute " ++ name attrId ++ " of class " ++ name clsId
     ++ " alredy declared at " ++ show declaredAt
 
+methodAlredyDeclaredError :: (IsIdent i1, IsIdent i2)
+  => Pos -> i1 -> i2 -> Pos -> Error
+methodAlredyDeclaredError p methodId clsId declaredAt = OnePosError p
+  $ "Method " ++ name methodId ++ " of class " ++ name clsId
+    ++ " alredy declared at " ++ show declaredAt
+
+
+nestedClassError :: Pos -> Error
+nestedClassError p = OnePosError p "Nested classes are not supported"
+

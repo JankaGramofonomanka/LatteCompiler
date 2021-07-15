@@ -121,4 +121,28 @@ getAttrMap clsId (S.ClassBody _ memberDecls)
 
 getMethodMap :: (MonadState TypeCheckState m, MonadError Error m)
   => S.Ident -> S.ClassBody -> m FuncMap
-getMethodMap clsID (S.ClassBody p memberDecls) = throwTODO
+getMethodMap clsId (S.ClassBody p memberDecls)
+  = foldl addMethod (pure M.empty) memberDecls
+
+  where
+    addMethod :: MonadError Error m => m FuncMap -> S.MemberDecl -> m FuncMap
+    addMethod acc (S.AttrDecl p t id) = acc
+    addMethod acc (S.MethodDecl (S.ClassDef p _ _ _))
+      = throwError $ nestedClassError p
+
+    addMethod acc (S.MethodDecl (S.FnDef p retT id params body)) = do
+      methodMap <- acc
+
+      case M.lookup (name id) methodMap of
+        Just FuncInfo { funcId = f, .. } -> 
+          throwError $ methodAlredyDeclaredError p id clsId (position f)
+          
+        Nothing -> case anyType retT of
+          AnyT retType -> do
+            let paramTypes = map (anyType . typeOf) params
+            let info = FuncInfo (debloat id) retType paramTypes
+            return $ M.insert (name id) info methodMap
+
+    typeOf :: S.Param -> S.Type
+    typeOf (S.Param t _) = t
+
