@@ -206,7 +206,6 @@ getCallableVarAndInfo var = case var of
     AnyT vType <- getTypeOfVar v
     owner <- getVar vType v
     
-    -- TODO a redundant code
     case vType of
 
       Arr _ -> throwError $ noArrMethodError memberPos id
@@ -237,7 +236,6 @@ getCallableVar v = do
 
 
 -------------------------------------------------------------------------------
--- TODO - write getAnyVar and use it in getVar and getTypeOfVar
 getAnyVar :: (MonadState TypeCheckState m, MonadError Error m)
   => S.Var -> m (Any Var)
 getAnyVar var = case var of
