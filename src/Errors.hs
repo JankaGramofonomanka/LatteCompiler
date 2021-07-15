@@ -111,3 +111,10 @@ funcAlredyDeclaredError p id declaredAt = OnePosError p
 classAlredyDeclaredError :: IsIdent i => Pos -> i -> Pos -> Error
 classAlredyDeclaredError p id declaredAt = OnePosError p
   $ "Class " ++ name id ++ " alredy declared at " ++ show declaredAt
+
+attrAlredyDeclaredError :: (IsIdent i1, IsIdent i2)
+  => Pos -> i1 -> i2 -> Pos -> Error
+attrAlredyDeclaredError p attrId clsId declaredAt = OnePosError p
+  $ "Attribute " ++ name attrId ++ " of class " ++ name clsId
+    ++ " alredy declared at " ++ show declaredAt
+

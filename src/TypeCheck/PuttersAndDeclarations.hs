@@ -76,8 +76,8 @@ declareClass id maybeParent body = do
     
     Nothing -> do
       parentInfo <- getParentInfo maybeParent
-      attrMap <- getAttrMap body
-      methodMap <- getMethodMap body
+      attrMap <- getAttrMap id body
+      methodMap <- getMethodMap id body
 
       let clsInfo = ClassInfo (debloat id) parentInfo attrMap methodMap
       let newClsMap = M.insert (name id) clsInfo clsMap
@@ -97,10 +97,28 @@ declareClass id maybeParent body = do
         
         Nothing -> return Nothing
 
+
 getAttrMap :: (MonadState TypeCheckState m, MonadError Error m)
-  => S.ClassBody -> m VarMap
-getAttrMap body = throwTODO
+  => S.Ident -> S.ClassBody -> m VarMap
+getAttrMap clsId (S.ClassBody _ memberDecls)
+  = foldl addAttr (pure M.empty) memberDecls
+
+  where
+    addAttr :: MonadError Error m => m VarMap -> S.MemberDecl -> m VarMap
+    addAttr acc (S.MethodDecl _) = acc
+    addAttr acc (S.AttrDecl p t id) = do
+      attrMap <- acc
+
+      case M.lookup (name id) attrMap of
+        Just VarInfo { varId = x, .. } -> 
+          throwError $ attrAlredyDeclaredError p id clsId (position x)
+          
+        Nothing -> case anyType t of
+          AnyT tt -> do
+            let info = VarInfo (debloat id) tt
+            return $ M.insert (name id) info attrMap
+
 
 getMethodMap :: (MonadState TypeCheckState m, MonadError Error m)
-  => S.ClassBody -> m FuncMap
-getMethodMap body = throwTODO
+  => S.Ident -> S.ClassBody -> m FuncMap
+getMethodMap clsID (S.ClassBody p memberDecls) = throwTODO
