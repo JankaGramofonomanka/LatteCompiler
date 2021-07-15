@@ -297,54 +297,33 @@ getTypeOfVar var = do
 
 
 -------------------------------------------------------------------------------
--- TODO - write getAnyexpr and use it in getExpr and getTypeOfExpr
-getExpr :: (MonadState TypeCheckState m, MonadError Error m)
-  => Type a -> S.Expr -> m (Expr a)
-getExpr t expr = case expr of
+getAnyExpr :: (MonadState TypeCheckState m, MonadError Error m)
+  => S.Expr -> m (Any Expr)
+getAnyExpr expr = case expr of
 
   ---------------------------------------------------------------------
   S.EVar p v -> do
-    var <- getVar t v
-    return $ EVar p var
+    Any t var <- getAnyVar v
+    return $ Any t $ EVar p var
     
-
-  S.ELitInt p i -> do
-    let err = wrongLitTypeError p i t int
-    filterT err t int $ ELitInt p ii
-    
-    where ii = debloat i
-    
-  S.ELitBool p b -> do
-    let err = wrongLitTypeError p b t bool
-    filterT err t bool $ ELitBool p b
-
-  S.EString p s -> do
-    let err = wrongLitTypeError p s t bool
-    filterT err t str $ EString p ss
-
-    where ss = debloat s
+  S.ELitInt   p i -> return $ Any int   $ ELitInt   p (debloat i)
+  S.ELitBool  p b -> return $ Any bool  $ ELitBool  p b
+  S.EString   p s -> return $ Any str   $ EString   p (debloat s)
 
   ---------------------------------------------------------------------
   S.Neg p e -> do
     okExpr <- getExpr int e
-
-    let err = wrongExprType p expr t int
-    filterT err t int $ Neg p okExpr
+    return $ Any int $ Neg p okExpr
 
   S.Not p e -> do
     okExpr <- getExpr bool e
-
-    let err = wrongExprType p expr t bool
-    filterT err t bool $ Not p okExpr
+    return $ Any bool $ Not p okExpr
 
   ---------------------------------------------------------------------
   S.EOp p op lhs rhs -> do
     okLHS <- getExpr int lhs
     okRHS <- getExpr int rhs
-
-    let err = wrongExprType p expr t int
-    filterT err t int $ EOp p (debloat op) okLHS okRHS
-
+    return $ Any int $ EOp p (debloat op) okLHS okRHS
 
   S.ERel p op lhs rhs -> do
     AnyT lhsType <- getTypeOfExpr lhs
@@ -354,125 +333,51 @@ getExpr t expr = case expr of
     okLHS <- getExpr lhsType lhs
     okRHS <- getExpr lhsType rhs
 
-    let err = wrongExprType p expr t lhsType
-    filterT err t bool $ ERel p okOp okLHS okRHS
+    return $ Any bool $ ERel p okOp okLHS okRHS
 
   S.EBool p op lhs rhs -> do
     okLHS <- getExpr bool lhs
     okRHS <- getExpr bool rhs
+    return $ Any bool $ EBool p (debloat op) okLHS okRHS
 
-    let err = wrongExprType p expr t bool
-    filterT err t bool $ EBool p (debloat op) okLHS okRHS
-  
   ---------------------------------------------------------------------
   S.EApp p v args -> do
     FuncInfo _ retType paramTypes <- getCallableInfo v
     okV <- getCallableVar v
     okArgs <- validateArgs p v args paramTypes
+    return $ Any retType $ EApp p okV okArgs
     
-    let err = wrongExprType p expr t retType
-    okRetType <- filterT err t retType retType
-
-    return $ EApp p okV okArgs
-  
   ---------------------------------------------------------------------
   S.NewArr p elemType intExpr -> do
     i <- getExpr int intExpr
 
-    let err = wrongExprType p expr t (S.Arr elemType)
-    filterST err t (S.Arr elemType)
-
-    case t of
-      Arr elemT -> return $ NewArr p elemT i
-      _ -> throwError err
-      
+    case anyType elemType of
+      AnyT elemT -> return $ Any (Arr elemT) (NewArr p elemT i)
+  
 
   S.NewObj p clsId -> do
     cls <- getClass clsId
+    return $ Any (Custom cls) (NewObj p (Custom cls))
 
-    let err = wrongExprType p expr t (Custom cls)
-    filterT err t (Custom cls) $ NewObj p (Custom cls)
-
-  S.Cast p tt e -> do
-    AnyT eType <- getTypeOfExpr e
-    okExpr <- getExpr eType e
+  S.Cast p t e -> do
+    Any eType okExpr <- getAnyExpr e
+    case anyType t of
+      AnyT tt -> return $ Any tt $ Cast p tt okExpr
     
-    let err = wrongExprType p expr t tt
-    ttt <- filterST err t tt
-    
-    return $ Cast p ttt okExpr
 
+getExpr :: (MonadState TypeCheckState m, MonadError Error m)
+  => Type a -> S.Expr -> m (Expr a)
+getExpr t expr = do
+  Any tt okExpr <- getAnyExpr expr
+  let err = wrongExprType (position okExpr) expr t tt
+  filterT err t tt okExpr
 
 getTypeOfExpr :: (MonadState TypeCheckState m, MonadError Error m)
   => S.Expr -> m AnyType
-getTypeOfExpr expr = case expr of
+getTypeOfExpr expr = do
+  Any t okExpr <- getAnyExpr expr
+  return $ AnyT t
 
-  ---------------------------------------------------------------------
-  S.EVar p v      -> getTypeOfVar v    
-  S.ELitInt p i   -> return $ AnyT int
-  S.ELitBool p b  -> return $ AnyT bool
-  S.EString p s   -> return $ AnyT str
-
-  ---------------------------------------------------------------------
-  S.Neg p e -> do
-    getExpr int e
-    return $ AnyT int
-    
-  S.Not p e -> do
-    getExpr bool e
-    return $ AnyT bool
-
-  ---------------------------------------------------------------------
-  S.EOp p op lhs rhs -> do
-    getExpr int lhs
-    getExpr int rhs
-
-    return $ AnyT int
-
-
-  S.ERel p op lhs rhs -> do
-    AnyT lhsType <- getTypeOfExpr lhs
-
-    getOp lhsType op
-    getExpr lhsType lhs
-    getExpr lhsType rhs
-
-    return $ AnyT bool
-
-  S.EBool p op lhs rhs -> do
-    getExpr bool lhs
-    getExpr bool rhs
-
-    return $ AnyT bool
-  
-  ---------------------------------------------------------------------
-  S.EApp p v args -> do
-    FuncInfo _ retType paramTypes <- getCallableInfo v
-    getCallableVar v
-    validateArgs p v args paramTypes
-    
-    return $ AnyT retType
-  
-  ---------------------------------------------------------------------
-  S.NewArr p elemType intExpr -> do
-    getExpr int intExpr
-
-    case anyType elemType of
-      AnyT elemT -> return $ AnyT $ Arr elemT
-
-
-  S.NewObj p clsId -> do
-    cls <- getClass clsId
-
-    return $ AnyT (Custom cls)
-
-
-  S.Cast p tt e -> do
-    AnyT eType <- getTypeOfExpr e
-    getExpr eType e
-    
-    case anyType tt of
-      AnyT ttt -> return $ AnyT ttt
 
 
 
