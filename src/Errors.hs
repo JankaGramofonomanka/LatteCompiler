@@ -108,3 +108,6 @@ funcAlredyDeclaredError :: IsIdent i => Pos -> i -> Pos -> Error
 funcAlredyDeclaredError p id declaredAt = OnePosError p
   $ "Function " ++ name id ++ " alredy declared at " ++ show declaredAt
 
+classAlredyDeclaredError :: IsIdent i => Pos -> i -> Pos -> Error
+classAlredyDeclaredError p id declaredAt = OnePosError p
+  $ "Class " ++ name id ++ " alredy declared at " ++ show declaredAt

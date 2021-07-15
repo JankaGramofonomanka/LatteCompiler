@@ -456,4 +456,47 @@ declareFunc id retType argTypes = case anyType retType of
 
 declareClass :: (MonadState TypeCheckState m, MonadError Error m)
   => S.Ident -> Maybe S.Ident -> S.ClassBody -> m ()
-declareClass _ _ _ = throwTODO
+declareClass id maybeParent body = do
+  clsMap <- gets classMap
+
+  case M.lookup (name id) clsMap of
+    Just ClassInfo { classId = c, .. } -> throwError
+      $ classAlredyDeclaredError (position id) id (position c)
+    
+    Nothing -> do
+      parentInfo <- getParentInfo maybeParent
+      attrMap <- getAttrMap body
+      methodMap <- getMethodMap body
+
+      let clsInfo = ClassInfo (debloat id) parentInfo attrMap methodMap
+      let newClsMap = M.insert (name id) clsInfo clsMap
+
+      putClassMap newClsMap
+      
+
+  where
+
+    getParentInfo maybeParent = do
+      clsMap <- gets classMap
+
+      case maybeParent of
+        Just id -> case M.lookup (name id) clsMap of
+          Nothing -> throwError $ noSuchClassError (position id) id
+          Just info -> return $ Just info
+        
+        Nothing -> return Nothing
+
+getAttrMap :: (MonadState TypeCheckState m, MonadError Error m)
+  => S.ClassBody -> m VarMap
+getAttrMap body = throwTODO
+
+getMethodMap :: (MonadState TypeCheckState m, MonadError Error m)
+  => S.ClassBody -> m FuncMap
+getMethodMap body = throwTODO
+
+
+
+
+
+
+
