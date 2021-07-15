@@ -17,6 +17,7 @@ import Syntax.SyntaxPosition
 import Syntax.SyntaxGADTPosition
 import LangElemClasses
 import Syntax.Debloater
+import qualified Scope as S
 
 
 int :: Type Int
@@ -42,12 +43,13 @@ lengthAttr :: String
 lengthAttr = "length"
 
 
-type IdentMap = M.Map String IdentInfo
+type VarMap = M.Map String VarInfo
 type FuncMap = M.Map String FuncInfo
 type ClassMap = M.Map String ClassInfo
+type VarScope = S.Scope String VarInfo
 
-data IdentInfo where
-  IdentInfo :: { varId :: Ident a, varType :: Type a } -> IdentInfo
+data VarInfo where
+  VarInfo :: { varId :: Ident a, varType :: Type a } -> VarInfo
 
 data FuncInfo where
   FuncInfo :: {
@@ -59,12 +61,12 @@ data FuncInfo where
 data ClassInfo = ClassInfo {
   classId :: ClassIdent,
   parent :: Maybe ClassInfo,
-  attributes :: IdentMap,
+  attributes :: VarMap,
   methods :: FuncMap
 }
 
 data TypeCheckState = TypeCheckState { 
-  idMap :: IdentMap,
+  varScope :: VarScope,
   funcMap :: FuncMap,
   classMap :: ClassMap
 }
@@ -101,10 +103,10 @@ getIdentInfo ::
     IsIdent i,
     HasPosition i
   )
-  => i -> m IdentInfo
+  => i -> m VarInfo
 getIdentInfo id = do
-  idMap <- gets idMap
-  case M.lookup (name id) idMap of
+  varScope <- gets varScope
+  case S.lookup (name id) varScope of
     Nothing   -> throwError $ noSuchVarError (position id) id
     Just info -> return info
 
@@ -116,7 +118,7 @@ getIdent ::
   )
   => Type a -> i -> m (Ident a)
 getIdent expT id = do
-  (IdentInfo x actT) <- getIdentInfo id
+  (VarInfo x actT) <- getIdentInfo id
   let err = wrongIdentTypeError (position id) id expT actT 
   filterT err expT actT x
 
@@ -129,8 +131,8 @@ getFuncInfo ::
   )
   => i -> m FuncInfo
 getFuncInfo id = do
-  idMap <- gets funcMap
-  case M.lookup (name id) idMap of
+  fnMap <- gets funcMap
+  case M.lookup (name id) fnMap of
     Nothing   -> throwError $ noSuchFuncError (position id) id
     Just info -> return info
     
@@ -142,8 +144,8 @@ getClassInfo ::
   )
   => i -> m ClassInfo
 getClassInfo id = do
-  idMap <- gets classMap
-  case M.lookup (name id) idMap of
+  clsMap <- gets classMap
+  case M.lookup (name id) clsMap of
     Nothing   -> throwError $ noSuchClassError (position id) id
     Just info -> return info
 
@@ -220,7 +222,7 @@ getAnyVar :: (MonadState TypeCheckState m, MonadError Error m)
   => S.Var -> m (Any Var)
 getAnyVar var = case var of
   S.Var p id -> do
-    IdentInfo x t <- getIdentInfo id
+    VarInfo x t <- getIdentInfo id
     
     return $ Any t $ Var p x
 
@@ -241,7 +243,7 @@ getAnyVar var = case var of
         info <- getClassInfo cls
         case M.lookup (name id) (attributes info) of
           Nothing -> throwError $ noAttributeError memberPos ownerType id
-          Just (IdentInfo _ t) -> return $ Any t $ Member p owner $ debloat id
+          Just (VarInfo _ t) -> return $ Any t $ Member p owner $ debloat id
       
       _ -> throwError $ noAttributeError memberPos ownerType id
 
@@ -389,4 +391,8 @@ validateArgs p v args paramTypes = do
     go ((expr, Any _ t) : rest) = do
       okExpr <- getExpr t expr
       go rest
+
+
+
+
 
