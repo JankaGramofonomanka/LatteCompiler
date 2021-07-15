@@ -41,8 +41,6 @@ anyType t = case t of
 lengthAttr :: String
 lengthAttr = "length"
 
-throwTODO :: MonadError Error m => m a
-throwTODO = throwError $ SimpleError "TODO"
 
 type IdentMap = M.Map String IdentInfo
 type FuncMap = M.Map String FuncInfo

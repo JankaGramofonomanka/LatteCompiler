@@ -1,5 +1,7 @@
+{-# LANGUAGE FlexibleContexts #-}
 module Errors where
 
+import Control.Monad.Except
 import LangElemClasses
 import Position (Pos)
 
@@ -7,6 +9,10 @@ data Error
   = SimpleError String
   | OnePosError Pos String
   | MultiPosError [Pos] String
+
+
+throwTODO :: MonadError Error m => m a
+throwTODO = throwError $ SimpleError "TODO"
 
 noSuchVarError :: IsIdent i => Pos -> i -> Error
 noSuchVarError p i = OnePosError p $ "Variable " ++ name i ++ " does not exist"
