@@ -1,7 +1,8 @@
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE GADTs #-}
-{-# LANGUAGE KindSignatures #-}
+{-# LANGUAGE ScopedTypeVariables  #-}
+{-# LANGUAGE FlexibleContexts     #-}
+{-# LANGUAGE GADTs                #-}
+{-# LANGUAGE KindSignatures       #-}
+{-# LANGUAGE RecordWildCards      #-}
 
 module TypeCheck.State where
 
@@ -394,5 +395,25 @@ validateArgs p v args paramTypes = do
 
 
 
+-------------------------------------------------------------------------------
+putVarScope :: MonadState TypeCheckState m => VarScope -> m ()
+putVarScope scope = do
+  TypeCheckState { varScope = _, .. } <- get
+  put $ TypeCheckState { varScope = scope, .. }
+
+declareId :: (MonadState TypeCheckState m, MonadError Error m)
+  => S.Type -> S.Ident -> m ()
+declareId t id = case anyType t of
+  AnyT tt -> do
+    varScope <- gets varScope
+    
+    let varInfo = VarInfo (debloat id) tt
+    case S.insertNew (name id) varInfo varScope of
+      Nothing -> do
+        VarInfo declared _ <- getIdentInfo id
+        let declaredAt = position declared
+        throwError $ varAlredyDeclaredError (position id) id declaredAt
+      
+      Just newScope -> putVarScope newScope
 
 

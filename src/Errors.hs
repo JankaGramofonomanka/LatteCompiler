@@ -97,3 +97,11 @@ wrongNOParamsError p v expected actual = OnePosError p
     ++ " applied to wrong number of parameters."
     ++ ". Expected: " ++ show expected
     ++ ", Actual: " ++ show actual
+
+
+
+varAlredyDeclaredError :: IsIdent i => Pos -> i -> Pos -> Error
+varAlredyDeclaredError p id declaredAt = OnePosError p
+  $ "Variable " ++ name id ++ " alredy declared at " ++ show declaredAt
+
+
