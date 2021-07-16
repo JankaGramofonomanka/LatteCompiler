@@ -3,7 +3,7 @@ module Errors where
 
 import Control.Monad.Except
 import LangElemClasses
-import Position (Pos)
+import Position.Position (Pos)
 
 data Error
   = SimpleError String

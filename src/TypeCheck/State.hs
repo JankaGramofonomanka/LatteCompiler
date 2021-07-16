@@ -11,10 +11,10 @@ import Control.Monad.Except
 
 import qualified Syntax.Syntax as S
 import Syntax.SyntaxGADT
-import Position
+import Position.Position
 import Errors
-import Syntax.SyntaxPosition
-import Syntax.SyntaxGADTPosition
+import Position.SyntaxPosition
+import Position.SyntaxGADTPosition
 import LangElemClasses
 import Syntax.Debloater
 import qualified Scope as Sc

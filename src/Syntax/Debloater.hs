@@ -9,7 +9,7 @@ module Syntax.Debloater where
 import qualified FromBNFC.AbsLatte as Bloated
 import qualified Syntax.Syntax as S
 import qualified Syntax.SyntaxGADT as GS
-import Position (position)
+import Position.Position (position)
 
 
 

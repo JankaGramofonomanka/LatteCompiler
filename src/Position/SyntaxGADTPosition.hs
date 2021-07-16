@@ -1,11 +1,14 @@
-module Syntax.SyntaxPosition where
+{-# LANGUAGE GADTs #-}
 
-import Syntax.Syntax
-import Position (HasPosition, position)
+module Position.SyntaxGADTPosition where
+
+import Syntax.SyntaxGADT
+import Position.Position (HasPosition, position)
+
 
 
   
-instance HasPosition Ident where
+instance HasPosition (Ident a) where
   position (Ident p _) = p
 
 instance HasPosition SInt where
@@ -47,13 +50,13 @@ instance HasPosition Stmt where
 
 
 
-instance HasPosition Item where
+instance HasPosition (Item a) where
   position (NoInit id) = position id
   position (Init id _) = position id
 
 
 
-instance HasPosition Type where
+instance HasPosition (Type a) where
   position t = case t of
     Int   p   -> p
     Str   p   -> p
@@ -64,7 +67,7 @@ instance HasPosition Type where
 
 
 
-instance HasPosition Var where
+instance HasPosition (Var a) where
   position var = case var of
     Var     p _ -> p
     Fun     p _ -> p
@@ -73,7 +76,7 @@ instance HasPosition Var where
   
 
 
-instance HasPosition Expr where
+instance HasPosition (Expr a) where
   position expr = case expr of
     EVar      p _     -> p
     ELitInt   p _     -> p
@@ -93,26 +96,25 @@ instance HasPosition Expr where
 
 
 instance HasPosition BinOp where
-    position (Plus  p) = p
-    position (Minus p) = p
-    position (Times p) = p
-    position (Div   p) = p
-    position (Mod   p) = p
+  position (Plus  p) = p
+  position (Minus p) = p
+  position (Times p) = p
+  position (Div   p) = p
+  position (Mod   p) = p
 
-
-instance HasPosition RelOp where
-    position (LTH p) = p
-    position (LE  p) = p
-    position (GTH p) = p
-    position (GE  p) = p
-    position (EQU p) = p
-    position (NE  p) = p
-
+instance HasPosition (RelOp a) where
+  position (LTH p) = p
+  position (LE  p) = p
+  position (GTH p) = p
+  position (GE  p) = p
+  position (EQU p) = p
+  position (NE  p) = p
 
 instance HasPosition BoolOp where
-    position (And p) = p
-    position (Or  p) = p
+  position (And p) = p
+  position (Or  p) = p
 
+    
 
 
 

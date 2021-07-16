@@ -2,7 +2,7 @@
 {-# LANGUAGE KindSignatures #-}
 
 module Syntax.SyntaxGADT where
-import Position (Pos)
+import Position.Position (Pos)
 
 
 

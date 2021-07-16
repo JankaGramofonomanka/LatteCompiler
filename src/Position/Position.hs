@@ -1,4 +1,4 @@
-module Position where
+module Position.Position where
 
 import FromBNFC.AbsLatte
 

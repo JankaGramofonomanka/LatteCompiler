@@ -1,14 +1,11 @@
-{-# LANGUAGE GADTs #-}
+module Position.SyntaxPosition where
 
-module Syntax.SyntaxGADTPosition where
-
-import Syntax.SyntaxGADT
-import Position (HasPosition, position)
-
+import Syntax.Syntax
+import Position.Position (HasPosition, position)
 
 
   
-instance HasPosition (Ident a) where
+instance HasPosition Ident where
   position (Ident p _) = p
 
 instance HasPosition SInt where
@@ -50,13 +47,13 @@ instance HasPosition Stmt where
 
 
 
-instance HasPosition (Item a) where
+instance HasPosition Item where
   position (NoInit id) = position id
   position (Init id _) = position id
 
 
 
-instance HasPosition (Type a) where
+instance HasPosition Type where
   position t = case t of
     Int   p   -> p
     Str   p   -> p
@@ -67,7 +64,7 @@ instance HasPosition (Type a) where
 
 
 
-instance HasPosition (Var a) where
+instance HasPosition Var where
   position var = case var of
     Var     p _ -> p
     Fun     p _ -> p
@@ -76,7 +73,7 @@ instance HasPosition (Var a) where
   
 
 
-instance HasPosition (Expr a) where
+instance HasPosition Expr where
   position expr = case expr of
     EVar      p _     -> p
     ELitInt   p _     -> p
@@ -96,25 +93,26 @@ instance HasPosition (Expr a) where
 
 
 instance HasPosition BinOp where
-  position (Plus  p) = p
-  position (Minus p) = p
-  position (Times p) = p
-  position (Div   p) = p
-  position (Mod   p) = p
+    position (Plus  p) = p
+    position (Minus p) = p
+    position (Times p) = p
+    position (Div   p) = p
+    position (Mod   p) = p
 
-instance HasPosition (RelOp a) where
-  position (LTH p) = p
-  position (LE  p) = p
-  position (GTH p) = p
-  position (GE  p) = p
-  position (EQU p) = p
-  position (NE  p) = p
+
+instance HasPosition RelOp where
+    position (LTH p) = p
+    position (LE  p) = p
+    position (GTH p) = p
+    position (GE  p) = p
+    position (EQU p) = p
+    position (NE  p) = p
+
 
 instance HasPosition BoolOp where
-  position (And p) = p
-  position (Or  p) = p
+    position (And p) = p
+    position (Or  p) = p
 
-    
 
 
 
