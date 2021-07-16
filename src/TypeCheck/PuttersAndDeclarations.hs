@@ -17,6 +17,7 @@ import qualified Scope as Sc
 import TypeCheck.State
 import TypeCheck.Getters
 
+
 -------------------------------------------------------------------------------
 putVarScope :: MonadState TypeCheckState m => VarScope -> m ()
 putVarScope scope = do
@@ -33,7 +34,20 @@ putClassMap clsMap = do
   TypeCheckState { classMap = _, .. } <- get
   put $ TypeCheckState { classMap = clsMap, .. }
 
+updateVarScope :: MonadState TypeCheckState m => (VarScope -> VarScope) -> m ()
+updateVarScope f = do
+  TypeCheckState { varScope = scope, .. } <- get
+  put $ TypeCheckState { varScope = f scope, .. }
 
+subVarScope :: MonadState TypeCheckState m => m ()
+subVarScope = updateVarScope Sc.subScope
+
+dropVarScope :: MonadState TypeCheckState m => m ()
+dropVarScope = updateVarScope Sc.dropScope
+
+
+
+-------------------------------------------------------------------------------
 declareId :: (MonadState TypeCheckState m, MonadError Error m)
   => S.Type -> S.Ident -> m ()
 declareId t id = case anyType t of
