@@ -14,6 +14,7 @@ import TypeCheck.Getters
 import TypeCheck.PuttersAndDeclarations
 import Errors
 import Syntax.Debloater ( ToBeDebloated(debloat) )
+import Position.Position
 
 
 
@@ -23,6 +24,16 @@ class ToBeTypeChecked pre post where
 
 
 
+appendTypeChecked ::
+  ( MonadState TypeCheckState m,
+    MonadError Error m,
+    ToBeTypeChecked a b
+  )
+  => m [b] -> a -> m [b]
+appendTypeChecked acc x = do
+  l <- acc
+  okX <- typeCheck x
+  return $ l ++ [okX]
 
 
 instance ToBeTypeChecked S.Program Program where
@@ -44,12 +55,6 @@ instance ToBeTypeChecked S.Program Program where
         S.ClassDef _ id maybeParent body -> declareClass id maybeParent body
 
 
-      appendTypeChecked :: (MonadState TypeCheckState m, MonadError Error m)
-        => m [TopDef] -> S.TopDef -> m [TopDef]
-      appendTypeChecked acc def = do
-        l <- acc
-        okDef <- typeCheck def
-        return $ l ++ [okDef]
 
 
 instance ToBeTypeChecked S.TopDef TopDef where
@@ -60,7 +65,7 @@ instance ToBeTypeChecked S.TopDef TopDef where
           foldl declParam (pure ()) params
 
           subVarScope
-          okStmts <- foldl appendTypeChecked (pure []) stmts
+          okStmts <- foldl appendTypeChecked' (pure []) stmts
 
           dropVarScope
           dropVarScope
@@ -77,9 +82,9 @@ instance ToBeTypeChecked S.TopDef TopDef where
         
 
 
-      appendTypeChecked :: (MonadState TypeCheckState m, MonadError Error m)
+      appendTypeChecked' :: (MonadState TypeCheckState m, MonadError Error m)
         => m [Stmt] -> S.Stmt -> m [Stmt]
-      appendTypeChecked acc stmt = do
+      appendTypeChecked' acc stmt = do
         l <- acc
         okStmt <- typeCheck' stmt
         return $ l ++ [okStmt]
@@ -109,114 +114,88 @@ instance ToBeTypeChecked S.TopDef TopDef where
     throwTODO
 
 instance ToBeTypeChecked S.Block Block where
+  typeCheck (S.Block p stmts) = do
+    subVarScope
+    okStmts <- foldl appendTypeChecked (pure []) stmts
+    dropVarScope
+    return $ Block p okStmts
+
 instance ToBeTypeChecked S.Stmt Stmt where
---instance ToBeTypeChecked S.Expr (Expr a) where
+  typeCheck stmt = case stmt of
+    S.Empty p -> return $ Empty p
+    
+    S.BStmt p block -> do
+      okBlock <- typeCheck block
+      return $ BStmt p okBlock
+
+    S.Decl p t items -> case anyType t of
+      AnyT tt -> do
+        okItems <- foldl (declItem t tt) (pure []) items
+        return $ Decl p tt okItems
+
+      where
+        declItem :: (MonadState TypeCheckState m, MonadError Error m)
+          => S.Type -> Type a -> m [Item a] -> S.Item -> m [Item a]
+        declItem t tt acc (S.NoInit id) = do
+          l <- acc          
+          declareId t id
+          return $ l ++ [NoInit (debloat id)]
+
+        declItem t tt acc (S.Init id expr) = do
+            l <- acc
+            declareId t id
+            okExpr <- getExpr tt expr
+            return $ l ++ [Init (debloat id) okExpr]
+          
 
 
-{-
-data TopDef where
-  FnDef :: Pos
-        -> Type
-        -> Ident
-        -> [Param]
-        -> Block
-        -> TopDef
+    S.Ass p var expr -> do
+      Any varType okVar <- getAnyVar var
+      okExpr <- getExpr varType expr
+      return $ Ass p okVar okExpr
 
-  ClassDef  :: Pos
-            -> Ident
-            -> Maybe Ident
-            -> ClassBody
-            -> TopDef
+    S.Incr p var -> do
+      okVar <- getVar int var
+      return $ Incr p okVar
 
-  deriving (Eq, Ord, Show, Read) 
+    S.Decr p var -> do
+      okVar <- getVar int var
+      return $ Decr p okVar
+      
+    S.Ret p expr -> do
+      Any _ okExpr <- getAnyExpr expr
+      return $ Ret p okExpr
 
+    S.VRet p -> return $ VRet p
 
-data Param = Param Type Ident deriving (Eq, Ord, Show, Read)
+    S.Cond p cond stm -> do
+      okCond <- getExpr bool cond
+      okStm <- typeCheck stm
+      return $ Cond p okCond okStm
 
-data Block = Block Pos [Stmt] deriving (Eq, Ord, Show, Read)
+    S.CondElse p cond stmIf stmElse -> do
+      okCond <- getExpr bool cond
+      okStmIf <- typeCheck stmIf
+      okStmElse <- typeCheck stmElse
+      return $ CondElse p okCond okStmIf okStmElse
 
-data Stmt where
-  Empty     :: Pos -> Stmt
-  BStmt     :: Pos -> Block -> Stmt
-  Decl      :: Pos -> Type -> [Item] -> Stmt
-  Ass       :: Pos -> Var -> Expr -> Stmt
-  Incr      :: Pos -> Var -> Stmt
-  Decr      :: Pos -> Var -> Stmt
-  Ret       :: Pos -> Expr -> Stmt
-  VRet      :: Pos -> Stmt
-  Cond      :: Pos -> Expr -> Stmt -> Stmt
-  CondElse  :: Pos -> Expr -> Stmt -> Stmt -> Stmt
-  While     :: Pos -> Expr -> Stmt -> Stmt
-  SExp      :: Pos -> Expr -> Stmt
-  For       :: Pos -> Type -> Ident -> Var -> Stmt -> Stmt
+    S.While p cond loopBody -> do
+      okCond <- getExpr bool cond
+      okLoopBody <- typeCheck loopBody
+      return $ While p okCond okLoopBody
 
-  deriving (Eq, Ord, Show, Read)
+    S.SExp p expr -> do
+      Any _ okExpr <- getAnyExpr expr
+      return $ SExp p okExpr
 
-data Item where
-  NoInit  :: Ident -> Item
-  Init    :: Ident -> Expr -> Item
+    S.For p t id arr loopBody -> case anyType t of
+      AnyT tt -> do
 
-  deriving (Eq, Ord, Show, Read)
+        subVarScope
 
-data Type where
-  Int     :: Pos -> Type
-  Str     :: Pos -> Type
-  Bool    :: Pos -> Type
-  Void    :: Pos -> Type
-  Arr     :: Type -> Type
-  Custom  :: Ident -> Type
-
-  deriving (Eq, Ord, Show, Read)
-
-data Var where
-  Var     :: Pos -> Ident -> Var
-  Fun     :: Pos -> Ident -> Var
-  Member  :: Pos -> Var -> Ident -> Var
-  Elem    :: Pos -> Var -> Expr -> Var
-  
-  deriving (Eq, Ord, Show, Read)
-
-data Expr where
-  EVar      :: Pos -> Var -> Expr
-  ELitInt   :: Pos -> SInt -> Expr
-  ELitBool  :: Pos -> Bool -> Expr
-  EApp      :: Pos -> Var -> [Expr] -> Expr
-  EString   :: Pos -> SStr -> Expr
-  Neg       :: Pos -> Expr -> Expr
-  Not       :: Pos -> Expr -> Expr
-  EOp       :: Pos -> BinOp -> Expr -> Expr -> Expr
-  ERel      :: Pos -> RelOp -> Expr -> Expr -> Expr
-  EBool     :: Pos -> BoolOp -> Expr -> Expr -> Expr
-  NewArr    :: Pos -> Type -> Expr -> Expr
-  NewObj    :: Pos -> Ident -> Expr
-  Cast      :: Pos -> Type -> Expr -> Expr
-
-  deriving (Eq, Ord, Show, Read)
-
-
-data BinOp = Plus Pos | Minus Pos | Times Pos | Div Pos | Mod Pos
-  deriving (Eq, Ord, Show, Read)
-
-data RelOp = LTH Pos | LE Pos | GTH Pos | GE Pos | EQU Pos | NE Pos
-  deriving (Eq, Ord, Show, Read)
-
-data BoolOp = And Pos | Or Pos
-  deriving (Eq, Ord, Show, Read)
-
-
-
-data ClassBody = ClassBody Pos [MemberDecl]
-  deriving (Eq, Ord, Show, Read)
-
-data MemberDecl where
-  AttrDecl :: Pos -> Type -> Ident -> MemberDecl
-  MethodDecl :: TopDef -> MemberDecl
-  
-  deriving (Eq, Ord, Show, Read)
-
--- -}
-
-
-
-
+        declareId t id
+        okArr <- getVar (Arr tt) arr
+        okLoopBody <- typeCheck loopBody
+      
+        return $ For p tt (debloat id) okArr okLoopBody
 
