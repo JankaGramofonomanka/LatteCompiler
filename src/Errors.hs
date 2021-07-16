@@ -128,3 +128,9 @@ methodAlredyDeclaredError p methodId clsId declaredAt = OnePosError p
 nestedClassError :: Pos -> Error
 nestedClassError p = OnePosError p "Nested classes are not supported"
 
+
+returnVoidError :: (IsIdent i, IsType t) => Pos -> i -> t -> Error
+returnVoidError p id t = OnePosError p
+  $ "Function " ++ name id
+    ++ " returns void while it is expected to return " 
+    ++ toStr t

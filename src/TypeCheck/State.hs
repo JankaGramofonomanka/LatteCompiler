@@ -26,18 +26,21 @@ bool :: Type Bool
 bool = Bool fakePos
 str :: Type String
 str = Str fakePos
+void :: Type Void
+void = Void fakePos
 
 
 anyType :: S.Type -> AnyType
-anyType t = case t of
-  S.Int   p         -> AnyT $ Int p
-  S.Str   p         -> AnyT $ Int p
-  S.Bool  p         -> AnyT $ Int p
-  S.Void  p         -> AnyT $ Int p
-  S.Arr   elemType  -> case anyType elemType of
-                        AnyT tt -> AnyT $ Arr tt
-
-  S.Custom cls      -> AnyT $ Custom (debloat cls)
+anyType = debloat
+--anyType t = case t of
+--  S.Int   p         -> AnyT $ Int p
+--  S.Str   p         -> AnyT $ Int p
+--  S.Bool  p         -> AnyT $ Int p
+--  S.Void  p         -> AnyT $ Int p
+--  S.Arr   elemType  -> case anyType elemType of
+--                        AnyT tt -> AnyT $ Arr tt
+--
+--  S.Custom cls      -> AnyT $ Custom (debloat cls)
 
 lengthAttr :: String
 lengthAttr = "length"

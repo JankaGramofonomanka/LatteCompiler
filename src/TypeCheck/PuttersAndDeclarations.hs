@@ -153,10 +153,10 @@ getMethodMap clsId (S.ClassBody p memberDecls)
           
         Nothing -> case anyType retT of
           AnyT retType -> do
-            let paramTypes = map (anyType . typeOf) params
+            let paramTypes = map (anyType . typeOfParam) params
             let info = FuncInfo (debloat id) retType paramTypes
             return $ M.insert (name id) info methodMap
 
-    typeOf :: S.Param -> S.Type
-    typeOf (S.Param t _) = t
+typeOfParam :: S.Param -> S.Type
+typeOfParam (S.Param t _) = t
 

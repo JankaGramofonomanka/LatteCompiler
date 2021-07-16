@@ -232,9 +232,20 @@ instance ToBeDebloated S.BoolOp GS.BoolOp where
     S.And p -> GS.And p
     S.Or  p -> GS.Or  p
 
+instance ToBeDebloated S.Param GS.Param where
+  debloat (S.Param t id) = case debloat t of
+    GS.AnyT tt -> GS.Param tt (debloat id)
 
+instance ToBeDebloated S.Type GS.AnyType where
+  debloat t = case t of
+    S.Int   p         -> GS.AnyT $ GS.Int p
+    S.Str   p         -> GS.AnyT $ GS.Int p
+    S.Bool  p         -> GS.AnyT $ GS.Int p
+    S.Void  p         -> GS.AnyT $ GS.Int p
+    S.Arr   elemType  -> case debloat elemType of
+                          GS.AnyT tt -> GS.AnyT $ GS.Arr tt
 
-
+    S.Custom cls      -> GS.AnyT $ GS.Custom (debloat cls)
 
 
 
