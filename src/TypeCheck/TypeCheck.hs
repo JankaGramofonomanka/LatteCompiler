@@ -191,18 +191,18 @@ instance ToBeTypeChecked S.Stmt Stmt where
 
     S.Decl p t items -> case anyType t of
       AnyT tt -> do
-        okItems <- foldl (declItem t tt) (pure []) items
+        okItems <- foldl (declItem tt) (pure []) items
         return $ Decl p tt okItems
 
       where
         declItem :: (MonadState TypeCheckState m, MonadError Error m)
-          => S.Type -> Type a -> m [Item a] -> S.Item -> m [Item a]
-        declItem t tt acc (S.NoInit id) = do
+          => Type a -> m [Item a] -> S.Item -> m [Item a]
+        declItem tt acc (S.NoInit id) = do
           l <- acc          
           declareId t id
           return $ l ++ [NoInit (debloat id)]
 
-        declItem t tt acc (S.Init id expr) = do
+        declItem tt acc (S.Init id expr) = do
             l <- acc
             declareId t id
             okExpr <- getExpr tt expr
