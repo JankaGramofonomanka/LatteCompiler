@@ -10,6 +10,14 @@ data Error
   | OnePosError Pos String
   | MultiPosError [Pos] String
 
+instance Show Error where
+  show (SimpleError s) = "ERROR: " ++ s
+  show (OnePosError p s) = "ERROR at " ++ show p ++ "\n" ++ s
+  show (MultiPosError ps s) = "ERRORs at " ++ prtList ps ++ "\n" ++ s
+    where
+      prtList :: [Pos] -> String
+      prtList [] = ""
+      prtList (x : xs) = foldl (\acc el -> acc ++ ", " ++ show el) (show x) xs
 
 throwTODO :: MonadError Error m => m a
 throwTODO = throwError $ SimpleError "TODO"
