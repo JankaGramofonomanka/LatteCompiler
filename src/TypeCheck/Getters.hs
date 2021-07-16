@@ -51,8 +51,8 @@ getFuncInfo ::
   )
   => i -> m FuncInfo
 getFuncInfo id = do
-  fnMap <- gets funcMap
-  case M.lookup (name id) fnMap of
+  fnScope <- gets funcScope
+  case Sc.lookup (name id) fnScope of
     Nothing   -> throwError $ noSuchFuncError (position id) id
     Just info -> return info
     

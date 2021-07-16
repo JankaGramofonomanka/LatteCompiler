@@ -32,15 +32,6 @@ void = Void fakePos
 
 anyType :: S.Type -> AnyType
 anyType = debloat
---anyType t = case t of
---  S.Int   p         -> AnyT $ Int p
---  S.Str   p         -> AnyT $ Int p
---  S.Bool  p         -> AnyT $ Int p
---  S.Void  p         -> AnyT $ Int p
---  S.Arr   elemType  -> case anyType elemType of
---                        AnyT tt -> AnyT $ Arr tt
---
---  S.Custom cls      -> AnyT $ Custom (debloat cls)
 
 lengthAttr :: String
 lengthAttr = "length"
@@ -50,6 +41,7 @@ type VarMap = M.Map String VarInfo
 type FuncMap = M.Map String FuncInfo
 type ClassMap = M.Map String ClassInfo
 type VarScope = Sc.Scope String VarInfo
+type FuncScope = Sc.Scope String FuncInfo
 
 data VarInfo where
   VarInfo :: { varId :: Ident a, varType :: Type a } -> VarInfo
@@ -70,7 +62,7 @@ data ClassInfo = ClassInfo {
 
 data TypeCheckState = TypeCheckState { 
   varScope :: VarScope,
-  funcMap :: FuncMap,
+  funcScope :: FuncScope,
   classMap :: ClassMap
 }
 

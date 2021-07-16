@@ -24,10 +24,10 @@ putVarScope scope = do
   TypeCheckState { varScope = _, .. } <- get
   put $ TypeCheckState { varScope = scope, .. }
 
-putFuncMap :: MonadState TypeCheckState m => FuncMap -> m ()
-putFuncMap fnMap = do
-  TypeCheckState { funcMap = _, .. } <- get
-  put $ TypeCheckState { funcMap = fnMap, .. }
+putFuncScope :: MonadState TypeCheckState m => FuncScope -> m ()
+putFuncScope fnScope = do
+  TypeCheckState { funcScope = _, .. } <- get
+  put $ TypeCheckState { funcScope = fnScope, .. }
 
 putClassMap :: MonadState TypeCheckState m => ClassMap -> m ()
 putClassMap clsMap = do
@@ -69,15 +69,15 @@ declareFunc :: (MonadState TypeCheckState m, MonadError Error m)
 declareFunc id retType argTypes = case anyType retType of
   AnyT retT -> do
     
-    fnMap <- gets funcMap
-    case M.lookup (name id) fnMap of
+    fnScope <- gets funcScope
+    case Sc.lookup (name id) fnScope of
       Just FuncInfo { funcId = f, .. } -> throwError
         $ funcAlredyDeclaredError (position id) id (position f)
       
       Nothing -> do
         let info = FuncInfo (debloat id) retT (map anyType argTypes)
-        let newFnMap = M.insert (name id) info fnMap
-        putFuncMap newFnMap
+        let newFnScope = Sc.insert (name id) info fnScope
+        putFuncScope newFnScope
 
 declareClass :: (MonadState TypeCheckState m, MonadError Error m)
   => S.Ident -> Maybe S.Ident -> S.ClassBody -> m ()
