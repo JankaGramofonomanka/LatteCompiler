@@ -4,6 +4,7 @@
 
 module TypeCheck.TypeCheck where
 
+import qualified Data.Map as M
 import Control.Monad.State hiding ( void )
 import Control.Monad.Except hiding ( void )
 
@@ -13,7 +14,7 @@ import TypeCheck.State
 import TypeCheck.Getters
 import TypeCheck.PuttersAndDeclarations
 import Errors
-import Syntax.Debloater ( ToBeDebloated(debloat) )
+import Syntax.Debloater ( ToBeDebloated(debloat), bloatType, bloatId )
 import Position.Position
 
 
@@ -47,7 +48,7 @@ instance ToBeTypeChecked S.Program Program where
       
       declare :: (MonadState TypeCheckState m, MonadError Error m)
         => m () -> S.TopDef -> m ()
-      declare _ def = case def of
+      declare acc def = acc >> case def of
         S.FnDef _ retType id params _ -> declareFunc id retType argTypes
           where
             argTypes = map typeOfParam params
@@ -78,7 +79,7 @@ instance ToBeTypeChecked S.TopDef TopDef where
     where
       declParam :: (MonadState TypeCheckState m, MonadError Error m)
         => m () -> S.Param -> m ()
-      declParam _ (S.Param t id) = declareId t id
+      declParam acc (S.Param t id) = acc >> declareId t id
         
 
 
@@ -110,8 +111,68 @@ instance ToBeTypeChecked S.TopDef TopDef where
           
 
 
-  typeCheck (S.ClassDef p id maybeParent body) = do
-    throwTODO
+  typeCheck (S.ClassDef p id maybeParent (S.ClassBody pp memberDecls)) = do
+    info <- getClassInfo id
+
+    depth <- declareParentMembers (parent info)
+
+    subVarScope
+    subFuncScope
+    okMemberDecls <- mapM typeCheckMember memberDecls
+
+    replicateM_ (depth + 1) dropVarScope
+    replicateM_ (depth + 1) dropFuncScope
+
+    let okBody = ClassBody pp okMemberDecls
+    return $ ClassDef p (debloat id) (debloat <$> maybeParent) okBody
+
+    where
+
+      declareParentMembers :: (MonadState TypeCheckState m, MonadError Error m)
+        => Maybe ClassInfo -> m Int
+      declareParentMembers Nothing = return 0
+      declareParentMembers (Just (ClassInfo clsId parentInfo attrs methods))
+        = do
+          subVarScope
+          subFuncScope
+          depth <- declareParentMembers parentInfo
+          foldl declAttr (pure ()) $ M.toList attrs
+          foldl declMethod (pure ()) $ M.toList methods
+          return $ depth + 1
+          
+          where
+            declAttr :: (MonadState TypeCheckState m, MonadError Error m)
+              => m () -> (String, VarInfo) -> m ()
+            declAttr acc (_, VarInfo id t)
+              = acc >> declareId (bloatType t) (bloatId id)
+
+            declMethod :: (MonadState TypeCheckState m, MonadError Error m)
+              => m () -> (String, FuncInfo) -> m ()
+            declMethod acc (_, FuncInfo id retType argTypes) = do
+              acc
+              let bloatedArgTypes = map bloatAnyType argTypes
+              declareFunc (bloatId id) (bloatType retType) bloatedArgTypes
+              
+              where
+                bloatAnyType (AnyT t) = bloatType t
+
+
+      typeCheckMember :: (MonadState TypeCheckState m, MonadError Error m)
+        => S.MemberDecl -> m MemberDecl
+      typeCheckMember decl = case decl of
+        S.MethodDecl (S.ClassDef p _ _ _) -> throwError $ nestedClassError p
+        
+        S.AttrDecl p t id -> case anyType t of
+          AnyT tt -> do
+            declareId t id
+            return $ AttrDecl p tt (debloat id)
+
+        S.MethodDecl fnDef -> do
+          okFnDef <- typeCheck fnDef
+          return $ MethodDecl okFnDef
+        
+
+
 
 instance ToBeTypeChecked S.Block Block where
   typeCheck (S.Block p stmts) = do

@@ -45,6 +45,18 @@ subVarScope = updateVarScope Sc.subScope
 dropVarScope :: MonadState TypeCheckState m => m ()
 dropVarScope = updateVarScope Sc.dropScope
 
+updateFuncScope :: MonadState TypeCheckState m
+  => (FuncScope -> FuncScope) -> m ()
+updateFuncScope f = do
+  TypeCheckState { funcScope = scope, .. } <- get
+  put $ TypeCheckState { funcScope = f scope, .. }
+
+subFuncScope :: MonadState TypeCheckState m => m ()
+subFuncScope = updateFuncScope Sc.subScope
+
+dropFuncScope :: MonadState TypeCheckState m => m ()
+dropFuncScope = updateFuncScope Sc.dropScope
+
 
 
 -------------------------------------------------------------------------------
