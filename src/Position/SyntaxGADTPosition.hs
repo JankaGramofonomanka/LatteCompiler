@@ -70,7 +70,6 @@ instance HasPosition (Type a) where
 instance HasPosition (Var a) where
   position var = case var of
     Var     p _ -> p
-    Fun     p _ -> p
     Member  p _ _ -> p
     Elem    p _ _ -> p
   

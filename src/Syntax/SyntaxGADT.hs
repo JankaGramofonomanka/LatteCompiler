@@ -115,7 +115,6 @@ data Type a where
 
 data Var a where
   Var     :: Pos -> Ident a -> Var a
-  Fun     :: Pos -> FuncIdent -> Var Func
   Member  :: Pos -> Var a -> Ident t -> Var t
   Elem    :: Pos -> Var (Array a) -> Expr Int -> Var a
 

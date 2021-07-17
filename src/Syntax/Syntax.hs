@@ -73,7 +73,6 @@ data Type where
 
 data Var where
   Var     :: Pos -> Ident -> Var
-  Fun     :: Pos -> Ident -> Var
   Member  :: Pos -> Var -> Ident -> Var
   Elem    :: Pos -> Var -> Expr -> Var
   

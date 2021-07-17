@@ -96,9 +96,8 @@ getClass id = do
 getCallableVarAndInfo :: (MonadState TypeCheckState m, MonadError Error m)
   => S.Var -> m (Var Func, FuncInfo)
 getCallableVarAndInfo var = case var of
-  S.Var p id -> throwError $ notAVarError p id
 
-  S.Fun p id -> do
+  S.Var p id -> do
     info <- getFuncInfo id
     
     return (Var p (funcId info), info)
@@ -157,8 +156,6 @@ getAnyVar var = case var of
     VarInfo x t <- getIdentInfo id
     
     return $ Any t $ Var p x
-
-  S.Fun p id -> throwError $ notAVarError p id
 
   S.Member p v id -> do
     

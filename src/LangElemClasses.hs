@@ -71,14 +71,12 @@ instance IsVar BNFC.Var where
 instance IsVar S.Var where
   printVar var = case var of
     S.Var     p id    -> name id
-    S.Fun     p id    -> name id
     S.Member  p v id  -> printVar v ++ "." ++ name id
     S.Elem    p v e   -> printVar v ++ "[_]"
     
 instance IsVar (GS.Var a) where
   printVar var = case var of
     GS.Var    p id    -> name id
-    GS.Fun    p id    -> name id
     GS.Member p v id  -> printVar v ++ "." ++ name id
     GS.Elem   p v e   -> printVar v ++ "[_]"
     
