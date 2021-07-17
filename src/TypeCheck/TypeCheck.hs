@@ -257,6 +257,8 @@ instance ToBeTypeChecked S.Stmt Stmt where
         declareId t id
         okArr <- getVar (Arr tt) arr
         okLoopBody <- typeCheck loopBody
+
+        dropVarScope
       
         return $ For p tt (debloat id) okArr okLoopBody
 
