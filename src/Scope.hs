@@ -30,7 +30,7 @@ dropScope Scope { parent = p, .. } = p
 
 insertNew :: Ord k => k -> a -> Scope k a -> Maybe (Scope k a)
 
-insertNew key value scope@Scope { valMap = m, .. } = case lookup key scope of
+insertNew key value scope@Scope { valMap = m, .. } = case M.lookup key m of
   Nothing -> Just $ insert key value scope
   Just _ -> Nothing
 
