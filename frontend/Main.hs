@@ -16,6 +16,7 @@ import TypeCheck.TypeCheck ( ToBeTypeChecked(typeCheck) )
 import TypeCheck.State ( emptyState )
 import Syntax.Debloater ( ToBeDebloated(debloat) )
 import Errors
+import BuiltIns ( initTypeCheckState )
 
 parse :: String -> Err BNFC.Program
 parse = pProgram . myLexer
@@ -43,7 +44,7 @@ processFileContents fileCts = case parse fileCts of
   Ok bloatedAbsTree -> do
 
     let absTree = debloat bloatedAbsTree :: S.Program
-    let result = runExcept (evalStateT (typeCheck absTree) emptyState)
+    let result = runExcept (evalStateT (typeCheck absTree) initTypeCheckState)
 
     let exitCode = getExitCode (result :: Either Error GS.Program)
     let output = getOutput result
