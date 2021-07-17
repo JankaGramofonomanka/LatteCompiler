@@ -1,5 +1,6 @@
 {-# LANGUAGE FlexibleContexts     #-}
 {-# LANGUAGE GADTs                #-}
+{-# LANGUAGE KindSignatures       #-}
 
 module TypeCheck.Getters where
 
@@ -16,6 +17,42 @@ import Syntax.Debloater
 import qualified Scope as Sc
 import TypeCheck.State
 
+
+newtype X1 (a :: * -> *) b = X1 (a b)
+newtype X2 (a :: * -> *) (b :: * -> *) c = X2 (a (b c))
+toX2 :: e (a b) -> X2 e a b
+toX2 = X2
+
+fromX2 :: X2 e a b -> e (a b)
+fromX2 (X2 x) = x
+
+filterT :: (MonadState TypeCheckState m, MonadError Error m)
+  => Error -> Type a -> Type b -> e b -> m (e a)
+filterT _ (Int _)  (Int _)  x = return x
+filterT _ (Str _)  (Str _)  x = return x
+filterT _ (Bool _) (Bool _) x = return x
+filterT err (Arr t1) (Arr t2) x = do
+  xx <- filterT err t1 t2 (toX2 x)
+  
+  return $ fromX2 xx
+
+filterT err (Custom id1) (Custom id2) x = do
+  
+    assertSubClass err id1 id2
+    return x
+
+filterT err expected actual x = throwError err
+
+assertSubClass :: (MonadState TypeCheckState m, MonadError Error m)
+  => Error -> Ident Class -> Ident Class -> m ()
+assertSubClass err parent child = do
+  if name parent == name child then
+    return ()
+  else do
+    ClassInfo _ mbParent _ _ <- getClassInfo child
+    case mbParent of
+      Nothing -> throwError err
+      Just (ClassInfo parentId _ _ _) -> assertSubClass err parent parentId 
 
 getIdentInfo :: 
   ( MonadState TypeCheckState m,
