@@ -66,6 +66,13 @@ data TypeCheckState = TypeCheckState {
   classMap :: ClassMap
 }
 
+emptyState :: TypeCheckState
+emptyState = TypeCheckState { 
+  varScope  = Sc.subScope Sc.EmptyScope,
+  funcScope = Sc.subScope Sc.EmptyScope,
+  classMap  = M.empty
+}
+
 newtype X1 (a :: * -> *) b = X1 (a b)
 newtype X2 (a :: * -> *) (b :: * -> *) c = X2 (a (b c))
 toX2 :: e (a b) -> X2 e a b
