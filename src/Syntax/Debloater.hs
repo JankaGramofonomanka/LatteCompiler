@@ -144,7 +144,10 @@ instance ToBeDebloated Bloated.Expr S.Expr where
     Bloated.NewObj _ clsId  -> S.NewObj pos (debloat clsId)
     Bloated.Cast t e        -> S.Cast pos (debloat t) (debloat e)
     
-    Bloated.CastE e1 e2 -> error "not a type"
+    Bloated.CastE (Bloated.EVar (Bloated.Var (Bloated.PIdent (p, id)))) e ->
+      S.Cast pos (S.Custom (S.Ident p id)) (debloat e)
+    
+    Bloated.CastE e1 e2 -> error $ "parse error at " ++ show (position e1)
 
     where pos = position expr
 
