@@ -25,6 +25,12 @@ class ToBeTypeChecked pre post where
     => pre -> m post
 
 
+appendProcessed :: Monad m => (a -> m b) -> m [b] -> a -> m [b]
+appendProcessed process acc x = do
+  l <- acc
+  okX <- process x
+  return $ l ++ [okX]
+
 
 appendTypeChecked ::
   ( MonadState TypeCheckState m,
@@ -32,11 +38,7 @@ appendTypeChecked ::
     ToBeTypeChecked a b
   )
   => m [b] -> a -> m [b]
-appendTypeChecked acc x = do
-  l <- acc
-  okX <- typeCheck x
-  return $ l ++ [okX]
-
+appendTypeChecked = appendProcessed typeCheck
 
 instance ToBeTypeChecked S.Program Program where
   typeCheck (S.Program p defs) = do
@@ -86,11 +88,7 @@ instance ToBeTypeChecked S.TopDef TopDef where
 
       appendTypeChecked' :: (MonadState TypeCheckState m, MonadError Error m)
         => m [Stmt] -> S.Stmt -> m [Stmt]
-      appendTypeChecked' acc stmt = do
-        l <- acc
-        okStmt <- typeCheck' stmt
-        return $ l ++ [okStmt]
-
+      appendTypeChecked' = appendProcessed typeCheck'
 
       typeCheck' :: (MonadState TypeCheckState m, MonadError Error m)
         => S.Stmt -> m Stmt
@@ -119,7 +117,7 @@ instance ToBeTypeChecked S.TopDef TopDef where
 
     subVarScope
     subFuncScope
-    okMemberDecls <- mapM typeCheckMember memberDecls
+    okMemberDecls <- foldl appendTypeCheckedMember (pure []) memberDecls
 
     replicateM_ (depth + 1) dropVarScope
     replicateM_ (depth + 1) dropFuncScope
@@ -153,6 +151,10 @@ instance ToBeTypeChecked S.TopDef TopDef where
               acc
               declareFunc (bloatId id) retType argTypes
 
+      appendTypeCheckedMember :: 
+        (MonadState TypeCheckState m, MonadError Error m)
+        => m [MemberDecl] -> S.MemberDecl -> m [MemberDecl]
+      appendTypeCheckedMember = appendProcessed typeCheckMember
 
       typeCheckMember :: (MonadState TypeCheckState m, MonadError Error m)
         => S.MemberDecl -> m MemberDecl
