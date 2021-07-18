@@ -113,12 +113,12 @@ instance ToBeTypeChecked S.TopDef TopDef where
   typeCheck (S.ClassDef p id maybeParent (S.ClassBody pp memberDecls)) = do
     info <- getClassInfo id
 
+    subVarScope >> subFuncScope
     depth <- declareMembers (Just info)
     
     okMemberDecls <- foldl appendTypeCheckedMember (pure []) memberDecls
     
-    replicateM_ depth dropVarScope
-    replicateM_ depth dropFuncScope
+    replicateM_ (depth + 1) (dropVarScope >> dropFuncScope)
 
     let okBody = ClassBody pp okMemberDecls
     return $ ClassDef p (debloat id) (debloat <$> maybeParent) okBody
@@ -130,9 +130,9 @@ instance ToBeTypeChecked S.TopDef TopDef where
       declareMembers Nothing = return 0
       declareMembers (Just (ClassInfo clsId parentInfo attrs methods))
         = do
-          subVarScope
-          subFuncScope
           depth <- declareMembers parentInfo
+
+          subVarScope >> subFuncScope
           foldl declAttr (pure ()) $ M.toList attrs
           foldl declMethod (pure ()) $ M.toList methods
           return $ depth + 1
