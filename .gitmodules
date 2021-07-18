@@ -1,0 +1,3 @@
+[submodule "mrjp-tests"]
+	path = mrjp-tests
+	url = https://github.com/tomwys/mrjp-tests.git
