@@ -1,0 +1,100 @@
+#!/bin/bash
+
+
+make
+
+echo ""
+echo "*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-"
+echo "-- GOOD ------------------------------------------"
+echo "*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-"
+
+
+echo ""
+echo "-- BASIC -----------------------------------------"
+
+for file in ./mrjp-tests/good/basic/*.lat
+do
+    echo ""
+    filename="$(basename $file .lat)" 
+    echo "$filename.lat"
+    ./latc $file
+done
+
+echo ""
+echo "-- ARRAYS ----------------------------------------"
+
+for file in ./mrjp-tests/good/arrays/*.lat
+do
+    echo ""
+    filename="$(basename $file .lat)" 
+    echo "$filename.lat"
+    ./latc $file
+done
+
+echo ""
+echo "-- VIRTUAL ---------------------------------------"
+
+for file in ./mrjp-tests/good/virtual/*.lat
+do
+    echo ""
+    filename="$(basename $file .lat)" 
+    echo "$filename.lat"
+    ./latc $file
+done
+
+
+echo ""
+echo "-- HARDCORE --------------------------------------"
+
+for file in ./mrjp-tests/good/hardcore/*.lat
+do
+    echo ""
+    filename="$(basename $file .lat)" 
+    echo "$filename.lat"
+    ./latc $file
+done
+
+echo ""
+echo "*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-"
+echo "-- BAD -------------------------------------------"
+echo "*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-"
+
+echo ""
+echo "-- INFINITE LOOP ---------------------------------"
+
+for file in ./mrjp-tests/bad/infinite_loop/*.lat
+do
+    echo ""
+    filename="$(basename $file .lat)" 
+    echo "$filename.lat"
+    ./latc $file
+done
+
+echo ""
+echo "-- RUNTIME ---------------------------------------"
+
+for file in ./mrjp-tests/bad/runtime/*.lat
+do
+    echo ""
+    filename="$(basename $file .lat)" 
+    echo "$filename.lat"
+    ./latc $file
+done
+
+
+echo ""
+echo "-- SEMANTIC --------------------------------------"
+
+for file in ./mrjp-tests/bad/semantic/*.lat
+do
+    echo ""
+    filename="$(basename $file .lat)" 
+    echo "$filename.lat"
+    ./latc $file
+done
+
+
+
+src/MainB $1
+
+make clean
