@@ -157,8 +157,8 @@ Expr6 : Var { FromBNFC.AbsLatte.EVar $1 }
       | '(' Expr ')' { $2 }
 Var :: { Var }
 Var : PIdent { FromBNFC.AbsLatte.Var $1 }
-    | Var '.' PIdent { FromBNFC.AbsLatte.Member $1 $3 }
-    | Var '[' Expr ']' { FromBNFC.AbsLatte.Elem $1 $3 }
+    | Expr6 '.' PIdent { FromBNFC.AbsLatte.Member $1 $3 }
+    | Expr6 '[' Expr ']' { FromBNFC.AbsLatte.Elem $1 $3 }
     | PNull { FromBNFC.AbsLatte.Null $1 }
 Expr5 :: { Expr }
 Expr5 : PMinus Expr6 { FromBNFC.AbsLatte.Neg $1 $2 }

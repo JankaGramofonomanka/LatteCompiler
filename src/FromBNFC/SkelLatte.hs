@@ -158,8 +158,8 @@ transType x = case x of
 transVar :: Var -> Result
 transVar x = case x of
   Var pident -> failure x
-  Member var pident -> failure x
-  Elem var expr -> failure x
+  Member expr pident -> failure x
+  Elem expr1 expr2 -> failure x
   Null pnull -> failure x
 transExpr :: Expr -> Result
 transExpr x = case x of

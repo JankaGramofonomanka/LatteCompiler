@@ -116,8 +116,8 @@ data Type a where
 
 data Var a where
   Var     :: Pos -> Ident a -> Var a
-  Member  :: Pos -> Var a -> Ident t -> Var t
-  Elem    :: Pos -> Var (Array a) -> Expr Int -> Var a
+  Member  :: Pos -> Expr a -> Ident t -> Var t
+  Elem    :: Pos -> Expr (Array a) -> Expr Int -> Var a
   Null    :: Pos -> Var Null
 
 
@@ -135,7 +135,7 @@ data Expr a where
   NewArr    :: Pos -> Type b -> Expr Int -> Expr (Array b)
   NewObj    :: Pos -> Type Custom -> Expr Custom
   Cast      :: Pos -> Type c -> Expr b -> Expr c
-  Concat   :: Pos -> Expr String -> Expr String -> Expr String
+  Concat    :: Pos -> Expr String -> Expr String -> Expr String
 
 
 

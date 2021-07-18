@@ -139,9 +139,9 @@ getCallableVarAndInfo var = case var of
     
     return (Var p (funcId info), info)
 
-  S.Member p v id -> do
+  S.Member p e id -> do
     
-    Any ownerType owner <- getAnyVar v
+    Any ownerType owner <- getAnyExpr e
     
     case ownerType of
 
@@ -159,7 +159,7 @@ getCallableVarAndInfo var = case var of
     
       where memberPos = position id
 
-  S.Elem p v e -> throwError $ notAFuncError p var
+  S.Elem p e1 e2 -> throwError $ notAFuncError p var
 
   S.Null p -> throwError $ notAFuncError p var
 
@@ -196,9 +196,9 @@ getAnyVar var = case var of
     
     return $ Any t $ Var p x
 
-  S.Member p v id -> do
+  S.Member p e id -> do
     
-    Any ownerType owner <- getAnyVar v
+    Any ownerType owner <- getAnyExpr e
 
     case ownerType of
       Arr t -> do
@@ -216,15 +216,15 @@ getAnyVar var = case var of
 
       where memberPos = position id
 
-  S.Elem p v e -> do
-    Any arrType arr <- getAnyVar v
+  S.Elem p e1 e2 -> do
+    Any arrType arr <- getAnyExpr e1
 
     case arrType of
       Arr t -> do
-        i <- getExpr int e
+        i <- getExpr int e2
         return $ Any t $ Elem p arr i
 
-      _ -> throwError $ notAnArrayArror (position e) v
+      _ -> throwError $ notAnArrayArror (position e2) e1
   
   S.Null p -> return $ Any NullT $ Null p
 

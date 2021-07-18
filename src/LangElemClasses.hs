@@ -8,6 +8,8 @@ import qualified Syntax.Syntax as S
 import qualified Syntax.SyntaxGADT as GS
 import Position.Position ( HasPosition(position) )
 import Position.SyntaxPosition
+import Syntax.Debloater
+import Syntax.Bloater
 
 -- IsIdent --------------------------------------------------------------------
 class IsIdent a where
@@ -47,18 +49,23 @@ class IsType t where
   isInt t = case anyType t of
     GS.AnyT (GS.Int _) -> True
     _ -> False
+
   isStr t = case anyType t of
     GS.AnyT (GS.Str _) -> True
     _ -> False
+
   isBool t = case anyType t of
     GS.AnyT (GS.Bool _) -> True
     _ -> False
+
   isVoid t = case anyType t of
     GS.AnyT (GS.Void _) -> True
     _ -> False
+
   isNull t = case anyType t of
     GS.AnyT GS.NullT -> True
     _ -> False
+
 
 instance IsType BNFC.Type where
   anyType t = case t of
@@ -76,18 +83,8 @@ instance IsType BNFC.Type where
 
 
 instance IsType S.Type where
-  anyType t = case t of
-    S.Int _           -> GS.AnyT (GS.Int pos)
-    S.Str _           -> GS.AnyT (GS.Str pos)
-    S.Bool _          -> GS.AnyT (GS.Bool pos)
-    S.Void _          -> GS.AnyT (GS.Void pos)
-    S.Arr elemType    -> case anyType elemType of
-                            GS.AnyT elemT -> GS.AnyT (GS.Arr elemT)
-      
-    S.Custom (S.Ident p id) -> GS.AnyT $ GS.Custom $ GS.Ident p id
-
-    where
-      pos = position t
+  anyType = debloat
+  
 
 instance IsType (GS.Type a) where
   anyType = GS.AnyT
@@ -99,29 +96,26 @@ instance IsType GS.AnyType where
 
 
 -- IsVar ----------------------------------------------------------------------
+printSVar :: S.Var -> String
+printSVar var = case var of
+    S.Var     p id    -> name id
+    S.Member  p e id  -> printExpr e ++ "." ++ name id
+    S.Elem    p e1 e2 -> printExpr e1 ++ "[" ++ printExpr e2 ++ "]"
+    S.Null    p       -> "null"
+
 class IsVar v where
+  toSVar :: v -> S.Var
   printVar :: v -> String
+  printVar = printSVar . toSVar
 
 instance IsVar BNFC.Var where
-  printVar var = case var of
-    BNFC.Var id       -> name id
-    BNFC.Member v id  -> printVar v ++ "." ++ name id
-    BNFC.Elem v e     -> printVar v ++ "[_]"
-    BNFC.Null p       -> "null"
+  toSVar = debloat
 
 instance IsVar S.Var where
-  printVar var = case var of
-    S.Var     p id    -> name id
-    S.Member  p v id  -> printVar v ++ "." ++ name id
-    S.Elem    p v e   -> printVar v ++ "[_]"
-    S.Null    p       -> "null"
+  toSVar = id
     
 instance IsVar (GS.Var a) where
-  printVar var = case var of
-    GS.Var    p id    -> name id
-    GS.Member p v id  -> printVar v ++ "." ++ name id
-    GS.Elem   p v e   -> printVar v ++ "[_]"
-    GS.Null   p       -> "null"
+  toSVar = bloat
     
 
 
@@ -162,13 +156,22 @@ instance IsLit Bool where
 
 
 -- IsExpr ---------------------------------------------------------------------
+printSExpr :: S.Expr -> String
+printSExpr e = "_"
+
 class IsExpr e where
+  toSExpr :: e -> S.Expr
+  printExpr :: e -> String
+  printExpr = printSExpr . toSExpr
 
 instance IsExpr BNFC.Expr where
+  toSExpr = debloat
 
 instance IsExpr S.Expr where
+  toSExpr = id
 
 instance IsExpr (GS.Expr a) where
+  toSExpr = bloat
 
 -- IsOp -----------------------------------------------------------------------
 class IsOp op where

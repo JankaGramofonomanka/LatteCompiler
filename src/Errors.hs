@@ -96,8 +96,8 @@ noArrMethodError :: IsIdent i => Pos -> i -> Error
 noArrMethodError p id = OnePosError p
   $ "Array has no method " ++ name id
 
-notAnArrayArror :: IsVar v => Pos -> v -> Error
-notAnArrayArror p v = OnePosError p $ printVar v ++ " is not an array"
+notAnArrayArror :: IsExpr e => Pos -> e -> Error
+notAnArrayArror p e = OnePosError p $ printExpr e ++ " is not an array"
 
 
 wrongOpTypeError :: (IsOp op, IsType t) => Pos -> op -> t -> Error

@@ -278,8 +278,8 @@ instance Print Type where
 instance Print Var where
   prt i e = case e of
     Var pident -> prPrec i 0 (concatD [prt 0 pident])
-    Member var pident -> prPrec i 0 (concatD [prt 0 var, doc (showString "."), prt 0 pident])
-    Elem var expr -> prPrec i 0 (concatD [prt 0 var, doc (showString "["), prt 0 expr, doc (showString "]")])
+    Member expr pident -> prPrec i 0 (concatD [prt 6 expr, doc (showString "."), prt 0 pident])
+    Elem expr1 expr2 -> prPrec i 0 (concatD [prt 6 expr1, doc (showString "["), prt 0 expr2, doc (showString "]")])
     Null pnull -> prPrec i 0 (concatD [prt 0 pnull])
 
 instance Print Expr where

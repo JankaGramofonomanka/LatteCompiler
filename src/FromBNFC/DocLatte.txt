@@ -222,8 +222,8 @@ All other symbols are terminals.
   |  |  **|**  | //PString// 
   |  |  **|**  | ``(`` //Expr// ``)`` 
   | //Var// | -> | //PIdent// 
-  |  |  **|**  | //Var// ``.`` //PIdent// 
-  |  |  **|**  | //Var// ``[`` //Expr// ``]`` 
+  |  |  **|**  | //Expr6// ``.`` //PIdent// 
+  |  |  **|**  | //Expr6// ``[`` //Expr// ``]`` 
   |  |  **|**  | //PNull// 
   | //Expr5// | -> | //PMinus// //Expr6// 
   |  |  **|**  | //PNot// //Expr6// 

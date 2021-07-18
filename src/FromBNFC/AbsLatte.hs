@@ -116,7 +116,7 @@ data Type
   deriving (Eq, Ord, Show, Read)
 
 data Var
-    = Var PIdent | Member Var PIdent | Elem Var Expr | Null PNull
+    = Var PIdent | Member Expr PIdent | Elem Expr Expr | Null PNull
   deriving (Eq, Ord, Show, Read)
 
 data Expr
