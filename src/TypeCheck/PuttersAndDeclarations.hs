@@ -82,11 +82,15 @@ assertRetTypeIsSomething p = do
 declareId ::
   ( MonadState TypeCheckState m,
     MonadError Error m,
-    IsType t
+    IsType t,
+    HasPosition t
   )
   => t -> S.Ident -> m ()
 declareId t id = case anyType t of
   AnyT tt -> do
+    
+    when (isVoid t) $ throwError $ voidDeclarationError (position t) id
+
     varScope <- gets varScope
     
     let varInfo = VarInfo (debloat id) tt
