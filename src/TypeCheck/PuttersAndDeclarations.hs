@@ -73,7 +73,7 @@ declareId t id = case anyType t of
     let varInfo = VarInfo (debloat id) tt
     case Sc.insertNew (name id) varInfo varScope of
       Nothing -> do
-        VarInfo declared _ <- getIdentInfo id
+        VarInfo { varId = declared, .. } <- getIdentInfo id
         let declaredAt = position declared
         throwError $ varAlredyDeclaredError (position id) id declaredAt
       
@@ -91,14 +91,15 @@ declareFunc id retType argTypes = case anyType retType of
   AnyT retT -> do
     
     fnScope <- gets funcScope
-    case Sc.lookup (name id) fnScope of
-      Just FuncInfo { funcId = f, .. } -> throwError
-        $ funcAlredyDeclaredError (position id) id (position f)
-      
+    let info = FuncInfo (debloat id) retT (map anyType argTypes)
+    case Sc.insertNew (name id) info fnScope of
       Nothing -> do
-        let info = FuncInfo (debloat id) retT (map anyType argTypes)
-        let newFnScope = Sc.insert (name id) info fnScope
-        putFuncScope newFnScope
+        FuncInfo { funcId = declared, .. } <- getFuncInfo id
+        let declaredAt = position declared
+        throwError $ funcAlredyDeclaredError (position id) id declaredAt
+      
+      Just newScope -> putFuncScope newScope
+
 
 declareClass :: (MonadState TypeCheckState m, MonadError Error m)
   => S.Ident -> Maybe S.Ident -> S.ClassBody -> m ()
