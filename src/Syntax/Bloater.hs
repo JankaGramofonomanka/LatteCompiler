@@ -5,16 +5,18 @@ module Syntax.Bloater where
     
 
 
-import qualified FromBNFC.AbsLatte as Bloated
+import qualified FromBNFC.AbsLatte as BNFC
 import qualified Syntax.Syntax as S
 import qualified Syntax.SyntaxGADT as GS
-import Position.Position (position)
+import Position.Position (position, fakePos)
 
 
 
 class ToBeBloated post pre where
   bloat :: post -> pre
 
+instance ToBeBloated a b => ToBeBloated (Maybe a) (Maybe b) where
+  bloat x = bloat <$> x
 
 
 
@@ -154,6 +156,216 @@ instance ToBeBloated GS.MemberDecl S.MemberDecl where
     GS.AttrDecl p t id  -> S.AttrDecl p (bloat t) (bloat id)
     GS.MethodDecl def   -> S.MethodDecl (bloat def)
   
+
+
+-------------------------------------------------------------------------------
+
+
+lBrace = BNFC.PLBrace (fakePos, "{")
+rBrace = BNFC.PRBrace (fakePos, "}")
+
+classKW = BNFC.PClass (fakePos, "class")
+extendsKW = BNFC.PExtends (fakePos, "exptends")
+
+sep     = BNFC.PSemiColon (fakePos, ";")
+retKW   = BNFC.PReturn  (fakePos, "return")
+ifKW    = BNFC.PIf      (fakePos, "if")
+elseKW  = BNFC.PElse    (fakePos, "else")
+whileKW = BNFC.PWhile   (fakePos, "while")
+forKW   = BNFC.PFor     (fakePos, "for")
+
+
+plusKW  = BNFC.PPlus   (fakePos, "+")
+minusKW = BNFC.PMinus  (fakePos, "-")
+timesKW = BNFC.PTimes  (fakePos, "*")
+divKW   = BNFC.PDiv    (fakePos, "/")
+modKW   = BNFC.PMod    (fakePos, "%")
+
+notKW = BNFC.PNot (fakePos, "-")
+
+andKW = BNFC.PAnd (fakePos, "&&")
+orKW = BNFC.POr (fakePos, "||")
+
+
+newKW = BNFC.PNew (fakePos, "new")
+
+instance ToBeBloated S.Ident BNFC.PIdent where
+  bloat (S.Ident p id) = BNFC.PIdent (p, id)
+
+instance ToBeBloated S.SInt BNFC.PInteger where
+  bloat (S.SInt p i) = BNFC.PInteger (p, show i)
+
+instance ToBeBloated S.SStr BNFC.PString where
+  bloat (S.SStr p s) = BNFC.PString (p, s)
+
+instance ToBeBloated S.Program BNFC.Program where
+  bloat (S.Program p defs) = BNFC.Program $ map bloat defs
+
+
+instance ToBeBloated S.TopDef BNFC.TopDef where
+  bloat (S.FnDef p t id params body)
+    = BNFC.FnDef (bloat t) (bloat id) (map bloat params) (bloat body)
+
+  bloat (S.ClassDef p id Nothing body)
+    = BNFC.BaseClassDef classKW (bloat id) (bloat body)
+
+  bloat (S.ClassDef p id (Just parentId) body)
+    = BNFC.ChildClassDef classKW (bloat id) extendsKW (bloat parentId) (bloat body)
+
+
+  
+
+
+instance ToBeBloated S.Param BNFC.Param where
+  bloat (S.Param t id) = BNFC.Param (bloat t) (bloat id)
+
+instance ToBeBloated S.Block BNFC.Block where
+  bloat (S.Block p stmts) = BNFC.Block lBrace (map bloat stmts) rBrace
+
+
+instance ToBeBloated S.Stmt BNFC.Stmt where
+  bloat stmt = case stmt of
+    S.Empty     p             -> BNFC.Empty     sep
+    S.BStmt     p block       -> BNFC.BStmt     (bloat block)
+    S.Decl      p t items     -> BNFC.Decl      (bloat t) (map bloat items) sep
+    S.Ass       p v e         -> BNFC.Ass       (bloat v) (bloat e) sep
+    S.Incr      p v           -> BNFC.Incr      (bloat v) sep
+    S.Decr      p v           -> BNFC.Decr      (bloat v) sep
+    S.Ret       p e           -> BNFC.Ret       retKW (bloat e) sep
+    S.VRet      p             -> BNFC.VRet      retKW sep
+    S.Cond      p e stm       -> BNFC.Cond      ifKW (bloat e) (bloat stm)
+    S.CondElse  p e stm1 stm2 -> 
+        BNFC.CondElse  ifKW (bloat e) (bloat stm1) elseKW (bloat stm2)
+
+    S.While     p e stm       -> BNFC.While     whileKW (bloat e) (bloat stm)
+    S.SExp      p e           -> BNFC.SExp      (bloat e) sep
+    S.For       p t id v stm  -> 
+        BNFC.For       forKW (bloat t) (bloat id) (bloat v) (bloat stm)
+
+
+
+instance ToBeBloated S.Item BNFC.Item where
+  bloat (S.NoInit id) = BNFC.NoInit (bloat id)
+  bloat (S.Init id p) = BNFC.Init (bloat id) (bloat p)
+
+
+
+instance ToBeBloated S.Type BNFC.Type where
+  bloat t = case t of
+    S.Int  p    -> BNFC.Int  intKW
+    S.Str  p    -> BNFC.Str  strKW
+    S.Bool p    -> BNFC.Bool boolKW
+    S.Void p    -> BNFC.Void voidKW
+    S.Arr elemT -> BNFC.Arr (bloat elemT)
+    S.Custom id -> BNFC.Custom (bloat id)
+
+    where
+      intKW = BNFC.PTypeInt (fakePos, "int")
+      strKW = BNFC.PTypeStr (fakePos, "string")
+      boolKW = BNFC.PTypeBool (fakePos, "boolean")
+      voidKW = BNFC.PTypeVoid (fakePos, "void")
+
+
+
+instance ToBeBloated S.Var BNFC.Var where
+  bloat var = case var of
+    S.Var    p id     -> BNFC.Var    (bloat id)
+    S.Member p e id   -> BNFC.Member (bloat e) (bloat id)
+    S.Elem   p e1 e2  -> BNFC.Elem   (bloat e1) (bloat e2 )
+    S.Null   p        -> BNFC.Null   (BNFC.PNull (fakePos, "null")) 
+  
+
+
+instance ToBeBloated S.Expr BNFC.Expr where
+  bloat expr = case expr of
+    S.EVar      p var             -> BNFC.EVar       (bloat var)
+    S.ELitInt   p i               -> BNFC.ELitInt    (bloat i)
+    S.ELitBool  p True            -> BNFC.ELitTrue   $ BNFC.PTrue (p, "true")
+    S.ELitBool  p False           -> BNFC.ELitFalse  $ BNFC.PFalse (p, "false")
+    S.EApp      p var args        -> BNFC.EApp       (bloat var) (map bloat args)
+    S.EString   p s               -> BNFC.EString    (bloat s)
+    S.Neg       p e               -> BNFC.Neg        minusKW (bloat e)
+    S.Not       p e               -> BNFC.Not        notKW (bloat e)
+    S.EOp       p op l r          -> case op of
+      S.Plus  p -> BNFC.EAdd (bloat l) plus   (bloat r)
+      S.Minus p -> BNFC.EAdd (bloat l) minus  (bloat r)
+      S.Times p -> BNFC.EMul (bloat l) times  (bloat r)
+      S.Div   p -> BNFC.EMul (bloat l) div    (bloat r)
+      S.Mod   p -> BNFC.EMul (bloat l) mod    (bloat r)
+      
+    S.ERel      p op l r          -> BNFC.ERel       (bloat l) (bloat op) (bloat r)
+    S.EBool     p (S.And _) l r   -> BNFC.EAnd       (bloat l) and (bloat r)
+    S.EBool     p (S.Or _) l r    -> BNFC.EOr        (bloat l) or (bloat r)
+    S.NewArr    p t e             -> BNFC.NewArr     newKW (bloat t) (bloat e)
+    S.NewObj    p id              -> BNFC.NewObj     newKW (bloat id)
+    S.Cast      p t e             -> BNFC.Cast       (bloat t) (bloat e)
+
+    where
+
+      plus  = BNFC.Plus  plusKW
+      minus = BNFC.Minus minusKW
+      times = BNFC.Times timesKW
+      div   = BNFC.Div   divKW
+      mod   = BNFC.Mod   modKW
+
+      and = BNFC.And andKW
+      or = BNFC.Or orKW
+
+
+instance ToBeBloated S.BinOp BNFC.AddOp where
+  bloat (S.Plus p)  = BNFC.Plus plusKW
+  bloat (S.Minus p) = BNFC.Minus minusKW
+  bloat _           = undefined
+
+instance ToBeBloated S.BinOp BNFC.MulOp where
+  bloat (S.Times p) = BNFC.Times timesKW
+  bloat (S.Div p)   = BNFC.Div   divKW
+  bloat (S.Mod p)   = BNFC.Mod   modKW
+  bloat _           = undefined
+
+
+instance ToBeBloated S.RelOp BNFC.RelOp where
+  bloat op = case op of
+    S.LTH p -> BNFC.LTH (BNFC.PLTH (p, "<"))
+    S.LE  p -> BNFC.LE  (BNFC.PLE  (p, "<="))
+    S.GTH p -> BNFC.GTH (BNFC.PGTH (p, ">"))
+    S.GE  p -> BNFC.GE  (BNFC.PGE  (p, ">="))
+    S.EQU p -> BNFC.EQU (BNFC.PEQU (p, "="))
+    S.NE  p -> BNFC.NE  (BNFC.PNE  (p, "!="))
+
+instance ToBeBloated S.BoolOp BNFC.AndOp where
+  bloat (S.And p) = BNFC.And andKW
+  bloat _         = undefined
+  
+
+instance ToBeBloated S.BoolOp BNFC.OrOp where
+  bloat (S.Or p)  = BNFC.Or orKW
+  bloat _         = undefined
+
+
+
+
+instance ToBeBloated S.ClassBody BNFC.ClassBody where
+  bloat (S.ClassBody p decls) = BNFC.ClassBody lBrace (map bloat decls) rBrace
+
+
+instance ToBeBloated S.MemberDecl BNFC.MemberDecl where
+  bloat (S.AttrDecl p t id) = BNFC.AttrDecl (bloat t) (bloat id) sep
+  bloat (S.MethodDecl def) = BNFC.MethodDecl (bloat def)
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

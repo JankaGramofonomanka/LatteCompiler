@@ -62,14 +62,14 @@ wrongLitTypeError p l expected actual = OnePosError p
 wrongExprTypeError :: (IsExpr e, IsType t1, IsType t2)
   => Pos -> e -> t1 -> t2 -> Error
 wrongExprTypeError p e expected actual = OnePosError p
-  $ "Wrong type of expression"
+  $ "Wrong type of expression " ++ printExpr e
     ++ ". Expected: " ++ printType expected
     ++ ", Actual: " ++ printType actual
 
 exprTypeNotInListError :: (IsExpr e, IsType t1, IsType t2)
   => Pos -> e -> [t1] -> t2 -> Error
 exprTypeNotInListError p e expectedList actual = OnePosError p
-  $ "Wrong type of expression"
+  $ "Wrong type of expression " ++ printExpr e
     ++ ". Expected: " ++ prtList printType " or " expectedList
     ++ ", Actual: " ++ printType actual
 
