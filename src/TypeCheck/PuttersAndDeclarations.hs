@@ -87,7 +87,27 @@ declareFunc ::
     IsType argType
   )
   => S.Ident -> retType -> [argType] -> m ()
-declareFunc id retType argTypes = case anyType retType of
+declareFunc = declareCallable (Nothing :: Maybe S.Ident)
+
+declareMethod ::
+  ( MonadState TypeCheckState m,
+    MonadError Error m,
+    IsType retType,
+    IsType argType, 
+    IsIdent i
+  )
+  => i -> S.Ident -> retType -> [argType] -> m ()
+declareMethod i = declareCallable (Just i)
+    
+declareCallable ::
+  ( MonadState TypeCheckState m,
+    MonadError Error m,
+    IsType retType,
+    IsType argType,
+    IsIdent i
+  )
+  => Maybe i -> S.Ident -> retType -> [argType] -> m ()
+declareCallable ownerCls id retType argTypes = case anyType retType of
   AnyT retT -> do
     
     fnScope <- gets funcScope
@@ -96,7 +116,11 @@ declareFunc id retType argTypes = case anyType retType of
       Nothing -> do
         FuncInfo { funcId = declared, .. } <- getFuncInfo id
         let declaredAt = position declared
-        throwError $ funcAlredyDeclaredError (position id) id declaredAt
+        case ownerCls of
+          Just cls -> throwError
+            $ methodAlredyDeclaredError (position id) id cls declaredAt
+          Nothing -> throwError
+            $ funcAlredyDeclaredError (position id) id declaredAt
       
       Just newScope -> putFuncScope newScope
 

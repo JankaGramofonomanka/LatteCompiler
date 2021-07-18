@@ -113,28 +113,26 @@ instance ToBeTypeChecked S.TopDef TopDef where
   typeCheck (S.ClassDef p id maybeParent (S.ClassBody pp memberDecls)) = do
     info <- getClassInfo id
 
-    depth <- declareParentMembers (parent info)
-
-    subVarScope
-    subFuncScope
+    depth <- declareMembers (Just info)
+    
     okMemberDecls <- foldl appendTypeCheckedMember (pure []) memberDecls
-
-    replicateM_ (depth + 1) dropVarScope
-    replicateM_ (depth + 1) dropFuncScope
+    
+    replicateM_ depth dropVarScope
+    replicateM_ depth dropFuncScope
 
     let okBody = ClassBody pp okMemberDecls
     return $ ClassDef p (debloat id) (debloat <$> maybeParent) okBody
 
     where
 
-      declareParentMembers :: (MonadState TypeCheckState m, MonadError Error m)
+      declareMembers :: (MonadState TypeCheckState m, MonadError Error m)
         => Maybe ClassInfo -> m Int
-      declareParentMembers Nothing = return 0
-      declareParentMembers (Just (ClassInfo clsId parentInfo attrs methods))
+      declareMembers Nothing = return 0
+      declareMembers (Just (ClassInfo clsId parentInfo attrs methods))
         = do
           subVarScope
           subFuncScope
-          depth <- declareParentMembers parentInfo
+          depth <- declareMembers parentInfo
           foldl declAttr (pure ()) $ M.toList attrs
           foldl declMethod (pure ()) $ M.toList methods
           return $ depth + 1
@@ -149,7 +147,7 @@ instance ToBeTypeChecked S.TopDef TopDef where
               => m () -> (String, FuncInfo) -> m ()
             declMethod acc (_, FuncInfo id retType argTypes) = do
               acc
-              declareFunc (bloatId id) retType argTypes
+              declareMethod clsId (bloatId id) retType argTypes
 
       appendTypeCheckedMember :: 
         (MonadState TypeCheckState m, MonadError Error m)
@@ -163,7 +161,6 @@ instance ToBeTypeChecked S.TopDef TopDef where
         
         S.AttrDecl p t id -> case anyType t of
           AnyT tt -> do
-            declareId t id
             return $ AttrDecl p tt (debloat id)
 
         S.MethodDecl fnDef -> do
