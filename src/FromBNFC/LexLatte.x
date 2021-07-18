@@ -61,6 +61,7 @@ r e t u r n { tok (\p s -> PT p (eitherResIdent (T_PReturn . share) s)) }
 n e w { tok (\p s -> PT p (eitherResIdent (T_PNew . share) s)) }
 c l a s s { tok (\p s -> PT p (eitherResIdent (T_PClass . share) s)) }
 e x t e n d s { tok (\p s -> PT p (eitherResIdent (T_PExtends . share) s)) }
+n u l l { tok (\p s -> PT p (eitherResIdent (T_PNull . share) s)) }
 $l ($l | $d | \_ | \')* { tok (\p s -> PT p (eitherResIdent (T_PIdent . share) s)) }
 $d + { tok (\p s -> PT p (eitherResIdent (T_PInteger . share) s)) }
 \" ($u # [\" \\]| \\ [\" \\ t n r f]) * \" { tok (\p s -> PT p (eitherResIdent (T_PString . share) s)) }
@@ -117,6 +118,7 @@ data Tok =
  | T_PNew !String
  | T_PClass !String
  | T_PExtends !String
+ | T_PNull !String
  | T_PIdent !String
  | T_PInteger !String
  | T_PString !String
@@ -185,6 +187,7 @@ prToken t = case t of
   PT _ (T_PNew s) -> s
   PT _ (T_PClass s) -> s
   PT _ (T_PExtends s) -> s
+  PT _ (T_PNull s) -> s
   PT _ (T_PIdent s) -> s
   PT _ (T_PInteger s) -> s
   PT _ (T_PString s) -> s

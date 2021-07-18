@@ -100,6 +100,7 @@ Custom.     Type ::= PIdent ;
 NewObj.     Expr ::= PNew PIdent ;
 Cast.       Expr5 ::= "(" Type ")" Expr5 ;
 CastE.      Expr5 ::= "(" Expr ")" Expr5 ;
+Null.       Var ::= PNull ;
 
 
 
@@ -147,6 +148,7 @@ position token PNew         {"new"} ;
 
 position token PClass       {"class"} ;
 position token PExtends     {"extends"} ;
+position token PNull        {"null"} ;
 
 position token PIdent   (letter (letter|digit|'_'|'\'')*) ;
 position token PInteger (digit+) ;

@@ -55,6 +55,7 @@ L_PReturn { PT _ (T_PReturn _) }
 L_PNew { PT _ (T_PNew _) }
 L_PClass { PT _ (T_PClass _) }
 L_PExtends { PT _ (T_PExtends _) }
+L_PNull { PT _ (T_PNull _) }
 L_PIdent { PT _ (T_PIdent _) }
 L_PInteger { PT _ (T_PInteger _) }
 L_PString { PT _ (T_PString _) }
@@ -93,6 +94,7 @@ PReturn    :: { PReturn} : L_PReturn { PReturn (mkPosToken $1)}
 PNew    :: { PNew} : L_PNew { PNew (mkPosToken $1)}
 PClass    :: { PClass} : L_PClass { PClass (mkPosToken $1)}
 PExtends    :: { PExtends} : L_PExtends { PExtends (mkPosToken $1)}
+PNull    :: { PNull} : L_PNull { PNull (mkPosToken $1)}
 PIdent    :: { PIdent} : L_PIdent { PIdent (mkPosToken $1)}
 PInteger    :: { PInteger} : L_PInteger { PInteger (mkPosToken $1)}
 PString    :: { PString} : L_PString { PString (mkPosToken $1)}
@@ -157,6 +159,7 @@ Var :: { Var }
 Var : PIdent { FromBNFC.AbsLatte.Var $1 }
     | Var '.' PIdent { FromBNFC.AbsLatte.Member $1 $3 }
     | Var '[' Expr ']' { FromBNFC.AbsLatte.Elem $1 $3 }
+    | PNull { FromBNFC.AbsLatte.Null $1 }
 Expr5 :: { Expr }
 Expr5 : PMinus Expr6 { FromBNFC.AbsLatte.Neg $1 $2 }
       | PNot Expr6 { FromBNFC.AbsLatte.Not $1 $2 }

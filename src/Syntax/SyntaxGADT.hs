@@ -6,13 +6,14 @@ import Position.Position (Pos)
 
 
 
-newtype Void = Vd ()
-newtype Custom = Cst ()
-newtype Func = Func ()
+data Void = Vd
+data Custom = Cst
+data Func = Func
 
 
-newtype Class = Class ()
-newtype Array a = Array ()
+data Class = Class
+data Array a = Array
+data Null = Nll
 
 data Any (a :: * -> *) where
   Any :: Type b -> a b -> Any a
@@ -111,12 +112,14 @@ data Type a where
   Void    :: Pos -> Type Void
   Arr     :: Type b -> Type (Array b)
   Custom  :: Ident Class -> Type Custom
+  NullT   :: Type Null
 
 
 data Var a where
   Var     :: Pos -> Ident a -> Var a
   Member  :: Pos -> Var a -> Ident t -> Var t
   Elem    :: Pos -> Var (Array a) -> Expr Int -> Var a
+  Null    :: Pos -> Var Null
 
 
 data Expr a where

@@ -75,6 +75,7 @@ data Var where
   Var     :: Pos -> Ident -> Var
   Member  :: Pos -> Var -> Ident -> Var
   Elem    :: Pos -> Var -> Expr -> Var
+  Null    :: Pos -> Var
   
   deriving (Eq, Ord, Show, Read)
 

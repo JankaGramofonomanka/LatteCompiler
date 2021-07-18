@@ -3,7 +3,7 @@
 module Position.SyntaxGADTPosition where
 
 import Syntax.SyntaxGADT
-import Position.Position (HasPosition, position)
+import Position.Position
 
 
 
@@ -65,13 +65,17 @@ instance HasPosition (Type a) where
     Arr   t   -> position t
     Custom id -> position id
 
+    -- Null type will never be used in the program
+    NullT     -> fakePos    
+
 
 
 instance HasPosition (Var a) where
   position var = case var of
-    Var     p _ -> p
+    Var     p _   -> p
     Member  p _ _ -> p
     Elem    p _ _ -> p
+    Null    p     -> p
   
 
 

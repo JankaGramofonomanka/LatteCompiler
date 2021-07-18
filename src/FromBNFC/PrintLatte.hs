@@ -203,6 +203,10 @@ instance Print PExtends where
   prt _ (PExtends (_,i)) = doc (showString ( i))
 
 
+instance Print PNull where
+  prt _ (PNull (_,i)) = doc (showString ( i))
+
+
 instance Print PIdent where
   prt _ (PIdent (_,i)) = doc (showString ( i))
 
@@ -276,6 +280,7 @@ instance Print Var where
     Var pident -> prPrec i 0 (concatD [prt 0 pident])
     Member var pident -> prPrec i 0 (concatD [prt 0 var, doc (showString "."), prt 0 pident])
     Elem var expr -> prPrec i 0 (concatD [prt 0 var, doc (showString "["), prt 0 expr, doc (showString "]")])
+    Null pnull -> prPrec i 0 (concatD [prt 0 pnull])
 
 instance Print Expr where
   prt i e = case e of

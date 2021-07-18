@@ -161,6 +161,8 @@ getCallableVarAndInfo var = case var of
 
   S.Elem p v e -> throwError $ notAFuncError p var
 
+  S.Null p -> throwError $ notAFuncError p var
+
   where
 
   getMethodInfo :: MonadError Error m
@@ -223,6 +225,8 @@ getAnyVar var = case var of
         return $ Any t $ Elem p arr i
 
       _ -> throwError $ notAnArrayArror (position e) v
+  
+  S.Null p -> return $ Any NullT $ Null p
 
 getVar :: (MonadState TypeCheckState m, MonadError Error m)
   => Type a -> S.Var -> m (Var a)

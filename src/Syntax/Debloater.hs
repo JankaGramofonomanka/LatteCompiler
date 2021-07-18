@@ -116,9 +116,10 @@ instance ToBeDebloated Bloated.Type S.Type where
 
 instance ToBeDebloated Bloated.Var S.Var where
   debloat var = case var of
-    Bloated.Var id -> S.Var pos (debloat id)
+    Bloated.Var id      -> S.Var pos (debloat id)
     Bloated.Member v id -> S.Member pos (debloat v) (debloat id)
     Bloated.Elem v expr -> S.Elem pos (debloat v) (debloat expr)
+    Bloated.Null kw     -> S.Null pos
 
     where
       pos = position var

@@ -64,6 +64,8 @@ newtype PClass = PClass ((Int,Int),String)
   deriving (Eq, Ord, Show, Read)
 newtype PExtends = PExtends ((Int,Int),String)
   deriving (Eq, Ord, Show, Read)
+newtype PNull = PNull ((Int,Int),String)
+  deriving (Eq, Ord, Show, Read)
 newtype PIdent = PIdent ((Int,Int),String)
   deriving (Eq, Ord, Show, Read)
 newtype PInteger = PInteger ((Int,Int),String)
@@ -113,7 +115,8 @@ data Type
     | Custom PIdent
   deriving (Eq, Ord, Show, Read)
 
-data Var = Var PIdent | Member Var PIdent | Elem Var Expr
+data Var
+    = Var PIdent | Member Var PIdent | Elem Var Expr | Null PNull
   deriving (Eq, Ord, Show, Read)
 
 data Expr
