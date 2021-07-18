@@ -13,11 +13,15 @@ data Error
 instance Show Error where
   show (SimpleError s) = "ERROR: " ++ s
   show (OnePosError p s) = "ERROR at " ++ show p ++ "\n" ++ s
-  show (MultiPosError ps s) = "ERRORs at " ++ prtList ps ++ "\n" ++ s
+  show (MultiPosError ps s) = "ERRORs at " ++ positions ++ "\n" ++ s
     where
-      prtList :: [Pos] -> String
-      prtList [] = ""
-      prtList (x : xs) = foldl (\acc el -> acc ++ ", " ++ show el) (show x) xs
+      positions = prtList show  ", " ps
+    
+
+prtList :: (a -> String) -> String -> [a] -> String
+prtList f _ [] = ""
+prtList f sep (x : xs) = foldl (\acc el -> acc ++ sep ++ f el) (f x) xs
+
 
 throwTODO :: MonadError Error m => m a
 throwTODO = throwError $ SimpleError "TODO"
@@ -55,11 +59,18 @@ wrongLitTypeError p l expected actual = OnePosError p
     ++ ". Expected: " ++ printType expected
     ++ ", Actual: " ++ printType actual
 
-wrongExprType :: (IsExpr e, IsType t1, IsType t2)
+wrongExprTypeError :: (IsExpr e, IsType t1, IsType t2)
   => Pos -> e -> t1 -> t2 -> Error
-wrongExprType p e expected actual = OnePosError p
+wrongExprTypeError p e expected actual = OnePosError p
   $ "Wrong type of expression"
     ++ ". Expected: " ++ printType expected
+    ++ ", Actual: " ++ printType actual
+
+exprTypeNotInListError :: (IsExpr e, IsType t1, IsType t2)
+  => Pos -> e -> [t1] -> t2 -> Error
+exprTypeNotInListError p e expectedList actual = OnePosError p
+  $ "Wrong type of expression"
+    ++ ". Expected: " ++ prtList printType " or " expectedList
     ++ ", Actual: " ++ printType actual
 
 notAVarError :: IsIdent i => Pos -> i -> Error

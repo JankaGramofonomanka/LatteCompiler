@@ -269,10 +269,35 @@ getAnyExpr expr = case expr of
     return $ Any bool $ Not p okExpr
 
   ---------------------------------------------------------------------
-  S.EOp p op lhs rhs -> do
-    okLHS <- getExpr int lhs
-    okRHS <- getExpr int rhs
-    return $ Any int $ EOp p (debloat op) okLHS okRHS
+  S.EOp p op lhs rhs -> case op of
+    S.Plus _ -> do
+      AnyT operandType <- getTypeOfExpr lhs
+      case operandType of
+        Str _ -> getStrOpExpr p lhs rhs
+        Int _ -> getIntOpExpr p op lhs rhs
+        _     -> throwError
+                  $ exprTypeNotInListError p expr expectedList operandType
+
+          where expectedList = [AnyT int, AnyT str]
+
+    _ -> getIntOpExpr p op lhs rhs
+
+    where
+    
+      getIntOpExpr :: (MonadState TypeCheckState m, MonadError Error m)
+        => Pos -> S.BinOp -> S.Expr -> S.Expr -> m (Any Expr)
+      getIntOpExpr p op lhs rhs = do
+        okLHS <- getExpr int lhs
+        okRHS <- getExpr int rhs
+        return $ Any int $ EOp p (debloat op) okLHS okRHS
+      
+      getStrOpExpr :: (MonadState TypeCheckState m, MonadError Error m)
+        => Pos -> S.Expr -> S.Expr -> m (Any Expr)
+      getStrOpExpr p lhs rhs = do
+        okLHS <- getExpr str lhs
+        okRHS <- getExpr str rhs
+        return $ Any str $ Concat p okLHS okRHS
+
 
   S.ERel p op lhs rhs -> do
     AnyT lhsType <- getTypeOfExpr lhs
@@ -318,7 +343,7 @@ getExpr :: (MonadState TypeCheckState m, MonadError Error m)
   => Type a -> S.Expr -> m (Expr a)
 getExpr t expr = do
   Any tt okExpr <- getAnyExpr expr
-  let err = wrongExprType (position okExpr) expr t tt
+  let err = wrongExprTypeError (position okExpr) expr t tt
   filterT err t tt okExpr
 
 getTypeOfExpr :: (MonadState TypeCheckState m, MonadError Error m)

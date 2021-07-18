@@ -136,6 +136,7 @@ data Expr a where
   NewArr    :: Pos -> Type b -> Expr Int -> Expr (Array b)
   NewObj    :: Pos -> Type Custom -> Expr Custom
   Cast      :: Pos -> Type c -> Expr b -> Expr c
+  Concat   :: Pos -> Expr String -> Expr String -> Expr String
 
 
 
