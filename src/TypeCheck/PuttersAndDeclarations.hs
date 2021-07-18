@@ -6,6 +6,7 @@ module TypeCheck.PuttersAndDeclarations where
 import qualified Data.Map as M
 import Control.Monad.State
 import Control.Monad.Except
+import Data.Maybe
 
 import qualified Syntax.Syntax as S
 import Syntax.SyntaxGADT
@@ -57,7 +58,25 @@ subFuncScope = updateFuncScope Sc.subScope
 dropFuncScope :: MonadState TypeCheckState m => m ()
 dropFuncScope = updateFuncScope Sc.dropScope
 
+putReturnType :: (MonadState TypeCheckState m, IsType t) => t -> m ()
+putReturnType t = do
+  TypeCheckState { returnType = _, .. } <- get
+  put $ TypeCheckState { returnType = Just $ anyType t, .. }
 
+dropReturnType :: (MonadState TypeCheckState m) => m ()
+dropReturnType = do
+  TypeCheckState { returnType = _, .. } <- get
+  put $ TypeCheckState { returnType = Nothing, .. }
+
+assertRetTypeIsSomething :: 
+  ( MonadState TypeCheckState m,
+    MonadError Error m
+  )
+  => Pos -> m ()
+assertRetTypeIsSomething p = do
+  maybeRetType <- gets returnType
+  when (isNothing maybeRetType) $ throwError $ internalNoReturnTypeError p
+      
 
 -------------------------------------------------------------------------------
 declareId ::

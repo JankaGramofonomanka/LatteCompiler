@@ -42,6 +42,23 @@ class IsType t where
   printType :: t -> String
   printType = printAnyType . anyType
 
+  isInt, isStr, isBool, isVoid, isNull :: t -> Bool
+  isInt t = case anyType t of
+    GS.AnyT (GS.Int _) -> True
+    _ -> False
+  isStr t = case anyType t of
+    GS.AnyT (GS.Str _) -> True
+    _ -> False
+  isBool t = case anyType t of
+    GS.AnyT (GS.Bool _) -> True
+    _ -> False
+  isVoid t = case anyType t of
+    GS.AnyT (GS.Void _) -> True
+    _ -> False
+  isNull t = case anyType t of
+    GS.AnyT GS.NullT -> True
+    _ -> False
+
 instance IsType BNFC.Type where
   anyType t = case t of
     BNFC.Int _        -> GS.AnyT (GS.Int pos)

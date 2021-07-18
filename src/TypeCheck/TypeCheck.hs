@@ -7,6 +7,7 @@ module TypeCheck.TypeCheck where
 import qualified Data.Map as M
 import Control.Monad.State hiding ( void )
 import Control.Monad.Except hiding ( void )
+import Data.Maybe
 
 import qualified Syntax.Syntax as S
 import Syntax.SyntaxGADT
@@ -69,7 +70,9 @@ instance ToBeTypeChecked S.TopDef TopDef where
           foldl declParam (pure ()) params
 
           subVarScope
-          okStmts <- foldl appendTypeChecked' (pure []) stmts
+          putReturnType retType
+          okStmts <- foldl appendTypeChecked (pure []) stmts
+          dropReturnType
 
           dropVarScope
           dropVarScope
@@ -84,27 +87,6 @@ instance ToBeTypeChecked S.TopDef TopDef where
         => m () -> S.Param -> m ()
       declParam acc (S.Param t id) = acc >> declareId t id
         
-
-
-      appendTypeChecked' :: (MonadState TypeCheckState m, MonadError Error m)
-        => m [Stmt] -> S.Stmt -> m [Stmt]
-      appendTypeChecked' = appendProcessed typeCheck'
-
-      typeCheck' :: (MonadState TypeCheckState m, MonadError Error m)
-        => S.Stmt -> m Stmt
-      typeCheck' stmt = case anyType retType of
-        AnyT retT -> case stmt of
-
-          S.Ret retPos expr -> do
-            okExpr <- getExpr retT expr
-            return $ Ret retPos okExpr
-          
-          S.VRet retPos -> case retT of
-            Void _ -> return $ VRet retPos 
-            _ -> throwError $ returnVoidError retPos id retT
-            
-          
-          _ -> typeCheck stmt
 
 
           
@@ -220,10 +202,19 @@ instance ToBeTypeChecked S.Stmt Stmt where
       return $ Decr p okVar
       
     S.Ret p expr -> do
-      Any _ okExpr <- getAnyExpr expr
+      assertRetTypeIsSomething p
+
+      AnyT retType <- gets $ fromJust . returnType
+
+      okExpr <- getExpr retType expr
       return $ Ret p okExpr
 
-    S.VRet p -> return $ VRet p
+    S.VRet p -> do
+      assertRetTypeIsSomething p
+
+      AnyT retType <- gets $ fromJust . returnType
+      unless (isVoid retType) $ throwError $ returnVoidError p retType
+      return $ VRet p
 
     S.Cond p cond stm -> do
       okCond <- getExpr bool cond

@@ -114,7 +114,6 @@ data Type a where
   Custom  :: Ident Class -> Type Custom
   NullT   :: Type Null
 
-
 data Var a where
   Var     :: Pos -> Ident a -> Var a
   Member  :: Pos -> Var a -> Ident t -> Var t

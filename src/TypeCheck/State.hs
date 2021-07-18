@@ -61,14 +61,16 @@ data ClassInfo = ClassInfo {
 data TypeCheckState = TypeCheckState { 
   varScope :: VarScope,
   funcScope :: FuncScope,
-  classMap :: ClassMap
+  classMap :: ClassMap,
+  returnType :: Maybe AnyType
 }
 
 emptyState :: TypeCheckState
 emptyState = TypeCheckState { 
-  varScope  = Sc.subScope Sc.EmptyScope,
-  funcScope = Sc.subScope Sc.EmptyScope,
-  classMap  = M.empty
+  varScope    = Sc.subScope Sc.EmptyScope,
+  funcScope   = Sc.subScope Sc.EmptyScope,
+  classMap    = M.empty,
+  returnType  = Nothing
 }
 
 

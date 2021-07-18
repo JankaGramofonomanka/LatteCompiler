@@ -148,8 +148,19 @@ nestedClassError :: Pos -> Error
 nestedClassError p = OnePosError p "Nested classes are not supported"
 
 
-returnVoidError :: (IsIdent i, IsType t) => Pos -> i -> t -> Error
-returnVoidError p id t = OnePosError p
-  $ "Function " ++ name id
-    ++ " returns void while it is expected to return " 
+returnVoidError :: IsType t => Pos -> t -> Error
+returnVoidError p t = OnePosError p
+  $ "Function returns void while it is expected to return " 
     ++ printType t
+
+
+
+
+
+
+-- INTERNAL -------------------------------------------------------------------
+
+internalNoReturnTypeError :: Pos -> Error
+internalNoReturnTypeError p
+  = OnePosError p "INTERNAL ERROR (no return type in state)"
+
