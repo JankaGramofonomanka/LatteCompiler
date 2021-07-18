@@ -22,7 +22,8 @@ import FromBNFC.ErrM
   ':' { PT _ (TS _ 7) }
   '=' { PT _ (TS _ 8) }
   '[' { PT _ (TS _ 9) }
-  ']' { PT _ (TS _ 10) }
+  '[]' { PT _ (TS _ 10) }
+  ']' { PT _ (TS _ 11) }
 
 L_PTrue { PT _ (T_PTrue _) }
 L_PFalse { PT _ (T_PFalse _) }
@@ -141,7 +142,7 @@ Type : PTypeInt { FromBNFC.AbsLatte.Int $1 }
      | PTypeStr { FromBNFC.AbsLatte.Str $1 }
      | PTypeBool { FromBNFC.AbsLatte.Bool $1 }
      | PTypeVoid { FromBNFC.AbsLatte.Void $1 }
-     | Type '[' ']' { FromBNFC.AbsLatte.Arr $1 }
+     | Type '[]' { FromBNFC.AbsLatte.Arr $1 }
      | PIdent { FromBNFC.AbsLatte.Custom $1 }
 ListType :: { [Type] }
 ListType : {- empty -} { [] }

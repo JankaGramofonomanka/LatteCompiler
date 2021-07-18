@@ -163,8 +163,8 @@ There are no reserved words in latte.
 
 The symbols used in latte are the following:
   | ( | ) | , | =
-  | ++ | -- | [ | ]
-  | : | . |  | 
+  | ++ | -- | [] | [
+  | ] | : | . | 
 
 ===Comments===
 Single-line comments begin with #, //.Multiple-line comments are  enclosed with /* and */.
@@ -209,7 +209,7 @@ All other symbols are terminals.
   |  |  **|**  | //PTypeStr// 
   |  |  **|**  | //PTypeBool// 
   |  |  **|**  | //PTypeVoid// 
-  |  |  **|**  | //Type// ``[`` ``]`` 
+  |  |  **|**  | //Type// ``[]`` 
   |  |  **|**  | //PIdent// 
   | //[Type]// | -> | **eps**
   |  |  **|**  | //Type// 

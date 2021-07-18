@@ -270,7 +270,7 @@ instance Print Type where
     Str ptypestr -> prPrec i 0 (concatD [prt 0 ptypestr])
     Bool ptypebool -> prPrec i 0 (concatD [prt 0 ptypebool])
     Void ptypevoid -> prPrec i 0 (concatD [prt 0 ptypevoid])
-    Arr type_ -> prPrec i 0 (concatD [prt 0 type_, doc (showString "["), doc (showString "]")])
+    Arr type_ -> prPrec i 0 (concatD [prt 0 type_, doc (showString "[]")])
     Custom pident -> prPrec i 0 (concatD [prt 0 pident])
   prtList _ [] = (concatD [])
   prtList _ [x] = (concatD [prt 0 x])
