@@ -29,8 +29,7 @@ void :: Type Void
 void = Void fakePos
 
 
-anyType :: S.Type -> AnyType
-anyType = debloat
+
 
 lengthAttr :: String
 lengthAttr = "length"

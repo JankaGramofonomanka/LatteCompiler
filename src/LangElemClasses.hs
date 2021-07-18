@@ -6,6 +6,8 @@ module LangElemClasses where
 import qualified FromBNFC.AbsLatte as BNFC
 import qualified Syntax.Syntax as S
 import qualified Syntax.SyntaxGADT as GS
+import Position.Position ( HasPosition(position) )
+import Position.SyntaxPosition
 
 -- IsIdent --------------------------------------------------------------------
 class IsIdent a where
@@ -24,36 +26,56 @@ instance IsIdent (GS.Ident a) where
 
 
 -- IsType ---------------------------------------------------------------------
+
+printAnyType :: GS.AnyType -> String
+printAnyType t = case t of
+    GS.AnyT (GS.Int _)          -> "int"
+    GS.AnyT (GS.Str _)          -> "string"
+    GS.AnyT (GS.Bool _)         -> "boolean"
+    GS.AnyT (GS.Void _)         -> "void"
+    GS.AnyT (GS.Arr elemType)   -> printAnyType (GS.AnyT elemType) ++ "[]"
+    GS.AnyT (GS.Custom classId) -> name classId
+
 class IsType t where
-  toStr :: t -> String
+  
+  anyType :: t -> GS.AnyType
+  printType :: t -> String
+  printType = printAnyType . anyType
 
 instance IsType BNFC.Type where
-  toStr t = case t of
-    BNFC.Int _          -> "int"
-    BNFC.Str _          -> "string"
-    BNFC.Bool _         -> "boolean"
-    BNFC.Void _         -> "void"
-    BNFC.Arr elemType   -> toStr elemType ++ "[]"
-    BNFC.Custom classId -> name classId
+  anyType t = case t of
+    BNFC.Int _        -> GS.AnyT (GS.Int pos)
+    BNFC.Str _        -> GS.AnyT (GS.Str pos)
+    BNFC.Bool _       -> GS.AnyT (GS.Bool pos)
+    BNFC.Void _       -> GS.AnyT (GS.Void pos)
+    BNFC.Arr elemType -> case anyType elemType of
+                          GS.AnyT elemT -> GS.AnyT (GS.Arr elemT)
+
+    BNFC.Custom (BNFC.PIdent (p, id)) -> GS.AnyT $ GS.Custom $ GS.Ident p id
+
+    where
+      pos = position t
 
 
 instance IsType S.Type where
-  toStr t = case t of
-    S.Int _           -> "int"
-    S.Str _           -> "string"
-    S.Bool _          -> "boolean"
-    S.Void _          -> "void"
-    S.Arr elemType    -> toStr elemType ++ "[]"
-    S.Custom classId  -> name classId
+  anyType t = case t of
+    S.Int _           -> GS.AnyT (GS.Int pos)
+    S.Str _           -> GS.AnyT (GS.Str pos)
+    S.Bool _          -> GS.AnyT (GS.Bool pos)
+    S.Void _          -> GS.AnyT (GS.Void pos)
+    S.Arr elemType    -> case anyType elemType of
+                            GS.AnyT elemT -> GS.AnyT (GS.Arr elemT)
+      
+    S.Custom (S.Ident p id) -> GS.AnyT $ GS.Custom $ GS.Ident p id
+
+    where
+      pos = position t
 
 instance IsType (GS.Type a) where
-  toStr t = case t of
-    GS.Int _           -> "int"
-    GS.Str _           -> "string"
-    GS.Bool _          -> "boolean"
-    GS.Void _          -> "void"
-    GS.Arr elemType    -> toStr elemType ++ "[]"
-    GS.Custom classId  -> name classId
+  anyType = GS.AnyT
+
+instance IsType GS.AnyType where
+  anyType = id
 
 
 

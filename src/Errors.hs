@@ -38,36 +38,36 @@ wrongIdentTypeError :: (IsIdent i, IsType t1, IsType t2)
   => Pos-> i -> t1 -> t2 -> Error
 wrongIdentTypeError p i expected actual = OnePosError p 
   $ "Wrong type of variable " ++ name i 
-    ++ ". Expected: " ++ toStr expected
-    ++ ", Actual: " ++ toStr actual
+    ++ ". Expected: " ++ printType expected
+    ++ ", Actual: " ++ printType actual
   
 wrongVarTypeError :: (IsVar v, IsType t1, IsType t2)
   => Pos-> v -> t1 -> t2 -> Error
 wrongVarTypeError p v expected actual = OnePosError p 
   $ "Wrong type of value " ++ printVar v
-    ++ ". Expected: " ++ toStr expected
-    ++ ", Actual: " ++ toStr actual
+    ++ ". Expected: " ++ printType expected
+    ++ ", Actual: " ++ printType actual
 
 wrongLitTypeError :: (IsLit l, IsType t1, IsType t2)
   => Pos-> l -> t1 -> t2 -> Error
 wrongLitTypeError p l expected actual = OnePosError p 
   $ "Wrong type of literal " ++ printLit l 
-    ++ ". Expected: " ++ toStr expected
-    ++ ", Actual: " ++ toStr actual
+    ++ ". Expected: " ++ printType expected
+    ++ ", Actual: " ++ printType actual
 
 wrongExprType :: (IsExpr e, IsType t1, IsType t2)
   => Pos -> e -> t1 -> t2 -> Error
 wrongExprType p e expected actual = OnePosError p
   $ "Wrong type of expression"
-    ++ ". Expected: " ++ toStr expected
-    ++ ", Actual: " ++ toStr actual
+    ++ ". Expected: " ++ printType expected
+    ++ ", Actual: " ++ printType actual
 
 notAVarError :: IsIdent i => Pos -> i -> Error
 notAVarError p id = OnePosError p $ name id ++ " is not a variable"
 
 noAttributeError :: (IsType cls, IsIdent i) => Pos -> cls -> i -> Error
 noAttributeError p cls id = OnePosError p
-  $ "Class " ++ toStr cls ++ " has no member " ++ name id
+  $ "Class " ++ printType cls ++ " has no member " ++ name id
 
 noArrAttrError :: IsIdent i => Pos -> i -> Error
 noArrAttrError p id = OnePosError p
@@ -75,11 +75,11 @@ noArrAttrError p id = OnePosError p
 
 noMethodError :: (IsIdent i, IsType t) => Pos -> t -> i -> Error
 noMethodError p t id = OnePosError p
-  $ "Type " ++ toStr t ++ " has no method " ++ name id
+  $ "Type " ++ printType t ++ " has no method " ++ name id
 
 noClsMethodError :: (IsIdent i, IsType t) => Pos -> t -> i -> Error
 noClsMethodError p t id = OnePosError p
-  $ "Class " ++ toStr t ++ " has no method " ++ name id
+  $ "Class " ++ printType t ++ " has no method " ++ name id
 
 noArrMethodError :: IsIdent i => Pos -> i -> Error
 noArrMethodError p id = OnePosError p
@@ -91,7 +91,7 @@ notAnArrayArror p v = OnePosError p $ printVar v ++ " is not an array"
 
 wrongOpTypeError :: (IsOp op, IsType t) => Pos -> op -> t -> Error
 wrongOpTypeError p op t = OnePosError p
-  $ "Values of type " ++ toStr t
+  $ "Values of type " ++ printType t
     ++ " are incompatibile with operator " ++ printOp op
 
 notAFuncError :: IsVar v => Pos -> v -> Error
@@ -141,4 +141,4 @@ returnVoidError :: (IsIdent i, IsType t) => Pos -> i -> t -> Error
 returnVoidError p id t = OnePosError p
   $ "Function " ++ name id
     ++ " returns void while it is expected to return " 
-    ++ toStr t
+    ++ printType t

@@ -60,8 +60,12 @@ dropFuncScope = updateFuncScope Sc.dropScope
 
 
 -------------------------------------------------------------------------------
-declareId :: (MonadState TypeCheckState m, MonadError Error m)
-  => S.Type -> S.Ident -> m ()
+declareId ::
+  ( MonadState TypeCheckState m,
+    MonadError Error m,
+    IsType t
+  )
+  => t -> S.Ident -> m ()
 declareId t id = case anyType t of
   AnyT tt -> do
     varScope <- gets varScope
@@ -76,8 +80,13 @@ declareId t id = case anyType t of
       Just newScope -> putVarScope newScope
 
 
-declareFunc :: (MonadState TypeCheckState m, MonadError Error m)
-  => S.Ident -> S.Type -> [S.Type] -> m ()
+declareFunc ::
+  ( MonadState TypeCheckState m,
+    MonadError Error m,
+    IsType retType,
+    IsType argType
+  )
+  => S.Ident -> retType -> [argType] -> m ()
 declareFunc id retType argTypes = case anyType retType of
   AnyT retT -> do
     

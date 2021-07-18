@@ -11,6 +11,7 @@ import qualified FromBNFC.AbsLatte as Bloated
 import qualified Syntax.Syntax as S
 import qualified Syntax.SyntaxGADT as GS
 import Position.Position (position)
+import LangElemClasses
 
 
 
@@ -237,29 +238,9 @@ instance ToBeDebloated S.BoolOp GS.BoolOp where
     S.Or  p -> GS.Or  p
 
 instance ToBeDebloated S.Param GS.Param where
-  debloat (S.Param t id) = case debloat t of
+  debloat (S.Param t id) = case anyType t of
     GS.AnyT tt -> GS.Param tt (debloat id)
 
-instance ToBeDebloated S.Type GS.AnyType where
-  debloat t = case t of
-    S.Int   p         -> GS.AnyT $ GS.Int p
-    S.Str   p         -> GS.AnyT $ GS.Str p
-    S.Bool  p         -> GS.AnyT $ GS.Bool p
-    S.Void  p         -> GS.AnyT $ GS.Void p
-    S.Arr   elemType  -> case debloat elemType of
-                          GS.AnyT tt -> GS.AnyT $ GS.Arr tt
-
-    S.Custom cls      -> GS.AnyT $ GS.Custom (debloat cls)
-
-bloatType :: GS.Type a -> S.Type
-bloatType t = case t of
-    GS.Int   p -> S.Int   p
-    GS.Str   p -> S.Str   p
-    GS.Bool  p -> S.Bool  p
-    GS.Void  p -> S.Void  p
-    GS.Arr elemType -> S.Arr $ bloatType elemType
-
-    GS.Custom cls -> S.Custom (bloatId cls)
 
 bloatId :: GS.Ident a -> S.Ident
 bloatId (GS.Ident p s) = S.Ident p s

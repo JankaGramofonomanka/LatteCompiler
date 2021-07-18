@@ -11,6 +11,7 @@ import TypeCheck.PuttersAndDeclarations
 import Position.Position
 import qualified Syntax.Syntax as S
 import Errors
+import LangElemClasses
 
 _p :: Pos
 _p = fakePos
@@ -34,9 +35,9 @@ declareBuiltIn :: (MonadState TypeCheckState m, MonadError Error m)
 declareBuiltIn = do
   declareFunc (ident "printInt") void [int]
   declareFunc (ident "printString") void [str]
-  declareFunc (ident "error") void []
-  declareFunc (ident "readInt") int []
-  declareFunc (ident "readString") str []
+  declareFunc (ident "error") void ([] :: [S.Type])
+  declareFunc (ident "readInt") int ([] :: [S.Type])
+  declareFunc (ident "readString") str ([] :: [S.Type])
   subFuncScope
 
 

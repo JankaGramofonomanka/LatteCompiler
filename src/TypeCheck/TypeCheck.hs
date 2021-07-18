@@ -14,8 +14,9 @@ import TypeCheck.State
 import TypeCheck.Getters
 import TypeCheck.PuttersAndDeclarations
 import Errors
-import Syntax.Debloater ( ToBeDebloated(debloat), bloatType, bloatId )
+import Syntax.Debloater ( ToBeDebloated(debloat), bloatId )
 import Position.Position
+import LangElemClasses
 
 
 
@@ -144,17 +145,13 @@ instance ToBeTypeChecked S.TopDef TopDef where
             declAttr :: (MonadState TypeCheckState m, MonadError Error m)
               => m () -> (String, VarInfo) -> m ()
             declAttr acc (_, VarInfo id t)
-              = acc >> declareId (bloatType t) (bloatId id)
+              = acc >> declareId t (bloatId id)
 
             declMethod :: (MonadState TypeCheckState m, MonadError Error m)
               => m () -> (String, FuncInfo) -> m ()
             declMethod acc (_, FuncInfo id retType argTypes) = do
               acc
-              let bloatedArgTypes = map bloatAnyType argTypes
-              declareFunc (bloatId id) (bloatType retType) bloatedArgTypes
-              
-              where
-                bloatAnyType (AnyT t) = bloatType t
+              declareFunc (bloatId id) retType argTypes
 
 
       typeCheckMember :: (MonadState TypeCheckState m, MonadError Error m)
