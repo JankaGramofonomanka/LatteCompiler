@@ -94,6 +94,7 @@ instance HasPosition (Expr a) where
     NewArr    p _ _   -> p
     NewObj    p _     -> p
     Cast      p _ _   -> p
+    Concat    p _ _   -> p
 
 
 

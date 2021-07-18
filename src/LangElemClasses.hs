@@ -35,6 +35,7 @@ printAnyType t = case t of
     GS.AnyT (GS.Void _)         -> "void"
     GS.AnyT (GS.Arr elemType)   -> printAnyType (GS.AnyT elemType) ++ "[]"
     GS.AnyT (GS.Custom classId) -> name classId
+    GS.AnyT GS.NullT            -> "null"
 
 class IsType t where
   
@@ -106,18 +107,21 @@ instance IsVar BNFC.Var where
     BNFC.Var id       -> name id
     BNFC.Member v id  -> printVar v ++ "." ++ name id
     BNFC.Elem v e     -> printVar v ++ "[_]"
+    BNFC.Null p       -> "null"
 
 instance IsVar S.Var where
   printVar var = case var of
     S.Var     p id    -> name id
     S.Member  p v id  -> printVar v ++ "." ++ name id
     S.Elem    p v e   -> printVar v ++ "[_]"
+    S.Null    p       -> "null"
     
 instance IsVar (GS.Var a) where
   printVar var = case var of
     GS.Var    p id    -> name id
     GS.Member p v id  -> printVar v ++ "." ++ name id
     GS.Elem   p v e   -> printVar v ++ "[_]"
+    GS.Null   p       -> "null"
     
 
 
