@@ -44,26 +44,6 @@ filterT err (Custom id1) (Custom id2) x = do
 
 filterT err expected actual x = throwError err
 
-assertSubClass :: (MonadState TypeCheckState m, MonadError Error m)
-  => Error -> Ident Class -> Ident Class -> m ()
-assertSubClass err parent child = do
-  if name parent == name child then
-    return ()
-  else do
-    ClassInfo _ mbParent _ _ <- getClassInfo child
-    case mbParent of
-      Nothing -> throwError err
-      Just (ClassInfo parentId _ _ _) -> assertSubClass err parent parentId 
-
-assertRetTypeIsSomething :: 
-  ( MonadState TypeCheckState m,
-    MonadError Error m
-  )
-  => Pos -> m ()
-assertRetTypeIsSomething p = do
-  maybeRetType <- gets returnType
-  when (isNothing maybeRetType) $ throwError $ internalNoReturnTypeError p
-
 
 
 getIdentInfo :: 
@@ -150,6 +130,54 @@ getSelfType p = do
   case maybeSelfType of
     Nothing -> throwError $ selfOutsideClassError p
     Just t -> return t
+
+-------------------------------------------------------------------------------
+isParent :: (MonadState TypeCheckState m, MonadError Error m)
+  => Ident Class -> Ident Class -> m Bool
+isParent cls1 cls2 = do
+  if name cls1 == name cls2 then
+    return True
+  else do
+    ClassInfo _ mbParent _ _ <- getClassInfo cls2
+    case mbParent of
+      Nothing -> return False
+      Just (ClassInfo parentId _ _ _) -> isParent cls1 parentId
+
+
+assertSubClass :: (MonadState TypeCheckState m, MonadError Error m)
+  => Error -> Ident Class -> Ident Class -> m ()
+assertSubClass err parent child = do
+  success <- isParent parent child
+  if success then
+    return ()
+  else throwError err
+
+assertRetTypeIsSomething :: 
+  ( MonadState TypeCheckState m,
+    MonadError Error m
+  )
+  => Pos -> m ()
+assertRetTypeIsSomething p = do
+  maybeRetType <- gets returnType
+  when (isNothing maybeRetType) $ throwError $ internalNoReturnTypeError p
+
+getCommonType :: (MonadState TypeCheckState m, MonadError Error m)
+  => Error -> Error -> Type a -> Type b -> m AnyType
+getCommonType err errCls t1 t2 = case (t1, t2) of
+  (Custom cls1, Custom cls2) -> do
+    cls1IsParent <- isParent cls1 cls2
+    cls2IsParent <- isParent cls2 cls1
+
+    if cls1IsParent then
+      return $ AnyT t1
+    else if cls2IsParent then
+      return $ AnyT t2
+    else
+      throwError errCls
+  
+  _ -> do
+    t <- filterT err t1 t2 t2
+    return $ AnyT t
 
 
 -------------------------------------------------------------------------------
@@ -329,14 +357,23 @@ getAnyExpr expr = case expr of
 
 
   S.ERel p op lhs rhs -> do
+
     AnyT lhsType <- getTypeOfExpr lhs
+    AnyT rhsType <- getTypeOfExpr rhs
 
-    okOp <- getOp lhsType op
+    let err = wrongExprTypeError p rhs lhsType rhsType
+    let errCls = typesNotCompatibileError p lhs rhs lhsType rhsType
 
-    okLHS <- getExpr lhsType lhs
-    okRHS <- getExpr lhsType rhs
-
+    AnyT t <- getCommonType err errCls lhsType rhsType
+    
+    okOp <- getOp t op
+    
+    okLHS <- getExpr t lhs
+    okRHS <- getExpr t rhs
+    
     return $ Any bool $ ERel p okOp okLHS okRHS
+
+
 
   S.EBool p op lhs rhs -> do
     okLHS <- getExpr bool lhs

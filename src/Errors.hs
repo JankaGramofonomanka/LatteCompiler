@@ -162,7 +162,12 @@ selfOutsideClassError :: Pos -> Error
 selfOutsideClassError p
   = OnePosError p "keyword `self` is being used utside a class scope"
 
-
+typesNotCompatibileError :: (IsExpr e1, IsExpr e2, IsType t1, IsType t2)
+  => Pos -> e1 -> e2 -> t1 -> t2 -> Error
+typesNotCompatibileError p e1 e2 t1 t2 = OnePosError p
+  $ " expressions " ++ printExpr e1 ++ " and " ++ printExpr e2
+    ++ " are of types " ++ printType t1 ++ " and " ++ printType t2
+    ++ ", which are incompatible"
 
 -- INTERNAL -------------------------------------------------------------------
 
