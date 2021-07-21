@@ -119,6 +119,7 @@ data Var a where
   Member  :: Pos -> Expr a -> Ident t -> Var t
   Elem    :: Pos -> Expr (Array a) -> Expr Int -> Var a
   Null    :: Pos -> Var Null
+  Self    :: Pos -> Var Custom
 
 
 data Expr a where

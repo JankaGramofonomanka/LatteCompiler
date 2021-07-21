@@ -109,6 +109,9 @@ instance HasPosition PExtends where
 instance HasPosition PNull where 
   position (PNull (p, _)) = p
 
+instance HasPosition PSelf where
+  position (PSelf (p, _)) = p
+
 instance HasPosition PIdent where
   position (PIdent (p, _)) = p
 
@@ -174,6 +177,7 @@ instance HasPosition Var where
   position (Member var _) = position var
   position (Elem var _)   = position var
   position (Null kw)      = position kw
+  position (Self kw)      = position kw
 
 
 instance HasPosition Expr where

@@ -115,10 +115,11 @@ instance ToBeDebloated BNFC.Type S.Type where
 
 instance ToBeDebloated BNFC.Var S.Var where
   debloat var = case var of
-    BNFC.Var id      -> S.Var pos (debloat id)
-    BNFC.Member e id -> S.Member pos (debloat e) (debloat id)
-    BNFC.Elem e expr -> S.Elem pos (debloat e) (debloat expr)
-    BNFC.Null kw     -> S.Null pos
+    BNFC.Var id       -> S.Var pos (debloat id)
+    BNFC.Member e id  -> S.Member pos (debloat e) (debloat id)
+    BNFC.Elem e expr  -> S.Elem pos (debloat e) (debloat expr)
+    BNFC.Null kw      -> S.Null pos
+    BNFC.Self kw      -> S.Self pos
 
     where
       pos = position var

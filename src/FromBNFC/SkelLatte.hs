@@ -105,6 +105,9 @@ transPExtends x = case x of
 transPNull :: PNull -> Result
 transPNull x = case x of
   PNull string -> failure x
+transPSelf :: PSelf -> Result
+transPSelf x = case x of
+  PSelf string -> failure x
 transPIdent :: PIdent -> Result
 transPIdent x = case x of
   PIdent string -> failure x
@@ -161,6 +164,7 @@ transVar x = case x of
   Member expr pident -> failure x
   Elem expr1 expr2 -> failure x
   Null pnull -> failure x
+  Self pself -> failure x
 transExpr :: Expr -> Result
 transExpr x = case x of
   EVar var -> failure x

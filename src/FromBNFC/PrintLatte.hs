@@ -207,6 +207,10 @@ instance Print PNull where
   prt _ (PNull (_,i)) = doc (showString ( i))
 
 
+instance Print PSelf where
+  prt _ (PSelf (_,i)) = doc (showString ( i))
+
+
 instance Print PIdent where
   prt _ (PIdent (_,i)) = doc (showString ( i))
 
@@ -281,6 +285,7 @@ instance Print Var where
     Member expr pident -> prPrec i 0 (concatD [prt 6 expr, doc (showString "."), prt 0 pident])
     Elem expr1 expr2 -> prPrec i 0 (concatD [prt 6 expr1, doc (showString "["), prt 0 expr2, doc (showString "]")])
     Null pnull -> prPrec i 0 (concatD [prt 0 pnull])
+    Self pself -> prPrec i 0 (concatD [prt 0 pself])
 
 instance Print Expr where
   prt i e = case e of

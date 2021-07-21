@@ -46,23 +46,24 @@ data VarInfo where
 
 data FuncInfo where
   FuncInfo :: {
-    funcId :: FuncIdent,
-    retType :: Type a,
-    paramTypes :: [AnyType]
+    funcId      :: FuncIdent,
+    retType     :: Type a,
+    paramTypes  :: [AnyType]
   } -> FuncInfo
 
 data ClassInfo = ClassInfo {
-  classId :: ClassIdent,
-  parent :: Maybe ClassInfo,
-  attributes :: VarMap,
-  methods :: FuncMap
+  classId     :: ClassIdent,
+  parent      :: Maybe ClassInfo,
+  attributes  :: VarMap,
+  methods     :: FuncMap
 }
 
 data TypeCheckState = TypeCheckState { 
-  varScope :: VarScope,
-  funcScope :: FuncScope,
-  classMap :: ClassMap,
-  returnType :: Maybe AnyType
+  varScope    :: VarScope,
+  funcScope   :: FuncScope,
+  classMap    :: ClassMap,
+  returnType  :: Maybe AnyType,
+  selfType    :: Maybe (Type Custom)
 }
 
 emptyState :: TypeCheckState
@@ -70,7 +71,8 @@ emptyState = TypeCheckState {
   varScope    = Sc.subScope Sc.EmptyScope,
   funcScope   = Sc.subScope Sc.EmptyScope,
   classMap    = M.empty,
-  returnType  = Nothing
+  returnType  = Nothing,
+  selfType    = Nothing
 }
 
 

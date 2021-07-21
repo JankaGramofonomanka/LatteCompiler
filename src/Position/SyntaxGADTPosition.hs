@@ -76,6 +76,7 @@ instance HasPosition (Var a) where
     Member  p _ _ -> p
     Elem    p _ _ -> p
     Null    p     -> p
+    Self    p     -> p
   
 
 

@@ -158,7 +158,9 @@ voidDeclarationError p id = OnePosError p
   $ "Attempt to declare a variable " ++ name id ++ " if type void"
 
 
-
+selfOutsideClassError :: Pos -> Error
+selfOutsideClassError p
+  = OnePosError p "keyword `self` is being used utside a class scope"
 
 
 
@@ -167,4 +169,6 @@ voidDeclarationError p id = OnePosError p
 internalNoReturnTypeError :: Pos -> Error
 internalNoReturnTypeError p
   = OnePosError p "INTERNAL ERROR (no return type in state)"
+
+
 

@@ -98,6 +98,7 @@ instance ToBeBloated (GS.Var a) S.Var where
     GS.Member p e id  -> S.Member p (bloat e) (bloat id)
     GS.Elem   p e1 e2 -> S.Elem   p (bloat e1) (bloat e2)
     GS.Null   p       -> S.Null   p
+    GS.Self   p       -> S.Self   p
 
 
 instance ToBeBloated (GS.Expr a) S.Expr where
@@ -188,6 +189,15 @@ orKW = BNFC.POr (fakePos, "||")
 
 
 newKW = BNFC.PNew (fakePos, "new")
+nullKW = BNFC.PNull (fakePos, "null")
+selfKW = BNFC.PSelf (fakePos, "self")
+
+
+intKW = BNFC.PTypeInt (fakePos, "int")
+strKW = BNFC.PTypeStr (fakePos, "string")
+boolKW = BNFC.PTypeBool (fakePos, "boolean")
+voidKW = BNFC.PTypeVoid (fakePos, "void")
+
 
 instance ToBeBloated S.Ident BNFC.PIdent where
   bloat (S.Ident p id) = BNFC.PIdent (p, id)
@@ -259,20 +269,16 @@ instance ToBeBloated S.Type BNFC.Type where
     S.Arr elemT -> BNFC.Arr (bloat elemT)
     S.Custom id -> BNFC.Custom (bloat id)
 
-    where
-      intKW = BNFC.PTypeInt (fakePos, "int")
-      strKW = BNFC.PTypeStr (fakePos, "string")
-      boolKW = BNFC.PTypeBool (fakePos, "boolean")
-      voidKW = BNFC.PTypeVoid (fakePos, "void")
 
 
 
 instance ToBeBloated S.Var BNFC.Var where
   bloat var = case var of
-    S.Var    p id     -> BNFC.Var    (bloat id)
-    S.Member p e id   -> BNFC.Member (bloat e) (bloat id)
-    S.Elem   p e1 e2  -> BNFC.Elem   (bloat e1) (bloat e2 )
-    S.Null   p        -> BNFC.Null   (BNFC.PNull (fakePos, "null")) 
+    S.Var    p id     -> BNFC.Var     (bloat id)
+    S.Member p e id   -> BNFC.Member  (bloat e) (bloat id)
+    S.Elem   p e1 e2  -> BNFC.Elem    (bloat e1) (bloat e2 )
+    S.Null   p        -> BNFC.Null    nullKW
+    S.Self   p        -> BNFC.Self    selfKW
   
 
 

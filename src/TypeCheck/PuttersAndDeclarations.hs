@@ -6,7 +6,6 @@ module TypeCheck.PuttersAndDeclarations where
 import qualified Data.Map as M
 import Control.Monad.State
 import Control.Monad.Except
-import Data.Maybe
 
 import qualified Syntax.Syntax as S
 import Syntax.SyntaxGADT
@@ -68,15 +67,16 @@ dropReturnType = do
   TypeCheckState { returnType = _, .. } <- get
   put $ TypeCheckState { returnType = Nothing, .. }
 
-assertRetTypeIsSomething :: 
-  ( MonadState TypeCheckState m,
-    MonadError Error m
-  )
-  => Pos -> m ()
-assertRetTypeIsSomething p = do
-  maybeRetType <- gets returnType
-  when (isNothing maybeRetType) $ throwError $ internalNoReturnTypeError p
-      
+putSlefType :: (MonadState TypeCheckState m) => Type Custom -> m ()
+putSlefType t = do
+  TypeCheckState { selfType = _, .. } <- get
+  put $ TypeCheckState { selfType = Just t, .. }
+
+dropSlefType :: (MonadState TypeCheckState m) => m ()
+dropSlefType = do
+  TypeCheckState { selfType = _, .. } <- get
+  put $ TypeCheckState { selfType = Nothing, .. }
+
 
 -------------------------------------------------------------------------------
 declareId ::

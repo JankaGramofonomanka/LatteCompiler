@@ -7,6 +7,7 @@ module TypeCheck.Getters where
 import qualified Data.Map as M
 import Control.Monad.State
 import Control.Monad.Except
+import Data.Maybe
 
 import qualified Syntax.Syntax as S
 import Syntax.SyntaxGADT
@@ -53,6 +54,17 @@ assertSubClass err parent child = do
     case mbParent of
       Nothing -> throwError err
       Just (ClassInfo parentId _ _ _) -> assertSubClass err parent parentId 
+
+assertRetTypeIsSomething :: 
+  ( MonadState TypeCheckState m,
+    MonadError Error m
+  )
+  => Pos -> m ()
+assertRetTypeIsSomething p = do
+  maybeRetType <- gets returnType
+  when (isNothing maybeRetType) $ throwError $ internalNoReturnTypeError p
+
+
 
 getIdentInfo :: 
   ( MonadState TypeCheckState m,
@@ -128,6 +140,17 @@ getClass id = do
   info <- getClassInfo id
   return $ classId info
 
+getSelfType ::
+  ( MonadState TypeCheckState m,
+    MonadError Error m
+  )
+  => Pos -> m (Type Custom)
+getSelfType p = do
+  maybeSelfType <- gets selfType
+  case maybeSelfType of
+    Nothing -> throwError $ selfOutsideClassError p
+    Just t -> return t
+
 
 -------------------------------------------------------------------------------
 getCallableVarAndInfo :: (MonadState TypeCheckState m, MonadError Error m)
@@ -162,6 +185,8 @@ getCallableVarAndInfo var = case var of
   S.Elem p e1 e2 -> throwError $ notAFuncError p var
 
   S.Null p -> throwError $ notAFuncError p var
+
+  S.Self p -> throwError $ notAFuncError p var
 
   where
 
@@ -227,6 +252,10 @@ getAnyVar var = case var of
       _ -> throwError $ notAnArrayArror (position e2) e1
   
   S.Null p -> return $ Any NullT $ Null p
+
+  S.Self p -> do
+    selfT <- getSelfType p
+    return $ Any selfT $ Self p
 
 getVar :: (MonadState TypeCheckState m, MonadError Error m)
   => Type a -> S.Var -> m (Var a)
