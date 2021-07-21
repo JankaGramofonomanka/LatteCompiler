@@ -42,10 +42,10 @@ type VarScope = Sc.Scope String VarInfo
 type FuncScope = Sc.Scope String FuncInfo
 
 data VarInfo where
-  VarInfo :: { varId :: Ident a, varType :: Type a } -> VarInfo
+  VarInfo :: Eq a => { varId :: Ident a, varType :: Type a } -> VarInfo
 
 data FuncInfo where
-  FuncInfo :: {
+  FuncInfo :: Eq a => {
     funcId      :: FuncIdent,
     retType     :: Type a,
     paramTypes  :: [AnyType]

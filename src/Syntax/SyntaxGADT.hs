@@ -6,21 +6,21 @@ import Position.Position (Pos)
 
 
 
-data Void = Vd
-data Custom = Cst
-data Func = Func
+data Void   = Vd    deriving Eq
+data Custom = Cst   deriving Eq
+data Func   = Func  deriving Eq
 
 
-data Class = Class
-data Array a = Array
-data Null = Nll
+data Class    = Class deriving Eq
+data Array a  = Array deriving Eq
+data Null     = Nll   deriving Eq
 
 data Any (a :: * -> *) where
-  Any :: Type b -> a b -> Any a
+  Any :: Eq b => Type b -> a b -> Any a
 
 
 data AnyType where
-  AnyT :: Type a -> AnyType
+  AnyT :: Eq a => Type a -> AnyType
 
 
   
@@ -75,7 +75,7 @@ instance Ord TopDef where
 
 
 data Param where 
-  Param :: Type a -> Ident a -> Param
+  Param :: Eq a => Type a -> Ident a -> Param
   
 
 
@@ -110,33 +110,34 @@ data Type a where
   Str     :: Pos -> Type String
   Bool    :: Pos -> Type Bool
   Void    :: Pos -> Type Void
-  Arr     :: Type b -> Type (Array b)
+  
+  Arr     :: Eq b => Type b -> Type (Array b)
   Custom  :: Ident Class -> Type Custom
   NullT   :: Type Null
 
 data Var a where
-  Var     :: Pos -> Ident a -> Var a
-  Member  :: Pos -> Expr a -> Ident t -> Var t
-  Elem    :: Pos -> Expr (Array a) -> Expr Int -> Var a
-  Null    :: Pos -> Var Null
-  Self    :: Pos -> Var Custom
+  Var     ::          Eq a => Pos -> Ident a -> Var a
+  Member  ::  (Eq a, Eq t) => Pos -> Expr a -> Ident t -> Var t
+  Elem    ::          Eq a => Pos -> Expr (Array a) -> Expr Int -> Var a
+  Null    ::                  Pos -> Var Null
+  Self    ::                  Pos -> Var Custom
 
 
 data Expr a where
-  EVar      :: Pos -> Var b -> Expr b
-  ELitInt   :: Pos -> SInt -> Expr Int
-  ELitBool  :: Pos -> Bool -> Expr Bool
-  EApp      :: Pos -> Var Func -> [Any Expr] -> Expr b
-  EString   :: Pos -> SStr -> Expr String
-  Neg       :: Pos -> Expr Int -> Expr Int
-  Not       :: Pos -> Expr Bool -> Expr Bool
-  EOp       :: Pos -> BinOp -> Expr Int -> Expr Int -> Expr Int
-  ERel      :: Pos -> RelOp b -> Expr b -> Expr b -> Expr Bool
-  EBool     :: Pos -> BoolOp -> Expr Bool -> Expr Bool -> Expr Bool
-  NewArr    :: Pos -> Type b -> Expr Int -> Expr (Array b)
-  NewObj    :: Pos -> Type Custom -> Expr Custom
-  Cast      :: Pos -> Type c -> Expr b -> Expr c
-  Concat    :: Pos -> Expr String -> Expr String -> Expr String
+  EVar    :: Eq b => Pos -> Var b -> Expr b
+  ELitInt         :: Pos -> SInt -> Expr Int
+  ELitBool        :: Pos -> Bool -> Expr Bool
+  EApp            :: Pos -> Var Func -> [Any Expr] -> Expr b
+  EString         :: Pos -> SStr -> Expr String
+  Neg             :: Pos -> Expr Int -> Expr Int
+  Not             :: Pos -> Expr Bool -> Expr Bool
+  EOp             :: Pos -> BinOp -> Expr Int -> Expr Int -> Expr Int
+  ERel    :: Eq b => Pos -> RelOp b -> Expr b -> Expr b -> Expr Bool
+  EBool           :: Pos -> BoolOp -> Expr Bool -> Expr Bool -> Expr Bool
+  NewArr  :: Eq b => Pos -> Type b -> Expr Int -> Expr (Array b)
+  NewObj          :: Pos -> Type Custom -> Expr Custom
+  Cast    :: Eq c => Pos -> Type c -> Expr b -> Expr c
+  Concat          :: Pos -> Expr String -> Expr String -> Expr String
 
 
 
@@ -148,8 +149,8 @@ data RelOp a where
   LE  :: Pos -> RelOp Int
   GTH :: Pos -> RelOp Int
   GE  :: Pos -> RelOp Int
-  EQU :: Pos -> RelOp b
-  NE  :: Pos -> RelOp b
+  EQU :: Eq b => Pos -> RelOp b
+  NE  :: Eq b => Pos -> RelOp b
   
 
 data BoolOp = And Pos | Or Pos

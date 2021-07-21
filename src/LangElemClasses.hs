@@ -65,7 +65,7 @@ class IsType t where
     GS.AnyT GS.NullT -> True
     _ -> False
 
-  
+
   
 
 
@@ -79,7 +79,6 @@ instance IsType S.Type where
 
 instance IsType (GS.Type a) where
   toBNFCType = bloat . (bloat :: GS.Type a -> S.Type)
-  anyType = GS.AnyT
 
 instance IsType GS.AnyType where
   toBNFCType (GS.AnyT t) = toBNFCType t

@@ -161,7 +161,7 @@ assertRetTypeIsSomething p = do
   maybeRetType <- gets returnType
   when (isNothing maybeRetType) $ throwError $ internalNoReturnTypeError p
 
-getCommonType :: (MonadState TypeCheckState m, MonadError Error m)
+getCommonType :: (MonadState TypeCheckState m, MonadError Error m, Eq a)
   => Error -> Error -> Type a -> Type b -> m AnyType
 getCommonType err errCls t1 t2 = case (t1, t2) of
   (Custom cls1, Custom cls2) -> do
@@ -360,10 +360,10 @@ getAnyExpr expr = case expr of
 
     AnyT lhsType <- getTypeOfExpr lhs
     AnyT rhsType <- getTypeOfExpr rhs
-
+    
     let err = wrongExprTypeError p rhs lhsType rhsType
     let errCls = typesNotCompatibileError p lhs rhs lhsType rhsType
-
+    
     AnyT t <- getCommonType err errCls lhsType rhsType
     
     okOp <- getOp t op
@@ -422,7 +422,7 @@ getTypeOfExpr expr = do
 
 
 
-getOp :: MonadError Error m => Type a -> S.RelOp -> m (RelOp a)
+getOp :: (MonadError Error m, Eq a) => Type a -> S.RelOp -> m (RelOp a)
 getOp t op = case (op, t) of
   (S.LTH p, Int _)  -> return $ LTH p
   (S.LE  p, Int _)  -> return $ LE  p
