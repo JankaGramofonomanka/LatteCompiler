@@ -80,6 +80,7 @@ data Func t ts where
   Func :: SPrimType t
         -> ArgList ts
         -> FuncLabel t ts
+        -> [SimpleBlock]
         -> Func t ts
 
 
@@ -125,7 +126,12 @@ data BranchInstr where
   RetVoid :: BranchInstr
 
 
-
+data SimpleBlock
+  = SimpleBlock {
+      label :: Label,
+      body :: [SimpleInstr],
+      lastInstr :: BranchInstr
+    }
 
 
 
