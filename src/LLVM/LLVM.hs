@@ -47,3 +47,30 @@ instance (SingI n, SingI t) => SingI ('Arr n t) where
   sing = SArr sing sing
 
 
+type Value :: PrimType -> Type
+data Value t where
+  Reg :: String -> Value t
+  IConst :: Int -> Value (I n)
+
+type FuncLabel :: PrimType -> [PrimType] -> Type
+data FuncLabel t ts where
+  FuncLabel :: String -> FuncLabel t ts
+
+  deriving Show
+
+
+type ArgList :: [PrimType] -> Type
+data ArgList ts where
+  Nil :: ArgList '[]
+  (:>) :: Value t -> ArgList ts -> ArgList (t : ts)
+infixr 5 :>
+
+type Func :: PrimType -> [PrimType] -> Type
+data Func t ts where
+  Func :: SPrimType t
+        -> ArgList ts
+        -> FuncLabel t ts
+        -> Func t ts
+
+
+
