@@ -18,7 +18,7 @@ type DPair :: (t -> Type) -> Type
 data DPair a where
   DPair :: { fst :: Sing t, snd :: a t } -> DPair a
 
-
+-- Primitive Types ------------------------------------------------------------
 data PrimType where
   I     :: Nat -> PrimType
   Void  :: PrimType
@@ -46,6 +46,7 @@ instance SingI t => SingI ('Ptr t) where
 instance (SingI n, SingI t) => SingI ('Arr n t) where
   sing = SArr sing sing
 
+-- Simple Values --------------------------------------------------------------
 type Reg :: PrimType -> Type 
 data Reg t where
   Reg :: String -> Reg t
@@ -62,6 +63,7 @@ data Value t where
 
 newtype Label = Label Int
 
+-- Functions ------------------------------------------------------------------
 type FuncLabel :: PrimType -> [PrimType] -> Type
 data FuncLabel t ts where
   FuncLabel :: String -> FuncLabel t ts
@@ -84,6 +86,7 @@ data Func t ts where
         -> Func t ts
 
 
+-- Operators ------------------------------------------------------------------
 type BinOp :: PrimType -> Type
 data BinOp t where
   ADD   :: BinOp (I n)
@@ -106,7 +109,7 @@ data BitOp t where
 
 data CMPKind = EQ | NE | SGT | SGE | SLT | SLE | UGT | UGE | ULT | ULE
 
-
+-- Expression -----------------------------------------------------------------
 type Expr :: PrimType -> Type
 data Expr t where
   BinOperation :: BinOp t -> Value t -> Value t -> Expr t
@@ -116,6 +119,7 @@ data Expr t where
   Phi :: [(Label, Value t)] -> Expr t
 
 
+-- Instructions ---------------------------------------------------------------
 data SimpleInstr where
   Ass :: Reg t -> Expr t -> SimpleInstr
   VoidExpr :: Expr 'Void -> SimpleInstr
@@ -126,7 +130,7 @@ data BranchInstr where
   Ret :: Value t -> BranchInstr
   RetVoid :: BranchInstr
 
-
+-- Simple Block ---------------------------------------------------------------
 data SimpleBlock
   = SimpleBlock {
       label :: Label,
