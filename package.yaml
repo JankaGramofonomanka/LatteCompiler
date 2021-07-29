@@ -24,6 +24,7 @@ dependencies:
 - array
 - containers
 - mtl
+- singletons
 
 library:
   source-dirs: src
