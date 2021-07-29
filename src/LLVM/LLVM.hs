@@ -113,6 +113,7 @@ data Expr t where
   Call :: FuncLabel t ts -> ArgList ts -> Expr t
   GetElemPtr :: Value (Ptr t) -> Value (I n) -> Expr (Ptr t)
   ICMP :: CMPKind -> Value (I n) -> Value (I n) -> Expr (I 1)
+  Phi :: [(Label, Value t)] -> Expr t
 
 
 data SimpleInstr where
