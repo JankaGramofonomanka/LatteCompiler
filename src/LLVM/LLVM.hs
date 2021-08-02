@@ -4,7 +4,9 @@
     DataKinds,
     TypeFamilies,
     PolyKinds,
-    TypeOperators
+    TypeOperators,
+    RankNTypes,
+    StandaloneDeriving
 #-}
 
 module LLVM.LLVM where
@@ -13,10 +15,8 @@ import Data.Kind ( Type )
 import Data.Singletons.TH
 import Data.Singletons.TypeLits
 import Data.Singletons.Prelude
+import Data.Singletons.Sigma
 
-type DPair :: (t -> Type) -> Type
-data DPair a where
-  DPair :: { fst :: Sing t, snd :: a t } -> DPair a
 
 -- Primitive Types ------------------------------------------------------------
 data PrimType where
@@ -46,6 +46,11 @@ instance SingI t => SingI ('Ptr t) where
 instance (SingI n, SingI t) => SingI ('Arr n t) where
   sing = SArr sing sing
 
+
+deriving instance Show PrimType
+deriving instance Show (SPrimType t)
+
+
 -- Simple Values --------------------------------------------------------------
 type Reg :: PrimType -> Type 
 data Reg t where
@@ -57,11 +62,15 @@ data Constant t where
 
 type Value :: PrimType -> Type
 data Value t where
-  Var :: Reg t -> Value t
-  ILit :: Int -> Value (I n)
-  ConstPtr :: Constant t -> Value (Ptr t)
+  Var       :: Reg t -> Value t
+  ILit      :: Int -> Value (I n)
+  ConstPtr  :: Constant t -> Value (Ptr t)
 
-newtype Label = Label Int
+newtype Label = Label Int deriving (Show, Eq, Ord, Read)
+
+deriving instance Show (Reg t)
+deriving instance Show (Constant t)
+deriving instance Show (Value t)
 
 -- Functions ------------------------------------------------------------------
 type FuncLabel :: PrimType -> [PrimType] -> Type
@@ -73,8 +82,8 @@ data FuncLabel t ts where
 
 type ArgList :: [PrimType] -> Type
 data ArgList ts where
-  Nil :: ArgList '[]
-  (:>) :: Value t -> ArgList ts -> ArgList (t : ts)
+  Nil   :: ArgList '[]
+  (:>)  :: Value t -> ArgList ts -> ArgList (t : ts)
 infixr 5 :>
 
 type Func :: PrimType -> [PrimType] -> Type
@@ -85,6 +94,8 @@ data Func t ts where
         -> [SimpleBlock]
         -> Func t ts
 
+deriving instance Show (ArgList ts)
+deriving instance Show (Func t ts)
 
 -- Operators ------------------------------------------------------------------
 type BinOp :: PrimType -> Type
@@ -108,6 +119,11 @@ data BitOp t where
 
 
 data CMPKind = EQ | NE | SGT | SGE | SLT | SLE | UGT | UGE | ULT | ULE
+  deriving Show
+
+deriving instance Show (BinOp t)
+deriving instance Show (BitOp t)
+
 
 -- Expression -----------------------------------------------------------------
 type Expr :: PrimType -> Type
@@ -118,6 +134,7 @@ data Expr t where
   ICMP :: CMPKind -> Value (I n) -> Value (I n) -> Expr (I 1)
   Phi :: [(Label, Value t)] -> Expr t
 
+deriving instance Show (Expr t)
 
 -- Instructions ---------------------------------------------------------------
 data SimpleInstr where
@@ -130,6 +147,9 @@ data BranchInstr where
   Ret :: Value t -> BranchInstr
   RetVoid :: BranchInstr
 
+deriving instance Show SimpleInstr
+deriving instance Show BranchInstr
+
 -- Simple Block ---------------------------------------------------------------
 data SimpleBlock
   = SimpleBlock {
@@ -137,14 +157,26 @@ data SimpleBlock
       body :: [SimpleInstr],
       lastInstr :: BranchInstr
     }
+  
+  deriving Show
 
 
+-- Dependent Pairs ------------------------------------------------------------
+type SomeReg        = Sigma PrimType (TyCon1 Reg)
+type SomeConstant   = Sigma PrimType (TyCon1 Constant)
+type SomeValue      = Sigma PrimType (TyCon1 Value)
+type SomeBinOp      = Sigma PrimType (TyCon1 BinOp)
+type SomeBitOp      = Sigma PrimType (TyCon1 BitOp)
+type SomeExpr       = Sigma PrimType (TyCon1 Expr)
+type SomeArgList    = Sigma [PrimType] (TyCon1 ArgList)
 
-
-
-
-
-
+data Sigma2 (t1 :: Type) (t2 :: Type) :: (t1 ~> t2 ~> *) -> * where
+  (:&&:) 
+    :: (Sing (v1 :: t1), Sing (v2 :: t2))
+    -> f @@ v1 @@ v2 -> Sigma2 t1 t2 f
+infixr 5 :&&:
+type SomeFuncLabel  = Sigma2 PrimType [PrimType] (TyCon2 FuncLabel)
+type SomeFunc       = Sigma2 PrimType [PrimType] (TyCon2 Func)
 
 
 
