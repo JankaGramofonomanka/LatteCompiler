@@ -70,38 +70,24 @@ type Value :: PrimType -> Type
 data Value t where
   Var       :: Reg t -> Value t
   ILit      :: Int -> Value (I n)
+  BoolLit   :: Bool -> Value (I 1)
   ConstPtr  :: Constant t -> Value (Ptr t)
 
-newtype Label = Label Int deriving (Show, Eq, Ord, Read)
 
 deriving instance Show (Reg t)
 deriving instance Show (Constant t)
 deriving instance Show (Value t)
 
--- Functions ------------------------------------------------------------------
+
+-- Labels ---------------------------------------------------------------------
+newtype Label = Label Int deriving (Show, Eq, Ord, Read)
+
 type FuncLabel :: PrimType -> [PrimType] -> Type
 data FuncLabel t ts where
   FuncLabel :: String -> FuncLabel t ts
 
   deriving Show
 
-
-type ArgList :: [PrimType] -> Type
-data ArgList ts where
-  Nil   :: ArgList '[]
-  (:>)  :: Value t -> ArgList ts -> ArgList (t : ts)
-infixr 5 :>
-
-type Func :: PrimType -> [PrimType] -> Type
-data Func t ts where
-  Func :: SPrimType t
-        -> ArgList ts
-        -> FuncLabel t ts
-        -> [SimpleBlock]
-        -> Func t ts
-
-deriving instance Show (ArgList ts)
-deriving instance Show (Func t ts)
 
 -- Operators ------------------------------------------------------------------
 type BinOp :: PrimType -> Type
@@ -158,14 +144,42 @@ deriving instance Show BranchInstr
 
 -- Simple Block ---------------------------------------------------------------
 data SimpleBlock
-  = SimpleBlock {
-      label :: Label,
-      body :: [SimpleInstr],
-      lastInstr :: BranchInstr
+  = SimpleBlock 
+    { label :: Label
+    , body :: [SimpleInstr]
+    , lastInstr :: BranchInstr
     }
   
   deriving Show
 
+
+-- Functions ------------------------------------------------------------------
+type ArgList :: [PrimType] -> Type
+data ArgList ts where
+  Nil   :: ArgList '[]
+  (:>)  :: Value t -> ArgList ts -> ArgList (t : ts)
+infixr 5 :>
+
+type Func :: PrimType -> [PrimType] -> Type
+data Func t ts where
+  Func :: SPrimType t
+        -> ArgList ts
+        -> FuncLabel t ts
+        -> [SimpleBlock]
+        -> Func t ts
+
+deriving instance Show (ArgList ts)
+deriving instance Show (Func t ts)
+
+
+-- Program --------------------------------------------------------------------
+data LLVMProg
+  = LLVM 
+    { mainFunc :: Func (I 32) '[]
+    , funcs :: [SomeFunc]
+    , externFuncs :: [SomeFuncLabel]
+    , constants :: [SomeConstant]
+    }
 
 -- Dependent Pairs ------------------------------------------------------------
 type SomeReg        = Sigma PrimType (TyCon1 Reg)
