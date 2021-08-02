@@ -118,11 +118,16 @@ deriving instance Show (BitOp t)
 
 
 -- Expression -----------------------------------------------------------------
+type family ElemOf (t :: PrimType) :: PrimType where
+  ElemOf (I n)      = I n
+  ElemOf (Ptr t)    = Ptr t
+  ElemOf (Arr t n)  = t
+
 type Expr :: PrimType -> Type
 data Expr t where
   BinOperation :: BinOp t -> Value t -> Value t -> Expr t
   Call :: FuncLabel t ts -> ArgList ts -> Expr t
-  GetElemPtr :: Value (Ptr t) -> Value (I n) -> Expr (Ptr t)
+  GetElemPtr :: Value (Ptr t) -> Value (I n) -> Expr (Ptr (ElemOf t))
   ICMP :: CMPKind -> Value (I n) -> Value (I n) -> Expr (I 1)
   Phi :: [(Label, Value t)] -> Expr t
 
@@ -136,7 +141,7 @@ data SimpleInstr where
 data BranchInstr where
   Branch :: Label -> BranchInstr
   CondBranch :: Value (I 1) -> Label -> Label -> BranchInstr
-  Ret :: Value t -> BranchInstr
+  Ret :: SomeValue -> BranchInstr
   RetVoid :: BranchInstr
 
 deriving instance Show SimpleInstr
