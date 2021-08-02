@@ -1,12 +1,13 @@
 {-# LANGUAGE 
-    GADTs,
-    StandaloneKindSignatures,
-    DataKinds,
-    TypeFamilies,
-    PolyKinds,
-    TypeOperators,
-    RankNTypes,
-    StandaloneDeriving
+    GADTs
+  , StandaloneKindSignatures
+  , DataKinds
+  , TypeFamilies
+  , PolyKinds
+  , TypeOperators
+  , RankNTypes
+  , StandaloneDeriving
+  , TypeApplications
 #-}
 
 module LLVM.LLVM where
@@ -23,14 +24,19 @@ data PrimType where
   I     :: Nat -> PrimType
   Void  :: PrimType
   Ptr   :: PrimType -> PrimType
-  Arr   :: Nat -> PrimType -> PrimType
+  Arr   :: PrimType -> [()] -> PrimType
+  {-| I'm using [()] instead of Nat because I can't figure out how to 
+      create a list length of type `SNat`
+  -}
 
 type SPrimType :: PrimType -> Type
 data SPrimType t where
   SI    :: SNat n -> SPrimType (I n)
   SVoid :: SPrimType 'Void
   SPtr  :: SPrimType t -> SPrimType (Ptr t)
-  SArr  :: SNat n -> SPrimType t -> SPrimType (Arr n t)
+  SArr  :: SPrimType t -> SList n -> SPrimType (Arr t n)
+
+
 
 type instance Sing = SPrimType
 
@@ -54,11 +60,11 @@ deriving instance Show (SPrimType t)
 -- Simple Values --------------------------------------------------------------
 type Reg :: PrimType -> Type 
 data Reg t where
-  Reg :: String -> Reg t
+  Reg :: String -> Int -> Reg t
 
 type Constant :: PrimType -> Type
 data Constant t where
-  Const :: String -> Constant t
+  Const :: String -> Int -> Constant t
 
 type Value :: PrimType -> Type
 data Value t where
@@ -178,6 +184,33 @@ infixr 5 :&&:
 type SomeFuncLabel  = Sigma2 PrimType [PrimType] (TyCon2 FuncLabel)
 type SomeFunc       = Sigma2 PrimType [PrimType] (TyCon2 Func)
 
+
+data StrConst :: [()] ~> Type
+type instance Apply StrConst n = Constant (Arr (I 8) n)
+type SomeStrConst = Sigma [()] StrConst
+
+data StrConstPtr :: [()] ~> Type
+type instance Apply StrConstPtr n = (Value (Ptr (Arr (I 8) n)))
+type SomeStrConstPtr = Sigma [()] StrConstPtr
+
+
+type Some :: (k -> Type) -> Type
+data Some f where
+  Some :: SingI v => f v -> Some f
+
+data SomeList t where
+  SomeList :: SList (l :: [t]) -> SomeList t
+
+
+
+-- Some Utils -----------------------------------------------------------------
+listLength :: [a] -> [()]
+listLength = map $ const ()
+
+sListLength :: [a] -> SomeList ()
+sListLength [] = SomeList SNil
+sListLength (c : cs) = case sListLength cs of
+  SomeList n -> SomeList $ SCons (sing @'()) n
 
 
 
