@@ -58,5 +58,14 @@ sListLength (c : cs) = case sListLength cs of
   Some n -> Some $ SSucc n
 
 
+newtype ExtractParam1 (a :: k1 -> *) b = ExtractParam1 (a b)
+newtype ExtractParam2 (a :: k2 -> *) (b :: k1 -> k2) c
+  = ExtractParam2 (a (b c))
+
+extractParam2 :: e (a b) -> ExtractParam2 e a b
+extractParam2 = ExtractParam2
+
+insertParam2 :: ExtractParam2 e a b -> e (a b)
+insertParam2 (ExtractParam2 x) = x
 
 

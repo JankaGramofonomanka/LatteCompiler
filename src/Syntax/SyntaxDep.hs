@@ -23,6 +23,28 @@ import Dependent
 
 
 
+
+data LatteType
+  = TInt
+  | TStr
+  | TBool
+  | TVoid
+  
+  | Arr LatteType
+
+  {-| classes wil have assigned numbers to them, because strings don't 
+      seem to work with singletons 
+  -}
+  | Custom Natural
+  | TNull
+
+genSingletons [''LatteType]
+
+
+type Any a = Sigma LatteType a
+
+
+
 type Ident :: LatteType -> Type
 data Ident a = Ident Pos String deriving (Ord, Show, Read)
 
@@ -41,21 +63,6 @@ instance Eq (FuncIdent t ts) where
 instance Eq (ClassIdent t) where
   ClassIdent _ x == ClassIdent _ y = x == y
 
-data LatteType
-  = TInt
-  | TStr
-  | TBool
-  | TVoid
-  
-  | Arr LatteType
-
-  {-| classes wil have assigned numbers to them, because strings don't 
-      seem to work with singletons 
-  -}
-  | Custom Natural
-  | TNull
-
-genSingletons [''LatteType]
 
 
 data Program where
