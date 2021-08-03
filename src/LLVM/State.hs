@@ -14,7 +14,7 @@
 module LLVM.State where
 
 
-import Prelude hiding (EQ, insert, lookup, )
+import Prelude hiding ( EQ )
 import qualified Data.Map as M
 import Data.Maybe
 import Control.Monad.State
@@ -22,7 +22,7 @@ import Control.Monad.Except
 
 import Data.Singletons.Sigma
 import Data.Kind ( Type )
-import Data.Dependent.Map
+import qualified Data.Dependent.Map as DM
 
 import LLVM.LLVM
 import qualified Syntax.SyntaxGADT as S
@@ -43,9 +43,7 @@ mkStrConst s = s ++ "\00"
 type RegCountMap = M.Map String Int
 type ConstCountMap = M.Map String Int
 
-type IntRegMap  = M.Map (S.Ident Int) (Reg (I 32))
-type BoolRegMap = M.Map (S.Ident Bool) (Reg (I 1))
-type StrRegMap  = M.Map (S.Ident String) (Reg (Ptr (I 8)))
+type VarMap     = DM.DMap TypedIdent Reg
 
 type StrLitMap  = M.Map String SomeStrConst
 
@@ -64,9 +62,7 @@ data LLVMState where
     , constCounter  :: ConstCountMap
     , labelCounter  :: Int
 
-    , intRegMap     :: IntRegMap
-    , boolRegMap    :: BoolRegMap
-    , strRegMap     :: StrRegMap
+    , varMap        :: VarMap
     , strLitMap     :: StrLitMap
     
     , currentBlock  :: Maybe PotentialBlock
@@ -90,20 +86,10 @@ putLabelCounter n = do
   LLVMState { labelCounter = _, .. } <- get
   put $ LLVMState { labelCounter = n, .. }
 
-putIntRegMap :: MonadState LLVMState m => IntRegMap -> m ()
-putIntRegMap m = do
-  LLVMState { intRegMap = _, .. } <- get
-  put $ LLVMState { intRegMap = m, .. }
-
-putBoolRegMap :: MonadState LLVMState m => BoolRegMap -> m ()
-putBoolRegMap m = do
-  LLVMState { boolRegMap = _, .. } <- get
-  put $ LLVMState { boolRegMap = m, .. }
-
-putStrRegMap :: MonadState LLVMState m => StrRegMap -> m ()
-putStrRegMap m = do
-  LLVMState { strRegMap = _, .. } <- get
-  put $ LLVMState { strRegMap = m, .. }
+putVarMap :: MonadState LLVMState m => VarMap -> m ()
+putVarMap m = do
+  LLVMState { varMap = _, .. } <- get
+  put $ LLVMState { varMap = m, .. }
 
 putStrLitMap :: MonadState LLVMState m => StrLitMap -> m ()
 putStrLitMap m = do
