@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 75fabe79f80357611dff76e7b678258823e8e767f46912fd7a4a157781ca2435
+-- hash: c8ab268a6404d73936542e73afc052af705423ca15026a2490327a96f8415ee3
 
 name:           LatteCompiler
 version:        0.1.0.0
@@ -28,6 +28,7 @@ source-repository head
 library
   exposed-modules:
       BuiltIns
+      Dependent
       Errors
       FromBNFC.AbsLatte
       FromBNFC.ErrM
@@ -49,6 +50,7 @@ library
       Syntax.Bloater
       Syntax.Debloater
       Syntax.Syntax
+      Syntax.SyntaxDep
       Syntax.SyntaxGADT
       TypeCheck.Getters
       TypeCheck.PuttersAndDeclarations

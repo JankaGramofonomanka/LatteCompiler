@@ -32,6 +32,8 @@ import Errors
 import Position.Position
 import Position.SyntaxGADTPosition
 
+import Dependent
+
 strLitPrefix :: [Char]
 strLitPrefix = "str"
 

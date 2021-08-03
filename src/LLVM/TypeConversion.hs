@@ -31,6 +31,7 @@ import LLVM.LLVM hiding (CMPKind(..))
 import qualified Syntax.SyntaxGADT as S
 import Data.Singletons.TypeLits (SNat)
 
+import Dependent
 
 
 

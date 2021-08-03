@@ -10,6 +10,7 @@
   , TypeApplications
   , TemplateHaskell
   , ScopedTypeVariables
+  , FlexibleInstances
 #-}
 
 module LLVM.LLVM where
@@ -20,11 +21,7 @@ import Data.Singletons.TypeLits
 import Data.Singletons.Prelude
 import Data.Singletons.Sigma
 
-data Natural = Zero | Succ Natural deriving (Show, Eq, Ord)
-genSingletons [''Natural]
-deriving instance Show (SNatural n)
-deriving instance Eq (SNatural n)
-deriving instance Ord (SNatural n)
+import Dependent
 
 deriving instance Eq (SNat n)
 deriving instance Ord (SNat n)
@@ -189,11 +186,7 @@ data SimpleBlock
 
 
 -- Functions ------------------------------------------------------------------
-type ArgList :: [PrimType] -> Type
-data ArgList ts where
-  Nil   :: ArgList '[]
-  (:>)  :: Value t -> ArgList ts -> ArgList (t : ts)
-infixr 5 :>
+type ArgList ts = DList Value ts
 
 type Func :: PrimType -> [PrimType] -> Type
 data Func t ts where
@@ -203,7 +196,7 @@ data Func t ts where
         -> [SimpleBlock]
         -> Func t ts
 
-deriving instance Show (ArgList ts)
+deriving instance Show (DList Value ts)
 deriving instance Show (Func t ts)
 
 
@@ -223,13 +216,9 @@ type SomeValue      = Sigma PrimType (TyCon1 Value)
 type SomeBinOp      = Sigma PrimType (TyCon1 BinOp)
 type SomeBitOp      = Sigma PrimType (TyCon1 BitOp)
 type SomeExpr       = Sigma PrimType (TyCon1 Expr)
-type SomeArgList    = Sigma [PrimType] (TyCon1 ArgList)
+type SomeArgList    = Sigma [PrimType] (TyCon1 (DList Value))
 
-data Sigma2 (t1 :: Type) (t2 :: Type) :: (t1 ~> t2 ~> *) -> * where
-  (:&&:) 
-    :: (Sing (v1 :: t1), Sing (v2 :: t2))
-    -> f @@ v1 @@ v2 -> Sigma2 t1 t2 f
-infixr 5 :&&:
+
 type SomeFuncLabel  = Sigma2 PrimType [PrimType] (TyCon2 FuncLabel)
 type SomeFunc       = Sigma2 PrimType [PrimType] (TyCon2 Func)
 
@@ -241,26 +230,4 @@ type SomeStrConst = Sigma Natural StrConst
 data StrConstPtr :: Natural ~> Type
 type instance Apply StrConstPtr n = (Value (Ptr (Arr (I 8) n)))
 type SomeStrConstPtr = Sigma Natural StrConstPtr
-
-
-type Some :: (k -> Type) -> Type
-data Some f where
-  Some :: SingI v => f v -> Some f
-
-data SomeList t where
-  SomeList :: SList (l :: [t]) -> SomeList t
-
-
-
--- Some Utils -----------------------------------------------------------------
-listLength :: [a] -> Natural
-listLength [] = Zero
-listLength (x : xs) = Succ $ listLength xs
-
-sListLength :: [a] -> Some SNatural
-sListLength [] = Some SZero
-sListLength (c : cs) = case sListLength cs of
-  Some n -> Some $ SSucc n
-
-
 
