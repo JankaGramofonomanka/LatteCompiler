@@ -25,6 +25,8 @@ dependencies:
 - containers
 - mtl
 - singletons
+- dependent-map
+- some
 
 library:
   source-dirs: src

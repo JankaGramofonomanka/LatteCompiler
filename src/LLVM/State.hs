@@ -9,11 +9,12 @@
   , TypeOperators
   , TypeFamilies
   , GADTs
+  , StandaloneKindSignatures
 #-}
 module LLVM.State where
 
 
-import Prelude hiding (EQ)
+import Prelude hiding (EQ, insert, lookup, )
 import qualified Data.Map as M
 import Data.Maybe
 import Control.Monad.State
@@ -21,9 +22,11 @@ import Control.Monad.Except
 
 import Data.Singletons.Sigma
 import Data.Kind ( Type )
+import Data.Dependent.Map
 
 import LLVM.LLVM
 import qualified Syntax.SyntaxGADT as S
+import LLVM.TypeConversion
 import LangElemClasses
 import Errors
 
@@ -32,6 +35,10 @@ strLitPrefix = "str"
 
 mkStrConst :: String -> String
 mkStrConst s = s ++ "\00"
+
+
+  
+  
 
 type RegCountMap = M.Map String Int
 type ConstCountMap = M.Map String Int
@@ -150,7 +157,7 @@ getStrLitConst s = do
     Just cst  -> return cst
     Nothing   -> case sListLength $ mkStrConst s of
       
-      SomeList n -> do
+      Some n -> do
         cst <- getNewConst strLitPrefix
         putStrLitMap $ M.insert s (n :&: cst) strMap
         return $ n :&: cst
@@ -188,7 +195,7 @@ finishBlock :: (MonadState LLVMState m, MonadError Error m)
   => BranchInstr -> m ()
 finishBlock instr = do
   PotBlock l body <- getCurrentBlock
-  assertRetTypeOK instr
+  --assertRetTypeOK instr
   let bl = SimpleBlock l body instr
   addBlock bl
 
@@ -197,6 +204,7 @@ addBlock bl = do
   PotFunc { body = blocks, .. } <- gets currentFunc
   putCurrentFunc $ PotFunc { body = blocks ++ [bl], .. }
 
+{-
 assertRetTypeOK :: (MonadState LLVMState m, MonadError Error m)
   => BranchInstr -> m ()
 assertRetTypeOK instr = case instr of
@@ -208,16 +216,10 @@ assertRetTypeOK instr = case instr of
 assertRetTypeIs ::(MonadState LLVMState m, MonadError Error m)
   => SPrimType t -> m ()
 assertRetTypeIs t = throwTODO
-
+-- -}
 
 
 -------------------------------------------------------------------------------
-type family GetPrimType (t :: Type) :: PrimType where
-  GetPrimType Int     = I 32
-  GetPrimType Bool    = I 1
-  GetPrimType String  = Ptr (I 8)
-  GetPrimType S.Void  = Void
-
 true = BoolLit True
 false = BoolLit False
 
@@ -233,7 +235,6 @@ getVarValue var = case var of
 
 
 
--- {-
 getExprValue :: (MonadState LLVMState m, MonadError Error m)
   => S.Expr t -> m (Value (GetPrimType t))
 getExprValue expr = case expr of
@@ -296,7 +297,6 @@ getExprValue expr = case expr of
   S.NewObj   p t          -> throwTODO
   S.Cast     p t e        -> throwTODO
   S.Concat   p e1 e2      -> throwTODO
--- -}
 
 getBinOp :: S.BinOp -> BinOp (I n)
 getBinOp op = case op of

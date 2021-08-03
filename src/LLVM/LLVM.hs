@@ -8,6 +8,8 @@
   , RankNTypes
   , StandaloneDeriving
   , TypeApplications
+  , TemplateHaskell
+  , ScopedTypeVariables
 #-}
 
 module LLVM.LLVM where
@@ -18,14 +20,23 @@ import Data.Singletons.TypeLits
 import Data.Singletons.Prelude
 import Data.Singletons.Sigma
 
+data Natural = Zero | Succ Natural deriving (Show, Eq, Ord)
+genSingletons [''Natural]
+deriving instance Show (SNatural n)
+deriving instance Eq (SNatural n)
+deriving instance Ord (SNatural n)
+
+deriving instance Eq (SNat n)
+deriving instance Ord (SNat n)
+
 
 -- Primitive Types ------------------------------------------------------------
 data PrimType where
   I     :: Nat -> PrimType
   Void  :: PrimType
   Ptr   :: PrimType -> PrimType
-  Arr   :: PrimType -> [()] -> PrimType
-  {-| I'm using [()] instead of Nat because I can't figure out how to 
+  Arr   :: PrimType -> Natural -> PrimType
+  {-| I'm using `Natural` instead of Nat because I can't figure out how to 
       create a list length of type `SNat`
   -}
 
@@ -34,7 +45,7 @@ data SPrimType t where
   SI    :: SNat n -> SPrimType (I n)
   SVoid :: SPrimType 'Void
   SPtr  :: SPrimType t -> SPrimType (Ptr t)
-  SArr  :: SPrimType t -> SList n -> SPrimType (Arr t n)
+  SArr  :: SPrimType t -> SNatural n -> SPrimType (Arr t n)
 
 
 
@@ -54,7 +65,12 @@ instance (SingI n, SingI t) => SingI ('Arr n t) where
 
 
 deriving instance Show PrimType
+deriving instance Eq PrimType
+deriving instance Ord PrimType
+
 deriving instance Show (SPrimType t)
+deriving instance Eq (SPrimType t)
+deriving instance Ord (SPrimType t)
 
 
 -- Simple Values --------------------------------------------------------------
@@ -75,12 +91,20 @@ data Value t where
 
 
 deriving instance Show (Reg t)
+deriving instance Eq (Reg t)
+deriving instance Ord (Reg t)
+
 deriving instance Show (Constant t)
+deriving instance Eq (Constant t)
+deriving instance Ord (Constant t)
+
 deriving instance Show (Value t)
+deriving instance Eq (Value t)
+deriving instance Ord (Value t)
 
 
 -- Labels ---------------------------------------------------------------------
-newtype Label = Label Int deriving (Show, Eq, Ord, Read)
+newtype Label = Label Int deriving (Show, Eq, Ord)
 
 type FuncLabel :: PrimType -> [PrimType] -> Type
 data FuncLabel t ts where
@@ -111,10 +135,16 @@ data BitOp t where
 
 
 data CMPKind = EQ | NE | SGT | SGE | SLT | SLE | UGT | UGE | ULT | ULE
-  deriving Show
+  deriving (Show, Eq, Ord)
 
 deriving instance Show (BinOp t)
+deriving instance Eq (BinOp t)
+deriving instance Ord (BinOp t)
+
 deriving instance Show (BitOp t)
+deriving instance Eq (BitOp t)
+deriving instance Ord (BitOp t)
+
 
 
 -- Expression -----------------------------------------------------------------
@@ -204,13 +234,13 @@ type SomeFuncLabel  = Sigma2 PrimType [PrimType] (TyCon2 FuncLabel)
 type SomeFunc       = Sigma2 PrimType [PrimType] (TyCon2 Func)
 
 
-data StrConst :: [()] ~> Type
+data StrConst :: Natural ~> Type
 type instance Apply StrConst n = Constant (Arr (I 8) n)
-type SomeStrConst = Sigma [()] StrConst
+type SomeStrConst = Sigma Natural StrConst
 
-data StrConstPtr :: [()] ~> Type
+data StrConstPtr :: Natural ~> Type
 type instance Apply StrConstPtr n = (Value (Ptr (Arr (I 8) n)))
-type SomeStrConstPtr = Sigma [()] StrConstPtr
+type SomeStrConstPtr = Sigma Natural StrConstPtr
 
 
 type Some :: (k -> Type) -> Type
@@ -223,13 +253,14 @@ data SomeList t where
 
 
 -- Some Utils -----------------------------------------------------------------
-listLength :: [a] -> [()]
-listLength = map $ const ()
+listLength :: [a] -> Natural
+listLength [] = Zero
+listLength (x : xs) = Succ $ listLength xs
 
-sListLength :: [a] -> SomeList ()
-sListLength [] = SomeList SNil
+sListLength :: [a] -> Some SNatural
+sListLength [] = Some SZero
 sListLength (c : cs) = case sListLength cs of
-  SomeList n -> SomeList $ SCons (sing @'()) n
+  Some n -> Some $ SSucc n
 
 
 

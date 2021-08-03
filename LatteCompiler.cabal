@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: b466c36da5a4f4c0f0ff6530c984010f03338e35a0ca0e1fd48d778c8fbd5912
+-- hash: efd2f8d48c0592c0f51c386d83e2646203f2ee64e07e6799227708975a778e6a
 
 name:           LatteCompiler
 version:        0.1.0.0
@@ -39,6 +39,7 @@ library
       LangElemClasses
       LLVM.LLVM
       LLVM.State
+      LLVM.TypeConversion
       Optimization.EvalConstants
       Position.Position
       Position.SyntaxGADTPosition
@@ -60,8 +61,10 @@ library
       array
     , base >=4.7 && <5
     , containers
+    , dependent-map
     , mtl
     , singletons
+    , some
   default-language: Haskell2010
 
 executable latc
@@ -76,8 +79,10 @@ executable latc
     , array
     , base >=4.7 && <5
     , containers
+    , dependent-map
     , mtl
     , singletons
+    , some
   default-language: Haskell2010
 
 executable latc_llvm
@@ -92,8 +97,10 @@ executable latc_llvm
     , array
     , base >=4.7 && <5
     , containers
+    , dependent-map
     , mtl
     , singletons
+    , some
   default-language: Haskell2010
 
 test-suite LatteCompiler-test
@@ -109,6 +116,8 @@ test-suite LatteCompiler-test
     , array
     , base >=4.7 && <5
     , containers
+    , dependent-map
     , mtl
     , singletons
+    , some
   default-language: Haskell2010
