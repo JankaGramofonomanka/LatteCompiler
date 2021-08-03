@@ -61,7 +61,7 @@ typedIdent t (S.Ident _ s) = TypedIdent st s
       --Custom  :: Ident Class -> Type Custom
       --NullT   :: Type Null
 
-
+-- GEq ------------------------------------------------------------------------
 instance GEq SNat where
   geq n1 n2
     = if fromSing n1 == fromSing n2 
@@ -113,6 +113,8 @@ instance GEq TypedIdent where
     Nothing -> Nothing
     Just prf -> if s1 == s2 then Just prf else Nothing
 
+
+-- GCompare -------------------------------------------------------------------
 instance GCompare SNat where
   gcompare sn1 sn2 = case geq sn1 sn2 of
     Just prf -> case prf of

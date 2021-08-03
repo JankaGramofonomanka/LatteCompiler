@@ -29,6 +29,8 @@ import qualified Syntax.SyntaxGADT as S
 import LLVM.TypeConversion
 import LangElemClasses
 import Errors
+import Position.Position
+import Position.SyntaxGADTPosition
 
 strLitPrefix :: [Char]
 strLitPrefix = "str"
@@ -44,7 +46,7 @@ type RegCountMap = M.Map String Int
 type ConstCountMap = M.Map String Int
 
 type VarMap     = DM.DMap TypedIdent Reg
-
+type TypeMap    = DM.DMap S.Ident S.Type
 type StrLitMap  = M.Map String SomeStrConst
 
 data PotentialBlock = PotBlock Label [SimpleInstr]
@@ -63,6 +65,7 @@ data LLVMState where
     , labelCounter  :: Int
 
     , varMap        :: VarMap
+    , typeMap       :: TypeMap
     , strLitMap     :: StrLitMap
     
     , currentBlock  :: Maybe PotentialBlock
@@ -90,6 +93,11 @@ putVarMap :: MonadState LLVMState m => VarMap -> m ()
 putVarMap m = do
   LLVMState { varMap = _, .. } <- get
   put $ LLVMState { varMap = m, .. }
+
+putTypeMap :: MonadState LLVMState m => TypeMap -> m ()
+putTypeMap m = do
+  LLVMState { typeMap = _, .. } <- get
+  put $ LLVMState { typeMap = m, .. }
 
 putStrLitMap :: MonadState LLVMState m => StrLitMap -> m ()
 putStrLitMap m = do
@@ -205,89 +213,3 @@ assertRetTypeIs t = throwTODO
 -- -}
 
 
--------------------------------------------------------------------------------
-true = BoolLit True
-false = BoolLit False
-
-getVarValue :: (MonadState LLVMState m, MonadError Error m)
-  => S.Var t -> m (Value (GetPrimType t))
-getVarValue var = case var of
-  S.Var     p id -> throwTODO
-
-  S.Member  {} -> throwTODO
-  S.Elem    {} -> throwTODO
-  S.Null    {} -> throwTODO
-  S.Self    {} -> throwTODO
-
-
-
-getExprValue :: (MonadState LLVMState m, MonadError Error m)
-  => S.Expr t -> m (Value (GetPrimType t))
-getExprValue expr = case expr of
-  S.EVar     p v -> getVarValue v
-
-  ---------------------------------------------------------------------
-  S.ELitInt  p (S.SInt _ i) -> return (ILit i)
-  S.ELitBool p b            -> return (BoolLit b)
-  S.EString  p (S.SStr _ s) -> do
-    (_ :&: ptr) <- getStrLitConstPtr s
-    reg <- getNewRegDefault
-    addInstr $ Ass reg $ GetElemPtr ptr (ILit 0)
-    return $ Var reg
-
-  ---------------------------------------------------------------------
-  S.EApp p f args -> throwTODO
-  
-  ---------------------------------------------------------------------
-  S.Neg p e -> do
-    v <- getExprValue e
-    reg <- getNewRegDefault
-    addInstr $ Ass reg $ BinOperation MUL (ILit (-1)) v
-    return $ Var reg
-    
-  S.Not p e -> do
-    v <- getExprValue e
-    reg <- getNewRegDefault
-
-    cond <- getNewRegDefault
-    labelIf <- getNewLabel
-    labelElse <- getNewLabel
-    labelJoin <- getNewLabel
-    
-    addInstr $ Ass cond $ ICMP EQ v true
-    finishBlock (CondBranch (Var cond) labelIf labelElse)
-    
-    newBlock labelIf
-    finishBlock $ Branch labelJoin
-    newBlock labelElse
-    finishBlock $ Branch labelJoin
-    newBlock labelJoin
-
-    addInstr $ Ass reg $ Phi [(labelIf, false), (labelElse, true)]
-    return $ Var reg
-
-  ---------------------------------------------------------------------
-  S.EOp   p op e1 e2 -> do
-    v1 <- getExprValue e1
-    v2 <- getExprValue e2
-    let binOp = getBinOp op
-    reg <- getNewRegDefault
-    addInstr $ Ass reg $ BinOperation binOp v1 v2
-    return $ Var reg
-
-  S.ERel  p op e1 e2 -> throwTODO
-  S.EBool p op e1 e2 -> throwTODO
-  
-  ---------------------------------------------------------------------
-  S.NewArr   p t e        -> throwTODO
-  S.NewObj   p t          -> throwTODO
-  S.Cast     p t e        -> throwTODO
-  S.Concat   p e1 e2      -> throwTODO
-
-getBinOp :: S.BinOp -> BinOp (I n)
-getBinOp op = case op of
-  S.Plus  p -> ADD
-  S.Minus p -> SUB
-  S.Times p -> MUL
-  S.Div   p -> SDIV
-  S.Mod   p -> SREM
