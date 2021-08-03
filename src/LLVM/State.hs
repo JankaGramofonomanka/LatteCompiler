@@ -265,13 +265,16 @@ getExprValue expr = case expr of
     cond <- getNewRegDefault
     labelIf <- getNewLabel
     labelElse <- getNewLabel
+    labelJoin <- getNewLabel
     
     addInstr $ Ass cond $ ICMP EQ v true
     finishBlock (CondBranch (Var cond) labelIf labelElse)
     
     newBlock labelIf
-    finishBlock $ Branch labelElse
+    finishBlock $ Branch labelJoin
     newBlock labelElse
+    finishBlock $ Branch labelJoin
+    newBlock labelJoin
 
     addInstr $ Ass reg $ Phi [(labelIf, false), (labelElse, true)]
     return $ Var reg
