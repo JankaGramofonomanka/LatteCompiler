@@ -1,4 +1,7 @@
-{-# LANGUAGE GADTs #-}
+{-# LANGUAGE
+    GADTs
+  , FlexibleInstances
+#-}
 
 
 module LangElemClasses where
@@ -7,12 +10,15 @@ import qualified FromBNFC.AbsLatte as BNFC
 import FromBNFC.PrintLatte ( printTree )
 import qualified Syntax.Syntax as S
 import qualified Syntax.SyntaxGADT as GS
+import qualified Syntax.SyntaxDep as DS
 
 
 import Position.Position ( HasPosition(position) )
 import Position.SyntaxPosition
 import Syntax.Debloater
 import Syntax.Bloater
+import Syntax.BloaterDep
+import Dependent
 
 -- IsIdent --------------------------------------------------------------------
 class IsIdent a where
@@ -27,6 +33,15 @@ instance IsIdent S.Ident where
 
 instance IsIdent (GS.Ident a) where
   name (GS.Ident _ s) = s
+
+instance IsIdent (DS.Ident a) where
+  name (DS.Ident _ s) = s
+
+instance IsIdent (DS.FuncIdent t ts) where
+  name (DS.FuncIdent _ s) = s
+
+instance IsIdent (DS.ClassIdent cls) where
+  name (DS.ClassIdent _ s) = s
 
 
 
@@ -84,7 +99,11 @@ instance IsType GS.AnyType where
   toBNFCType (GS.AnyT t) = toBNFCType t
   anyType = id
 
+instance IsType (DS.TypeKW t) where
+  toBNFCType = bloat . (bloat :: DS.TypeKW t -> S.Type)
 
+instance IsType (Some DS.TypeKW) where
+  toBNFCType (Some t) = toBNFCType t
 
 
 -- IsVar ----------------------------------------------------------------------

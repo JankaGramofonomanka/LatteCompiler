@@ -175,5 +175,11 @@ internalNoReturnTypeError :: Pos -> Error
 internalNoReturnTypeError p
   = OnePosError p "INTERNAL ERROR (no return type in state)"
 
+internalNoClassError :: Pos -> Error
+internalNoClassError p
+  = OnePosError p "INTERNAL ERROR (no class with given id)"
+
+internallNullKWError :: Pos -> Error
+internallNullKWError p = OnePosError p "INTERNAL ERROR (Null keyword)"
 
 

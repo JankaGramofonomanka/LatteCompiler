@@ -41,8 +41,10 @@ data LatteType
 genSingletons [''LatteType]
 
 
-type Any a = Sigma LatteType a
-
+type Any a = Sigma LatteType (TyCon1 a)
+--data Any a where
+--  (:&:) :: TypeKW t -> a t -> Any a
+--infixr 5 :&:
 
 
 type Ident :: LatteType -> Type
@@ -53,6 +55,9 @@ data FuncIdent t ts = FuncIdent Pos String deriving (Ord, Show, Read)
 
 type ClassIdent :: Natural -> Type
 data ClassIdent t = ClassIdent Pos String deriving (Ord, Show, Read)
+
+type ClassId = Natural
+type SClassId n = SNatural n
 
 instance Eq (Ident a) where
   Ident _ x == Ident _ y = x == y
@@ -68,11 +73,9 @@ instance Eq (ClassIdent t) where
 data Program where
   Program :: Pos -> [Either ClassDef FnDef] -> Program
 
-data TopDefKind = Func | Class
-
 data FnDef where
   FnDef :: Pos
-        -> SLatteType t
+        -> TypeKW t
         -> FuncIdent t ts
         -> ParamList ts
         -> Block
@@ -95,7 +98,7 @@ data Block = Block Pos [Stmt]
 data Stmt where
   Empty     :: Pos -> Stmt
   BStmt     :: Pos -> Block -> Stmt
-  Decl      :: Pos -> SLatteType t -> [Item t] -> Stmt
+  Decl      :: Pos -> TypeKW t -> [Item t] -> Stmt
   Ass       :: Pos -> Var t -> Expr t -> Stmt
   Incr      :: Pos -> Var t -> Stmt
   Decr      :: Pos -> Var t -> Stmt
@@ -105,7 +108,7 @@ data Stmt where
   CondElse  :: Pos -> Expr TBool -> Stmt -> Stmt -> Stmt
   While     :: Pos -> Expr TBool -> Stmt -> Stmt
   SExp      :: Pos -> Expr t -> Stmt
-  For       :: Pos -> SLatteType t -> Ident t -> Var (Arr t) -> Stmt -> Stmt
+  For       :: Pos -> TypeKW t -> Ident t -> Var (Arr t) -> Stmt -> Stmt
 
 
 
@@ -114,6 +117,16 @@ data Item t where
   Init    :: Ident t -> Expr t -> Item t
 
 
+type TypeKW :: LatteType -> Type
+data TypeKW t where
+  KWInt   :: Pos -> TypeKW TInt
+  KWStr   :: Pos -> TypeKW TStr
+  KWBool  :: Pos -> TypeKW TBool
+  KWVoid  :: Pos -> TypeKW TVoid
+  
+  KWArr :: TypeKW t -> TypeKW (Arr t)
+
+  KWCustom :: ClassIdent cls -> TypeKW (Custom cls)
 
 
 
@@ -129,7 +142,7 @@ data Var a where
 
 type Callable :: LatteType -> [LatteType] -> Type
 data Callable t ts where
-  Fun     :: Pos -> FuncIdent t ts -> Callable t ts
+  Func    :: Pos -> FuncIdent t ts -> Callable t ts
   Method  :: Pos -> Expr (Custom n) -> FuncIdent t ts -> Callable t ts
 
 
@@ -147,9 +160,9 @@ data Expr a where
   EOp       :: Pos -> BinOp -> Expr TInt -> Expr TInt -> Expr TInt
   ERel      :: Pos -> RelOp t -> Expr t -> Expr t -> Expr TBool
   EBool     :: Pos -> BoolOp -> Expr TBool -> Expr TBool -> Expr TBool
-  NewArr    :: Pos -> SLatteType t -> Expr TInt -> Expr (Arr t)
-  NewObj    :: Pos -> SLatteType (Custom cls) -> Expr (Custom cls)
-  Cast      :: Pos -> SLatteType t1 -> Expr t2 -> Expr t1
+  NewArr    :: Pos -> TypeKW t -> Expr TInt -> Expr (Arr t)
+  NewObj    :: Pos -> TypeKW (Custom cls) -> Expr (Custom cls)
+  Cast      :: Pos -> TypeKW t1 -> Expr t2 -> Expr t1
   Concat    :: Pos -> Expr TStr -> Expr TStr -> Expr TStr
 
 type ExprList ts = DList Expr ts
@@ -177,7 +190,7 @@ data ClassBody = ClassBody Pos [MemberDecl]
 
 
 data MemberDecl where
-  AttrDecl :: Pos -> SLatteType t -> Ident t -> MemberDecl
+  AttrDecl :: Pos -> TypeKW t -> Ident t -> MemberDecl
   MethodDecl :: FnDef -> MemberDecl
   
 

@@ -9,6 +9,7 @@
   , ScopedTypeVariables
   , PolyKinds
   , TypeOperators
+  , RankNTypes
 #-}
 
 module Dependent where
@@ -40,7 +41,7 @@ infixr 5 :&&:
 
 type Some :: (k -> Type) -> Type
 data Some f where
-  Some :: SingI v => f v -> Some f
+  Some :: f v -> Some f
 
 data SomeList t where
   SomeList :: SList (l :: [t]) -> SomeList t
@@ -68,4 +69,8 @@ extractParam2 = ExtractParam2
 insertParam2 :: ExtractParam2 e a b -> e (a b)
 insertParam2 (ExtractParam2 x) = x
 
+
+sLengthInt :: SList ts -> Int
+sLengthInt SNil = 0
+sLengthInt (SCons x xs) = 1 + sLengthInt xs
 
