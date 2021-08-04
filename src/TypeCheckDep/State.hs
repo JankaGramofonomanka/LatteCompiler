@@ -12,7 +12,7 @@ import qualified Data.Map as M
 import Control.Monad.State
 import Control.Monad.Except
 
-import Data.Singletons.Prelude
+import Data.Singletons.Prelude hiding ( Error )
 import Data.Singletons.Sigma
 
 import qualified Syntax.Syntax as S
@@ -88,6 +88,7 @@ data TypeCheckState = TypeCheckState
   , classNameMap  :: ClassNameMap
   , returnType    :: Maybe (Some SLatteType)
   , selfType      :: Maybe SomeCustomType
+  , currentPos    :: Pos
   }
 
 type SomeCustomType = Sigma Natural (TyCon1 (ExtractParam2 SLatteType Custom))
@@ -100,14 +101,41 @@ emptyState = TypeCheckState
   , classNameMap  = M.empty
   , returnType    = Nothing
   , selfType      = Nothing
+  , currentPos    = (0, 0)
   }
 
 
+updatePos ::
+  ( MonadState TypeCheckState m
+  , MonadError Error m
+  , HasPosition a
+  )
+  => a -> m ()
+updatePos x = do
+  TypeCheckState { currentPos = _, .. } <- get
+  put $ TypeCheckState { currentPos = position x, .. }
+
+updatePosTemp :: 
+  ( MonadState TypeCheckState m
+  , MonadError Error m
+  , HasPosition a
+  )
+  => a -> m b ->  m b
+updatePosTemp x y = do
+  pos <- gets currentPos
+  updatePos x
+  result <- y
+  updatePos pos
+  return result
+
+  
 
 
-
-
-
+throwPosError :: (MonadState TypeCheckState m, MonadError Error m)
+  => (Pos -> Error) -> m a
+throwPosError err = do
+  pos <- gets currentPos
+  throwError $ err pos
 
 
 

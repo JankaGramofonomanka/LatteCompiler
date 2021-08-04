@@ -88,10 +88,10 @@ instance ToBeBloated (DS.Item a) S.Item where
 instance ToBeBloated (DS.TypeKW t) S.Type where
 
   bloat t = case t of
-    DS.KWInt p        -> S.Int fakePos
-    DS.KWStr p        -> S.Str fakePos
-    DS.KWBool p       -> S.Bool fakePos
-    DS.KWVoid p       -> S.Void fakePos
+    DS.KWInt p        -> S.Int p
+    DS.KWStr p        -> S.Str p
+    DS.KWBool p       -> S.Bool p
+    DS.KWVoid p       -> S.Void p
     DS.KWArr elemType -> S.Arr (bloat elemType)
 
     DS.KWCustom cls   -> S.Custom (bloat cls)

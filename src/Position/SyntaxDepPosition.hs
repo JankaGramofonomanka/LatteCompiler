@@ -54,6 +54,16 @@ instance HasPosition (Item t) where
   position (Init id _) = position id
 
 
+
+instance HasPosition (TypeKW t) where
+  position t = case t of
+    KWInt p       -> p
+    KWStr p       -> p
+    KWBool p      -> p
+    KWVoid p      -> p
+    KWArr elemT   -> position elemT
+    KWCustom cls  -> position cls
+
 instance HasPosition (Var t) where
   position var = case var of
     Var   p _   -> p

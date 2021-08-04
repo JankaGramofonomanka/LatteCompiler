@@ -1,3 +1,5 @@
+{-# LANGUAGE FlexibleInstances #-}
+
 module Position.Position where
 
 import FromBNFC.AbsLatte
@@ -12,6 +14,9 @@ zeroPos = (0, 0)
 
 class HasPosition a where
   position :: a -> Pos
+
+instance HasPosition (Int, Int) where
+  position = id
 
 instance HasPosition PTrue where
   position (PTrue (p, _)) = p
