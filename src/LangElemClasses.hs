@@ -56,6 +56,9 @@ class IsType t where
   printType :: t -> String
   printType = printTree . toBNFCType
 
+  toSimpleType :: t -> S.Type
+  toSimpleType t = debloat (toBNFCType t)
+
   anyType :: t -> GS.AnyType
   anyType = debloat . (debloat :: BNFC.Type -> S.Type) . toBNFCType
 

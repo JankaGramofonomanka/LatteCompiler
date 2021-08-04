@@ -29,7 +29,7 @@ import TypeCheckDep.State
 import Dependent
 
 
-someType :: (MonadState TypeCheckState m, MonadError Error m)
+{-omeType :: (MonadState TypeCheckState m, MonadError Error m)
   => S.Type -> m (Some SLatteType)
 someType t = case t of
     S.Int  p    -> return $ Some STInt
@@ -43,6 +43,22 @@ someType t = case t of
     S.Custom id -> do
       ClassInfo { classId = clsId, .. } <- getClassInfo id
       return $ Some $ SCustom clsId
+-- -}
+someType :: (MonadState TypeCheckState m, MonadError Error m, IsType t)
+  => t -> m (Some SLatteType)
+someType t = case toSimpleType t of
+    S.Int  p    -> return $ Some STInt
+    S.Str  p    -> return $ Some STStr
+    S.Bool p    -> return $ Some STBool
+    S.Void p    -> return $ Some STVoid
+    S.Arr elemT -> do
+      Some elemTT <- someType elemT
+      return $ Some $ SArr elemTT
+
+    S.Custom id -> do
+      ClassInfo { classId = clsId, .. } <- getClassInfo id
+      return $ Some $ SCustom clsId
+
 
 filterNatural :: (MonadState TypeCheckState m, MonadError Error m)
   => GenError -> SNatural a -> SNatural b -> e b -> m (e a)
@@ -200,6 +216,20 @@ getSelfType = do
   case maybeSelfType of
     Nothing -> throwPosError selfOutsideClassError
     Just t -> return t
+
+getNewClassId :: (MonadState TypeCheckState m) => m Natural
+getNewClassId = do
+  TypeCheckState { classCounter = n, .. } <- get
+  put $ TypeCheckState { classCounter = Succ n, .. }
+  return n
+
+getSomeNewClassId :: (MonadState TypeCheckState m) => m (Some SNatural)
+getSomeNewClassId = do
+  TypeCheckState { classCounter = n, .. } <- get
+  put $ TypeCheckState { classCounter = Succ n, .. }
+  case toSing n of
+    SomeSing n -> return $ Some n
+
 
 -------------------------------------------------------------------------------
 

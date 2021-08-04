@@ -79,6 +79,7 @@ data ClassInfo where
     , parent      :: Maybe ClassInfo
     , attributes  :: VarMap
     , methods     :: FuncMap
+    , declaredAt  :: Pos
     } -> ClassInfo
 
 data TypeCheckState = TypeCheckState 
@@ -89,6 +90,7 @@ data TypeCheckState = TypeCheckState
   , returnType    :: Maybe (Some SLatteType)
   , selfType      :: Maybe SomeCustomType
   , currentPos    :: Pos
+  , classCounter  :: Natural
   }
 
 type SomeCustomType = Sigma Natural (TyCon1 (ExtractParam2 SLatteType Custom))
@@ -102,6 +104,7 @@ emptyState = TypeCheckState
   , returnType    = Nothing
   , selfType      = Nothing
   , currentPos    = (0, 0)
+  , classCounter  = Zero
   }
 
 

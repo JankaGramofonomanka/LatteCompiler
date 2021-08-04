@@ -214,7 +214,11 @@ instance ToBeDebloated BNFC.MemberDecl S.MemberDecl where
 instance ToBeDebloated S.Ident (DS.Ident a) where
   debloat (S.Ident pos x) = DS.Ident pos x
 
+instance ToBeDebloated S.Ident (DS.FuncIdent t ts) where
+  debloat (S.Ident pos x) = DS.FuncIdent pos x
 
+instance ToBeDebloated S.Ident (DS.ClassIdent cls) where
+  debloat (S.Ident pos x) = DS.ClassIdent pos x
 
 
 
