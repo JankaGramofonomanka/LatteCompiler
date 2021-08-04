@@ -13,7 +13,8 @@ import Data.Singletons.Sigma
 import qualified Syntax.Syntax as S
 import Syntax.SyntaxDep
 import Position.Position
-import Errors
+import Errors ( Error )
+import GenErrors
 import LangElemClasses
 import Syntax.DebloaterDep
 import qualified Scope as Sc
@@ -92,19 +93,19 @@ declareId ::
     HasPosition t
   )
   => t -> S.Ident -> m ()
-declareId t id = do
+declareId t id = updatePosTemp t $ do
     Some tt <- someType t
     
-    when (isVoid t) $ throwError $ voidDeclarationError (position t) id
+    when (isVoid t) $ throwPosError $ voidDeclarationError id
 
     varScope <- gets varScope
     
     let varInfo = VarInfo (debloat id) tt
-    case Sc.insertNew (name id) varInfo varScope of
+    updatePosTemp id $ case Sc.insertNew (name id) varInfo varScope of
       Nothing -> do
         VarInfo { varId = declared, .. } <- getIdentInfo id
         let declaredAt = position declared
-        throwError $ varAlredyDeclaredError (position id) id declaredAt
+        throwPosError $ varAlredyDeclaredError id declaredAt
       
       Just newScope -> putVarScope newScope
 
@@ -127,7 +128,9 @@ declareMethod ::
   )
   => i -> S.Ident -> retType -> [argType] -> m ()
 declareMethod i = declareCallable (Just i)
-    
+
+
+-- TODO how to update position
 declareCallable ::
   ( MonadState TypeCheckState m,
     MonadError Error m,
@@ -142,15 +145,20 @@ declareCallable ownerCls funcId retType argTypes = do
     fnScope <- gets funcScope
     paramTypes :&: _ <- getTypeList id argTypes
     let info = FuncInfo (debloat funcId) retT paramTypes
-    case Sc.insertNew (name funcId) info fnScope of
+
+    updatePosTemp funcId $ case Sc.insertNew (name funcId) info fnScope of
+
       Nothing -> do
+        
         FuncInfo { funcId = declared, .. } <- getFuncInfo funcId
         let declaredAt = position declared
+        
         case ownerCls of
-          Just cls -> throwError
-            $ methodAlredyDeclaredError (position funcId) funcId cls declaredAt
-          Nothing -> throwError
-            $ funcAlredyDeclaredError (position funcId) funcId declaredAt
+          Just cls -> throwPosError
+            $ methodAlredyDeclaredError funcId cls declaredAt
+            
+          Nothing -> throwPosError
+            $ funcAlredyDeclaredError funcId declaredAt
       
       Just newScope -> putFuncScope newScope
 
@@ -161,9 +169,9 @@ declareClass :: (MonadState TypeCheckState m, MonadError Error m)
 declareClass id maybeParent body = do
   clsMap <- gets classMap
 
-  case M.lookup (name id) clsMap of
-    Just ClassInfo { classId = c, declaredAt = p, .. } -> throwError
-      $ classAlredyDeclaredError (position id) id p
+  updatePosTemp id $ case M.lookup (name id) clsMap of
+    Just ClassInfo { classId = c, declaredAt = p, .. } -> throwPosError
+      $ classAlredyDeclaredError id p
     
     Nothing -> do
       parentInfo <- getParentInfo maybeParent
@@ -184,7 +192,9 @@ declareClass id maybeParent body = do
 
       case maybeParent of
         Just id -> case M.lookup (name id) clsMap of
-          Nothing -> throwError $ noSuchClassError (position id) id
+          Nothing -> 
+            updatePosTemp id $ throwPosError $ noSuchClassError id
+
           Just info -> return $ Just info
         
         Nothing -> return Nothing
@@ -199,12 +209,12 @@ getAttrMap clsId (S.ClassBody _ memberDecls)
     addAttr :: (MonadState TypeCheckState m, MonadError Error m)
       => m VarMap -> S.MemberDecl -> m VarMap
     addAttr acc (S.MethodDecl _) = acc
-    addAttr acc (S.AttrDecl p t id) = do
+    addAttr acc (S.AttrDecl p t id) = updatePosTemp p $ do
       attrMap <- acc
 
       case M.lookup (name id) attrMap of
         Just VarInfo { varId = x, .. } -> 
-          throwError $ attrAlredyDeclaredError p id clsId (position x)
+          throwPosError $ attrAlredyDeclaredError id clsId (position x)
           
         Nothing -> do
           Some tt <- someType t
@@ -222,21 +232,22 @@ getMethodMap clsId (S.ClassBody p memberDecls)
       => m FuncMap -> S.MemberDecl -> m FuncMap
     addMethod acc (S.AttrDecl p t id) = acc
     addMethod acc (S.MethodDecl (S.ClassDef p _ _ _))
-      = throwError $ nestedClassError p
+      = updatePosTemp p $ throwPosError nestedClassError
 
-    addMethod acc (S.MethodDecl (S.FnDef p retT id params body)) = do
-      methodMap <- acc
+    addMethod acc (S.MethodDecl (S.FnDef p retT id params body))
+      = updatePosTemp p $ do
+        methodMap <- acc
 
-      case M.lookup (name id) methodMap of
-        Just FuncInfo { funcId = f, .. } -> 
-          throwError $ methodAlredyDeclaredError p id clsId (position f)
-          
-        Nothing -> do
-          Some retType <- someType retT
-          paramTypes :&: _ <- getTypeList typeOfParam params
-          let info = FuncInfo (debloat id) retType paramTypes
-          return $ M.insert (name id) info methodMap
-    
+        case M.lookup (name id) methodMap of
+          Just FuncInfo { funcId = f, .. } -> 
+            throwPosError $ methodAlredyDeclaredError id clsId (position f)
+            
+          Nothing -> do
+            Some retType <- someType retT
+            paramTypes :&: _ <- getTypeList typeOfParam params
+            let info = FuncInfo (debloat id) retType paramTypes
+            return $ M.insert (name id) info methodMap
+      
 
 -- Utils ----------------------------------------------------------------------
 typeOfParam :: S.Param -> S.Type
