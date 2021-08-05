@@ -1,7 +1,7 @@
 {-# LANGUAGE FlexibleContexts     #-}
 {-# LANGUAGE RecordWildCards      #-}
 
-module TypeCheckDep.PuttersAndDeclarations where
+module TypeCheckDep.Declarations where
 
 import qualified Data.Map as M
 import Control.Monad.State
@@ -19,69 +19,9 @@ import LangElemClasses
 import Syntax.DebloaterDep
 import qualified Scope as Sc
 import TypeCheckDep.State
-import TypeCheckDep.Getters
+import TypeCheckDep.StateUtils
+import TypeCheckDep.LatteGetters
 import Dependent
-
--------------------------------------------------------------------------------
-putVarScope :: MonadState TypeCheckState m => VarScope -> m ()
-putVarScope scope = do
-  TypeCheckState { varScope = _, .. } <- get
-  put $ TypeCheckState { varScope = scope, .. }
-
-putFuncScope :: MonadState TypeCheckState m => FuncScope -> m ()
-putFuncScope fnScope = do
-  TypeCheckState { funcScope = _, .. } <- get
-  put $ TypeCheckState { funcScope = fnScope, .. }
-
-putClassMap :: MonadState TypeCheckState m => ClassMap -> m ()
-putClassMap clsMap = do
-  TypeCheckState { classMap = _, .. } <- get
-  put $ TypeCheckState { classMap = clsMap, .. }
-
-updateVarScope :: MonadState TypeCheckState m => (VarScope -> VarScope) -> m ()
-updateVarScope f = do
-  TypeCheckState { varScope = scope, .. } <- get
-  put $ TypeCheckState { varScope = f scope, .. }
-
-subVarScope :: MonadState TypeCheckState m => m ()
-subVarScope = updateVarScope Sc.subScope
-
-dropVarScope :: MonadState TypeCheckState m => m ()
-dropVarScope = updateVarScope Sc.dropScope
-
-updateFuncScope :: MonadState TypeCheckState m
-  => (FuncScope -> FuncScope) -> m ()
-updateFuncScope f = do
-  TypeCheckState { funcScope = scope, .. } <- get
-  put $ TypeCheckState { funcScope = f scope, .. }
-
-subFuncScope :: MonadState TypeCheckState m => m ()
-subFuncScope = updateFuncScope Sc.subScope
-
-dropFuncScope :: MonadState TypeCheckState m => m ()
-dropFuncScope = updateFuncScope Sc.dropScope
-
-putReturnType :: (MonadState TypeCheckState m, MonadError Error m)
-  => S.Type -> m ()
-putReturnType t = do
-  someT <- someType t
-  TypeCheckState { returnType = _, .. } <- get
-  put $ TypeCheckState { returnType = Just someT, .. }
-
-dropReturnType :: (MonadState TypeCheckState m) => m ()
-dropReturnType = do
-  TypeCheckState { returnType = _, .. } <- get
-  put $ TypeCheckState { returnType = Nothing, .. }
-
-putSlefType :: (MonadState TypeCheckState m) => SomeCustomType -> m ()
-putSlefType t = do
-  TypeCheckState { selfType = _, .. } <- get
-  put $ TypeCheckState { selfType = Just t, .. }
-
-dropSlefType :: (MonadState TypeCheckState m) => m ()
-dropSlefType = do
-  TypeCheckState { selfType = _, .. } <- get
-  put $ TypeCheckState { selfType = Nothing, .. }
 
 
 
@@ -96,7 +36,7 @@ declareId ::
 declareId t id = updatePosTemp t $ do
     Some tt <- someType t
     
-    when (isVoid t) $ throwPosError $ voidDeclarationError id
+    when (isVoid t) $ throwPError $ voidDeclarationError id
 
     varScope <- gets varScope
     
@@ -105,7 +45,7 @@ declareId t id = updatePosTemp t $ do
       Nothing -> do
         VarInfo { varId = declared, .. } <- getIdentInfo id
         let declaredAt = position declared
-        throwPosError $ varAlredyDeclaredError id declaredAt
+        throwPError $ varAlredyDeclaredError id declaredAt
       
       Just newScope -> putVarScope newScope
 
@@ -154,10 +94,10 @@ declareCallable ownerCls funcId retType argTypes = do
         let declaredAt = position declared
         
         case ownerCls of
-          Just cls -> throwPosError
+          Just cls -> throwPError
             $ methodAlredyDeclaredError funcId cls declaredAt
             
-          Nothing -> throwPosError
+          Nothing -> throwPError
             $ funcAlredyDeclaredError funcId declaredAt
       
       Just newScope -> putFuncScope newScope
@@ -170,7 +110,7 @@ declareClass id maybeParent body = do
   clsMap <- gets classMap
 
   updatePosTemp id $ case M.lookup (name id) clsMap of
-    Just ClassInfo { classId = c, declaredAt = p, .. } -> throwPosError
+    Just ClassInfo { classId = c, declaredAt = p, .. } -> throwPError
       $ classAlredyDeclaredError id p
     
     Nothing -> do
@@ -193,7 +133,7 @@ declareClass id maybeParent body = do
       case maybeParent of
         Just id -> case M.lookup (name id) clsMap of
           Nothing -> 
-            updatePosTemp id $ throwPosError $ noSuchClassError id
+            updatePosTemp id $ throwPError $ noSuchClassError id
 
           Just info -> return $ Just info
         
@@ -214,7 +154,7 @@ getAttrMap clsId (S.ClassBody _ memberDecls)
 
       case M.lookup (name id) attrMap of
         Just VarInfo { varId = x, .. } -> 
-          throwPosError $ attrAlredyDeclaredError id clsId (position x)
+          throwPError $ attrAlredyDeclaredError id clsId (position x)
           
         Nothing -> do
           Some tt <- someType t
@@ -232,7 +172,7 @@ getMethodMap clsId (S.ClassBody p memberDecls)
       => m FuncMap -> S.MemberDecl -> m FuncMap
     addMethod acc (S.AttrDecl p t id) = acc
     addMethod acc (S.MethodDecl (S.ClassDef p _ _ _))
-      = updatePosTemp p $ throwPosError nestedClassError
+      = updatePosTemp p $ throwPError nestedClassError
 
     addMethod acc (S.MethodDecl (S.FnDef p retT id params body))
       = updatePosTemp p $ do
@@ -240,7 +180,7 @@ getMethodMap clsId (S.ClassBody p memberDecls)
 
         case M.lookup (name id) methodMap of
           Just FuncInfo { funcId = f, .. } -> 
-            throwPosError $ methodAlredyDeclaredError id clsId (position f)
+            throwPError $ methodAlredyDeclaredError id clsId (position f)
             
           Nothing -> do
             Some retType <- someType retT

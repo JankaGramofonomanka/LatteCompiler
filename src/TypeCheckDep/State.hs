@@ -108,37 +108,7 @@ emptyState = TypeCheckState
   }
 
 
-updatePos ::
-  ( MonadState TypeCheckState m
-  , MonadError Error m
-  , HasPosition a
-  )
-  => a -> m ()
-updatePos x = do
-  TypeCheckState { currentPos = _, .. } <- get
-  put $ TypeCheckState { currentPos = position x, .. }
 
-updatePosTemp :: 
-  ( MonadState TypeCheckState m
-  , MonadError Error m
-  , HasPosition a
-  )
-  => a -> m b ->  m b
-updatePosTemp x y = do
-  pos <- gets currentPos
-  updatePos x
-  result <- y
-  updatePos pos
-  return result
-
-  
-
-
-throwPosError :: (MonadState TypeCheckState m, MonadError Error m)
-  => (Pos -> Error) -> m a
-throwPosError err = do
-  pos <- gets currentPos
-  throwError $ err pos
 
 
 

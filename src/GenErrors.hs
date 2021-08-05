@@ -6,7 +6,7 @@ import LangElemClasses
 import Position.Position (Pos)
 import Errors
 
-type GenError = Pos -> Error    
+type PError = Pos -> Error
 
 throwTODO :: MonadError Error m => Pos -> m a
 throwTODO p = throwError $ OnePosError p "TODO"
@@ -61,20 +61,20 @@ exprTypeNotInListError e expectedList actual p = OnePosError p
 notAVarError :: IsIdent i => i -> Pos -> Error
 notAVarError id p = OnePosError p $ name id ++ " is not a variable"
 
-noAttributeError :: (IsType cls, IsIdent i) => cls -> i -> Pos -> Error
-noAttributeError cls id p = OnePosError p
+noAttributeError :: (IsType cls, IsIdent i) => i -> cls -> Pos -> Error
+noAttributeError id cls p = OnePosError p
   $ "Class " ++ printType cls ++ " has no member " ++ name id
 
 noArrAttrError :: IsIdent i => i -> Pos -> Error
 noArrAttrError id p = OnePosError p
   $ "Array has no member " ++ name id
 
-noMethodError :: (IsIdent i, IsType t) => t -> i -> Pos -> Error
-noMethodError t id p = OnePosError p
+noMethodError :: (IsIdent i, IsType t) => i -> t -> Pos -> Error
+noMethodError id t p = OnePosError p
   $ "Type " ++ printType t ++ " has no method " ++ name id
 
-noClsMethodError :: (IsIdent i, IsType t) => t -> i -> Pos -> Error
-noClsMethodError t id p = OnePosError p
+noClsMethodError :: (IsIdent i, IsType t) => i -> t -> Pos -> Error
+noClsMethodError id t p = OnePosError p
   $ "Class " ++ printType t ++ " has no method " ++ name id
 
 noArrMethodError :: IsIdent i => i -> Pos -> Error
