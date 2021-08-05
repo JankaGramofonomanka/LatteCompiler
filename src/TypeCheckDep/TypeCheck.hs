@@ -28,7 +28,7 @@ import Syntax.DebloaterDep ( ToBeDebloated(debloat), bloatId )
 import Syntax.Bloater
 import Syntax.BloaterDep
 import Position.Position
-import LangElemClasses
+import LangElemClasses hiding ( isVoid )
 import Dependent
 
 
@@ -260,9 +260,6 @@ instance ToBeTypeChecked S.Stmt Stmt where
       unless (isVoid retType) $ throwTPError returnVoidError retType
       return $ VRet p
 
-      where
-        isVoid STVoid = True
-        isVoid _ = False
 
     S.Cond p cond stm -> do
       okCond <- getExpr STBool cond

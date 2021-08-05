@@ -40,6 +40,9 @@ data LatteType
 
 genSingletons [''LatteType]
 
+isVoid :: SLatteType t -> Bool
+isVoid STVoid = True
+isVoid _ = False
 
 type Any a = Sigma LatteType (TyCon1 a)
 --data Any a where

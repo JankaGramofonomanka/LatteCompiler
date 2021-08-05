@@ -19,7 +19,7 @@ import Syntax.SyntaxDep
 import Position.Position
 import Errors ( Error )
 import GenErrors
-import LangElemClasses
+import LangElemClasses hiding ( isVoid )
 import Syntax.DebloaterDep
 import qualified Scope as Sc
 import TypeCheckDep.State
@@ -40,7 +40,7 @@ declareId ::
 declareId t id = updatePosTemp t $ do
     Some tt <- someType t
     
-    when (isVoid t) $ throwPError $ voidDeclarationError id
+    when (isVoid tt) $ throwPError $ voidDeclarationError id
 
     varScope <- gets varScope
     
