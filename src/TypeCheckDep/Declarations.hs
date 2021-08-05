@@ -32,19 +32,16 @@ import Dependent
 -------------------------------------------------------------------------------
 declareId ::
   ( MonadState TypeCheckState m,
-    MonadError Error m,
-    IsType t,
-    HasPosition t
+    MonadError Error m
   )
-  => t -> S.Ident -> m ()
-declareId t id = updatePosTemp t $ do
-    Some tt <- someType t
+  => SLatteType t -> S.Ident -> m ()
+declareId t id = do
     
-    when (isVoid tt) $ throwPError $ voidDeclarationError id
+    when (isVoid t) $ throwPError $ voidDeclarationError id
 
     varScope <- gets varScope
     
-    let varInfo = VarInfo (debloat id) tt
+    let varInfo = VarInfo (debloat id) t
     updatePosTemp id $ case Sc.insertNew (name id) varInfo varScope of
       Nothing -> do
         VarInfo { varId = declared, .. } <- getIdentInfo id
@@ -55,33 +52,21 @@ declareId t id = updatePosTemp t $ do
 
 
 declareFunc ::
-  ( MonadState TypeCheckState m,
-    MonadError Error m,
-    IsType retType
-  )
-  => S.Ident -> retType -> SList (ts :: [LatteType]) -> m ()
+  ( MonadState TypeCheckState m, MonadError Error m)
+  => S.Ident -> SLatteType t -> SList (ts :: [LatteType]) -> m ()
 declareFunc = declareCallable (Nothing :: Maybe S.Ident)
 
 declareMethod ::
-  ( MonadState TypeCheckState m,
-    MonadError Error m,
-    IsType retType,
-    IsIdent i
-  )
-  => i -> S.Ident -> retType -> SList (ts :: [LatteType]) -> m ()
+  (MonadState TypeCheckState m, MonadError Error m, IsIdent i)
+  => i -> S.Ident -> SLatteType t -> SList (ts :: [LatteType]) -> m ()
 declareMethod i = declareCallable (Just i)
 
 
 -- TODO how to update position
 declareCallable ::
-  ( MonadState TypeCheckState m,
-    MonadError Error m,
-    IsType retType,
-    IsIdent i
-  )
-  => Maybe i -> S.Ident -> retType -> SList (ts :: [LatteType]) -> m ()
-declareCallable ownerCls funcId retType paramTypes = do
-    Some retT <- someType retType
+  (MonadState TypeCheckState m, MonadError Error m, IsIdent i )
+  => Maybe i -> S.Ident -> SLatteType t -> SList (ts :: [LatteType]) -> m ()
+declareCallable ownerCls funcId retT paramTypes = do
     
     fnScope <- gets funcScope
     let info = FuncInfo (debloat funcId) retT paramTypes

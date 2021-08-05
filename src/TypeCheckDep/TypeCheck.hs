@@ -67,8 +67,9 @@ instance ToBeTypeChecked S.Program Program where
       declare acc def = acc >> case def of
       
         S.FnDef _ retType id params _ -> do
+          Some retT <- someType retType
           paramTypes :&: _ <- getParamList params
-          declareFunc id retType paramTypes
+          declareFunc id retT paramTypes
         
         S.ClassDef _ id maybeParent body -> declareClass id maybeParent body
 
@@ -108,7 +109,10 @@ instance ToBeTypeChecked S.TopDef FnDef where
       where
         declParam :: (MonadState TypeCheckState m, MonadError Error m)
           => m () -> S.Param -> m ()
-        declParam acc (S.Param t id) = acc >> declareId t id
+        declParam acc (S.Param t id) = do
+          acc
+          Some tt <- someType t
+          declareId tt id
 
         
   typeCheck (S.ClassDef p _ _ _)
@@ -117,9 +121,9 @@ instance ToBeTypeChecked S.TopDef FnDef where
           
 
 instance ToBeTypeChecked S.TopDef ClassDef where
-  typeCheck (S.ClassDef p id maybeParent (S.ClassBody pp memberDecls))
-    = throwTODO
-  {-
+  --typeCheck (S.ClassDef p id maybeParent (S.ClassBody pp memberDecls))
+  --  = throwTODO
+  --{-
   typeCheck (S.ClassDef p id maybeParent (S.ClassBody pp memberDecls)) = do
     info@ClassInfo { classId = clsId, .. } <- getClassInfo id
 
@@ -169,7 +173,8 @@ instance ToBeTypeChecked S.TopDef ClassDef where
               => m () -> (String, FuncInfo) -> m ()
             declMethod acc (_, FuncInfo id retType argTypes) = do
               acc
-              declareMethod clsId (bloat id) retType argTypes
+              cls <- getClassIdent fakePos clsId
+              declareMethod cls (bloat id) retType argTypes
 
       appendTypeCheckedMember :: 
         (MonadState TypeCheckState m, MonadError Error m)
@@ -221,12 +226,12 @@ instance ToBeTypeChecked S.Stmt Stmt where
           => SLatteType a -> m [Item a] -> S.Item -> m [Item a]
         declItem tt acc (S.NoInit id) = do
           l <- acc          
-          declareId t id
+          declareId tt id
           return $ l ++ [NoInit (debloat id)]
 
         declItem tt acc (S.Init id expr) = do
             l <- acc
-            declareId t id
+            declareId tt id
             okExpr <- getExpr tt expr
             return $ l ++ [Init (debloat id) okExpr]
           
@@ -286,7 +291,7 @@ instance ToBeTypeChecked S.Stmt Stmt where
 
       subVarScope
 
-      declareId t id
+      declareId tt id
       okArr <- getVar (SArr tt) arr
       okLoopBody <- typeCheck loopBody
 
