@@ -57,7 +57,7 @@ type ClassIdent :: Natural -> Type
 data ClassIdent t = ClassIdent Pos String deriving (Ord, Show, Read)
 
 type ClassId = Natural
-type SClassId n = SNatural n
+type SClassId = SNatural
 
 instance Eq (Ident a) where
   Ident _ x == Ident _ y = x == y

@@ -1,5 +1,9 @@
-{-# LANGUAGE FlexibleContexts     #-}
-{-# LANGUAGE RecordWildCards      #-}
+{-# LANGUAGE 
+    FlexibleContexts
+  , RecordWildCards
+  , DataKinds
+  , KindSignatures
+#-}
 
 module TypeCheckDep.Declarations where
 
@@ -53,20 +57,18 @@ declareId t id = updatePosTemp t $ do
 declareFunc ::
   ( MonadState TypeCheckState m,
     MonadError Error m,
-    IsType retType,
-    IsType argType
+    IsType retType
   )
-  => S.Ident -> retType -> [argType] -> m ()
+  => S.Ident -> retType -> SList (ts :: [LatteType]) -> m ()
 declareFunc = declareCallable (Nothing :: Maybe S.Ident)
 
 declareMethod ::
   ( MonadState TypeCheckState m,
     MonadError Error m,
     IsType retType,
-    IsType argType, 
     IsIdent i
   )
-  => i -> S.Ident -> retType -> [argType] -> m ()
+  => i -> S.Ident -> retType -> SList (ts :: [LatteType]) -> m ()
 declareMethod i = declareCallable (Just i)
 
 
@@ -75,15 +77,13 @@ declareCallable ::
   ( MonadState TypeCheckState m,
     MonadError Error m,
     IsType retType,
-    IsType argType,
     IsIdent i
   )
-  => Maybe i -> S.Ident -> retType -> [argType] -> m ()
-declareCallable ownerCls funcId retType argTypes = do
+  => Maybe i -> S.Ident -> retType -> SList (ts :: [LatteType]) -> m ()
+declareCallable ownerCls funcId retType paramTypes = do
     Some retT <- someType retType
     
     fnScope <- gets funcScope
-    paramTypes :&: _ <- getTypeList id argTypes
     let info = FuncInfo (debloat funcId) retT paramTypes
 
     updatePosTemp funcId $ case Sc.insertNew (name funcId) info fnScope of
@@ -184,27 +184,25 @@ getMethodMap clsId (S.ClassBody p memberDecls)
             
           Nothing -> do
             Some retType <- someType retT
-            paramTypes :&: _ <- getTypeList typeOfParam params
+            paramTypes :&: _ <- getParamList params
             let info = FuncInfo (debloat id) retType paramTypes
             return $ M.insert (name id) info methodMap
-      
 
--- Utils ----------------------------------------------------------------------
+getParamList :: 
+  ( MonadState TypeCheckState m,
+    MonadError Error m
+  ) =>
+  [S.Param] -> m (Sigma [LatteType] (TyCon1 (DList Ident)))
+getParamList [] = return $ SNil :&: DNil
+getParamList ((S.Param t paramId) : ps) = do
+  Some tt <- someType t
+  tts :&: l <- getParamList ps
+  return $ SCons tt tts :&: (debloat paramId :> l)
+
+  
+
 typeOfParam :: S.Param -> S.Type
 typeOfParam (S.Param t _) = t
-
-getTypeList :: 
-  ( MonadState TypeCheckState m,
-    MonadError Error m,
-    IsType t
-  ) =>
-  (a -> t) -> [a] -> m (Sigma [LatteType] (TyCon1 (DList SLatteType)))
-getTypeList _ [] = return $ SNil :&: DNil
-getTypeList f (p : ps) = do
-  Some tt <- someType $ f p
-  tts :&: l <- getTypeList f ps
-  return $ SCons tt tts :&: (tt :> l)
-
 
 
 

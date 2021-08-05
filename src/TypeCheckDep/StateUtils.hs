@@ -13,6 +13,7 @@ import Control.Monad.Except
 
 import Data.Singletons.Prelude hiding ( Error, Any )
 
+import Data.Maybe
 import qualified Syntax.Syntax as S
 import Syntax.SyntaxDep
 import Position.Position
@@ -79,7 +80,9 @@ throwTTPError err t1 t2 = do
   kwT2 <- getTypeKW fakePos t2
   throwPError $ err kwT1 kwT2
 
-
+throwTODO :: (MonadState TypeCheckState m, MonadError Error m)
+  => m a
+throwTODO = throwPError todoError
 
 
 
@@ -283,7 +286,7 @@ getNewClassId = do
   put $ TypeCheckState { classCounter = Succ n, .. }
   return n
 
-getSomeNewClassId :: (MonadState TypeCheckState m) => m (Some SNatural)
+getSomeNewClassId :: (MonadState TypeCheckState m) => m (Some SClassId)
 getSomeNewClassId = do
   TypeCheckState { classCounter = n, .. } <- get
   put $ TypeCheckState { classCounter = Succ n, .. }
@@ -314,14 +317,6 @@ assertSubClass err parent child = do
     return ()
   else throwPError err
 
-assertRetTypeIsSomething :: 
-  ( MonadState TypeCheckState m,
-    MonadError Error m
-  )
-  => Pos -> m ()
-assertRetTypeIsSomething p = do
-  maybeRetType <- gets returnType
-  when (isNothing maybeRetType) $ throwPError $ internalNoReturnTypeError p
 
 getCommonType :: (MonadState TypeCheckState m, MonadError Error m)
   => Error -> Error -> SLatteType a -> SLatteType b -> m (Some SLatteType)
@@ -342,6 +337,14 @@ getCommonType err errCls t1 t2 = case (t1, t2) of
     return $ Some t
 -- -}
 
+assertRetTypeIsSomething :: 
+  ( MonadState TypeCheckState m,
+    MonadError Error m
+  )
+  => m ()
+assertRetTypeIsSomething = do
+  maybeRetType <- gets returnType
+  when (isNothing maybeRetType) $ throwPError internalNoReturnTypeError
 
 
 -- putters --------------------------------------------------------------------

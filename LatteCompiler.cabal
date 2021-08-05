@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: fcec70a16b23a3f656220ccfaa75a14accf643bc31f91272faf430abac3d9b9a
+-- hash: 4981168194526e54d73b9cebe11d6c739193757aa5eb32eae36c1f732859896f
 
 name:           LatteCompiler
 version:        0.1.0.0
@@ -64,6 +64,7 @@ library
       TypeCheckDep.LatteGetters
       TypeCheckDep.State
       TypeCheckDep.StateUtils
+      TypeCheckDep.TypeCheck
   other-modules:
       Paths_LatteCompiler
   hs-source-dirs:

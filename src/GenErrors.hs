@@ -8,8 +8,7 @@ import Errors
 
 type PError = Pos -> Error
 
-throwTODO :: MonadError Error m => Pos -> m a
-throwTODO p = throwError $ OnePosError p "TODO"
+todoError p = OnePosError p "TODO"
 
 noSuchVarError :: IsIdent i => i -> Pos -> Error
 noSuchVarError i p = OnePosError p $ "Variable " ++ name i ++ " does not exist"
@@ -167,4 +166,11 @@ internalNoClassError p
 internallNullKWError :: Pos -> Error
 internallNullKWError p = OnePosError p "INTERNAL ERROR (Null keyword)"
 
+internalClassToFuncDefError :: Pos -> Error
+internalClassToFuncDefError p = OnePosError p 
+  $ "INTERNAL ERROR (Conversion of class definition to function definition)"
+
+internalFuncToClassDefError :: Pos -> Error
+internalFuncToClassDefError p = OnePosError p 
+  $ "INTERNAL ERROR (Conversion of function definition to class definition)"
 
