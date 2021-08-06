@@ -35,9 +35,9 @@ getCallableInfo :: (MonadState TypeCheckState m, MonadError Error m)
 getCallableInfo var = updatePosTemp var $ case var of
 
   S.Var p id -> do
-    FuncInfo funcId retType paramTypes <- getFuncInfo id
+    FuncInfo funcId retT paramTs pp <- getFuncInfo id
     
-    return $ CallableInfo (Func p funcId) retType paramTypes
+    return $ CallableInfo (Func p funcId) retT paramTs pp
 
   S.Member p e id -> do
     
@@ -52,9 +52,9 @@ getCallableInfo var = updatePosTemp var $ case var of
         cls <- getClassIdent p clsId
         info <- getClassInfo cls
         let err = noClsMethodError id
-        FuncInfo methId retType paramTypes <- getMethodInfo err ownerT info id
+        FuncInfo methId retT paramTs pp <- getMethodInfo err ownerT info id
 
-        return $ CallableInfo (Method p owner methId) retType paramTypes
+        return $ CallableInfo (Method p owner methId) retT paramTs pp
         
       
       _ -> throwTPError (noMethodError id) ownerT
@@ -220,7 +220,7 @@ getAnyExpr expr = updatePosTemp expr $ case expr of
 
   ---------------------------------------------------------------------
   S.EApp p v args -> do
-    CallableInfo okV retType paramTypes <- getCallableInfo v
+    CallableInfo okV retType paramTypes _ <- getCallableInfo v
     okArgs <- validateArgs p v args paramTypes
     return $ retType :&: EApp p okV okArgs
     

@@ -48,25 +48,27 @@ data VarInfo where
 
 data FuncInfo where
   FuncInfo :: 
-    { funcId      :: FuncIdent t ts
-    , retType     :: SLatteType t
-    , paramTypes  :: SList ts
+    { funcId          :: FuncIdent t ts
+    , funcRetType     :: SLatteType t
+    , funcParamTypes  :: SList ts
+    , funcDeclaredAt  :: Pos
     } -> FuncInfo
 
 data CallableInfo where
   CallableInfo :: 
-    { callableId  :: Callable t ts
-    , cRetType    :: SLatteType t
-    , cRaramTypes :: SList ts
+    { callableId          :: Callable t ts
+    , callableRetType     :: SLatteType t
+    , callableRaramTypes  :: SList ts
+    , callableDeclaredAt  :: Pos
     } -> CallableInfo
 
 data ClassInfo where 
   ClassInfo :: 
-    { classId     :: SClassId cls
-    , parent      :: Maybe ClassInfo
-    , attributes  :: VarMap
-    , methods     :: FuncMap
-    , declaredAt  :: Pos
+    { classId         :: SClassId cls
+    , parent          :: Maybe ClassInfo
+    , attributes      :: VarMap
+    , methods         :: FuncMap
+    , classDeclaredAt :: Pos
     } -> ClassInfo
 
 data TypeCheckState = TypeCheckState 

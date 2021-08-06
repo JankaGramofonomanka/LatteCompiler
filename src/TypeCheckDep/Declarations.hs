@@ -69,7 +69,7 @@ declareCallable ::
 declareCallable ownerCls funcId retT paramTypes = do
     
     fnScope <- gets funcScope
-    let info = FuncInfo (debloat funcId) retT paramTypes
+    let info = FuncInfo (debloat funcId) retT paramTypes (position funcId)
 
     updatePosTemp funcId $ case Sc.insertNew (name funcId) info fnScope of
 
@@ -95,7 +95,7 @@ declareClass id maybeParent body = do
   clsMap <- gets classMap
 
   updatePosTemp id $ case M.lookup (name id) clsMap of
-    Just ClassInfo { classId = c, declaredAt = p, .. } -> throwPError
+    Just ClassInfo { classId = c, classDeclaredAt = p, .. } -> throwPError
       $ classAlredyDeclaredError id p
     
     Nothing -> do
@@ -170,7 +170,7 @@ getMethodMap clsId (S.ClassBody p memberDecls)
           Nothing -> do
             Some retType <- someType retT
             paramTypes :&: _ <- getParamList params
-            let info = FuncInfo (debloat id) retType paramTypes
+            let info = FuncInfo (debloat id) retType paramTypes (position id)
             return $ M.insert (name id) info methodMap
 
 getParamList :: 

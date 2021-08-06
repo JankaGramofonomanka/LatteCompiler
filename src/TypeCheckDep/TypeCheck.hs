@@ -171,7 +171,7 @@ instance ToBeTypeChecked S.TopDef ClassDef where
 
             declMethod :: (MonadState TypeCheckState m, MonadError Error m)
               => m () -> (String, FuncInfo) -> m ()
-            declMethod acc (_, FuncInfo id retType argTypes) = do
+            declMethod acc (_, FuncInfo id retType argTypes _) = do
               acc
               cls <- getClassIdent fakePos clsId
               declareMethod cls (bloat id) retType argTypes
