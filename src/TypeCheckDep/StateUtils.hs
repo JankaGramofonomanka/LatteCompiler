@@ -87,8 +87,8 @@ throwTODO = throwPError todoError
 
 
 
-someType :: (MonadState TypeCheckState m, MonadError Error m, IsType t)
-  => t -> m (Some SLatteType)
+someType :: (MonadState TypeCheckState m, MonadError Error m)
+  => S.Type -> m (Some SLatteType)
 someType t = case toSimpleType t of
   S.Int  p    -> return $ Some STInt
   S.Str  p    -> return $ Some STStr
