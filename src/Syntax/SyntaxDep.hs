@@ -91,7 +91,8 @@ data ClassDef where
             -> ClassBody
             -> ClassDef
 
-type ParamList ts = DList Ident ts
+data Param t = Param (TypeKW t) (Ident t)
+type ParamList ts = DList Param ts
 type SomeClassIdent = Sigma Natural (TyCon1 ClassIdent)
   
 

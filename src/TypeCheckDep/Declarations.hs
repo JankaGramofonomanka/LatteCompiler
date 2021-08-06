@@ -177,12 +177,13 @@ getParamList ::
   ( MonadState TypeCheckState m,
     MonadError Error m
   ) =>
-  [S.Param] -> m (Sigma [LatteType] (TyCon1 (DList Ident)))
+  [S.Param] -> m (Sigma [LatteType] (TyCon1 (DList Param)))
 getParamList [] = return $ SNil :&: DNil
-getParamList ((S.Param t paramId) : ps) = do
+getParamList (p@(S.Param t paramId) : ps) = do
   Some tt <- someType t
+  kwT <- getTypeKW (position t) tt
   tts :&: l <- getParamList ps
-  return $ SCons tt tts :&: (debloat paramId :> l)
+  return $ SCons tt tts :&: (Param kwT (debloat paramId) :> l)
 
   
 

@@ -21,7 +21,6 @@ import Position.Position
 import Errors
 import Position.SyntaxPosition
 import Position.SyntaxDepPosition
-import LangElemClasses
 import Syntax.Debloater
 import qualified Scope as Sc
 

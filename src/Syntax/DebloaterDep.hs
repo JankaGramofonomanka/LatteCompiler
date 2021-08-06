@@ -11,7 +11,7 @@ import qualified FromBNFC.AbsLatte as BNFC
 import qualified Syntax.Syntax as S
 import qualified Syntax.SyntaxDep as DS
 import Position.Position (position)
-
+import Dependent
 
 
 
@@ -236,6 +236,8 @@ instance ToBeDebloated S.BoolOp DS.BoolOp where
   debloat op = case op of
     S.And p -> DS.And p
     S.Or  p -> DS.Or  p
+
+
 
 
 bloatId :: DS.Ident a -> S.Ident

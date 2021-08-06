@@ -29,19 +29,17 @@ instance ToBeBloated (DS.FuncIdent t ts) S.Ident where
 instance ToBeBloated (DS.ClassIdent cls) S.Ident where
   bloat (DS.ClassIdent p id) = S.Ident p id
 
---instance ToBeBloated DS.Program S.Program where
---  bloat (DS.Program p defs) = S.Program p (map bloat defs)
+instance ToBeBloated DS.Program S.Program where
+  bloat (DS.Program p defs) = S.Program p (map bloat defs)
 
-{-
+instance ToBeBloated (Either DS.ClassDef DS.FnDef) S.TopDef where
+  bloat (Left def) = bloat def
+  bloat (Right def) = bloat def
+
 instance ToBeBloated DS.FnDef S.TopDef where
   bloat (DS.FnDef p t id params body)
-    = S.FnDef p (bloat t) (bloat id) (bloatParams params) (bloat body)
+    = S.FnDef p (bloat t) (bloat id) (bloat params) (bloat body)
 
-    where
-      bloatParams :: DS.ParamList ts -> [S.Param]
-      bloatParams DNil = []
-      bloatParams (x@(DS.Ident p s) :> ps) = let
-        (S.Param ) : bloatParams ps
 
 instance ToBeBloated DS.ClassDef S.TopDef where
   bloat (DS.ClassDef p id parentId body)
@@ -51,7 +49,16 @@ instance ToBeBloated DS.ClassDef S.TopDef where
       debloatedParentId = case parentId of
         Nothing -> Nothing
         Just (_ :&: id) -> Just (bloat id)
--- -}
+
+
+instance ToBeBloated (DS.Param t) S.Param where
+  bloat (DS.Param t id) = S.Param (bloat t) (bloat id)  
+
+instance ToBeBloated (DS.ParamList ts) [S.Param] where 
+  bloat DNil = []
+  bloat (p :> ps) = bloat p : bloat ps
+
+
 
 instance ToBeBloated DS.Block S.Block where
   bloat (DS.Block p stmts) = S.Block p (map bloat stmts)
@@ -81,8 +88,6 @@ instance ToBeBloated (DS.Item a) S.Item where
 
 
 
---instance ToBeBloated (DS.SLatteType t) S.Type where
---  bloat st = bloat (fromSing st)
 
 
 instance ToBeBloated (DS.TypeKW t) S.Type where
@@ -96,9 +101,6 @@ instance ToBeBloated (DS.TypeKW t) S.Type where
 
     DS.KWCustom cls   -> S.Custom (bloat cls)
 
-
---instance ToBeBloated (Some DS.SLatteType) S.Type where
---  bloat (Some t) = bloat t
 
 instance ToBeBloated (DS.Var a) S.Var where
   bloat var = case var of
@@ -163,14 +165,14 @@ instance ToBeBloated DS.BoolOp S.BoolOp where
 
 
 
---instance ToBeBloated DS.ClassBody S.ClassBody where
---    bloat (DS.ClassBody p decls) = S.ClassBody p (map bloat decls)
+instance ToBeBloated DS.ClassBody S.ClassBody where
+    bloat (DS.ClassBody p decls) = S.ClassBody p (map bloat decls)
 
 
---instance ToBeBloated DS.MemberDecl S.MemberDecl where
---  bloat decl = case decl of
---    DS.AttrDecl p t id  -> S.AttrDecl p (bloat t) (bloat id)
---    DS.MethodDecl def   -> S.MethodDecl (bloat def)
+instance ToBeBloated DS.MemberDecl S.MemberDecl where
+  bloat decl = case decl of
+    DS.AttrDecl p t id  -> S.AttrDecl p (bloat t) (bloat id)
+    DS.MethodDecl def   -> S.MethodDecl (bloat def)
   
 
 
