@@ -26,18 +26,6 @@ import qualified Scope as Sc
 
 import Dependent
 
-{-
-int :: SLatteType TInt
-int = STInt
-bool :: SLatteType TBool
-bool = STBool
-str :: SLatteType TStr
-str = STStr
-void :: SLatteType TVoid
-void = STVoid
-null :: SLatteType TNull
-null = STNull
--- -}
 
 
 

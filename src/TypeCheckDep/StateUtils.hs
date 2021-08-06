@@ -212,62 +212,29 @@ getClassInfo id = updatePosTemp id $ do
 
 getClassIdent :: (MonadState TypeCheckState m, MonadError Error m)
   => Pos -> SClassId cls -> m (ClassIdent cls)
-getClassIdent p cls = do
+getClassIdent idPos cls = do
   m <- gets classNameMap
   case M.lookup (fromSing cls) m of
     Nothing -> throwPError internalNoClassError
-    Just s -> return $ ClassIdent p s
+    Just s -> return $ ClassIdent idPos s
 
 getTypeKW :: (MonadState TypeCheckState m, MonadError Error m)
   => Pos -> SLatteType t -> m (TypeKW t)
-getTypeKW p t = case t of
-  STInt       -> return $ KWInt p
-  STStr       -> return $ KWStr p
-  STBool      -> return $ KWBool p
-  STVoid      -> return $ KWVoid p
+getTypeKW kwPos t = case t of
+  STInt       -> return $ KWInt kwPos
+  STStr       -> return $ KWStr kwPos
+  STBool      -> return $ KWBool kwPos
+  STVoid      -> return $ KWVoid kwPos
   SArr elemT  -> do
-    elemTT <- getTypeKW p elemT
+    elemTT <- getTypeKW kwPos elemT
     return $ KWArr elemTT
 
   SCustom cls -> do
-    clsId <- getClassIdent p cls
+    clsId <- getClassIdent kwPos cls
     return $ KWCustom clsId
   
   STNull       -> throwPError internallNullKWError
 
-someTypeKW :: (MonadState TypeCheckState m, MonadError Error m)
-  => Pos -> S.Type -> m (Some TypeKW)
-someTypeKW p t = do
-  Some tt <- someType t
-  typeKW <- getTypeKW p tt
-  return $ Some typeKW
-
-
-{-
-getFunc ::
-  ( MonadState TypeCheckState m,
-    MonadError Error m,
-    IsIdent i,
-    HasPosition i
-  )
-  => i -> m FuncIdent
-getFunc id = do
-  info <- getFuncInfo id
-  return $ funcId info
--- -}
-
-{-
-getClass ::
-  ( MonadState TypeCheckState m,
-    MonadError Error m,
-    IsIdent i,
-    HasPosition i
-  )
-  => i -> m ClassIdent
-getClass id = do
-  info <- getClassInfo id
-  return $ classId info
--- -}
 
 getSelfType ::
   ( MonadState TypeCheckState m,

@@ -64,7 +64,7 @@ declareMethod i = declareCallable (Just i)
 
 -- TODO how to update position
 declareCallable ::
-  (MonadState TypeCheckState m, MonadError Error m, IsIdent i )
+  (MonadState TypeCheckState m, MonadError Error m, IsIdent i)
   => Maybe i -> S.Ident -> SLatteType t -> SList (ts :: [LatteType]) -> m ()
 declareCallable ownerCls funcId retT paramTypes = do
     
