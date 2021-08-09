@@ -1,68 +1,92 @@
-{-# LANGUAGE GADTs #-}
+{-# LANGUAGE 
+    GADTs
+  , KindSignatures
+  , DataKinds
+  , TypeFamilies
+  , FlexibleContexts
+  , StandaloneKindSignatures
+#-}
 
 module Optimization.EvalConstants where
 
 
-import Syntax.SyntaxGADT
+import Syntax.SyntaxDep
+import Data.Kind
 
 
-evalConstant :: Expr a -> Maybe a
+
+
+
+type Const :: LatteType -> Type
+data Const t where
+  IConst :: Int -> Const TInt
+  BConst :: Bool -> Const TBool
+  SConst :: String -> Const TStr
+
+instance Eq (Const t) where
+  IConst x == IConst y = x == y
+  BConst x == BConst y = x == y
+  SConst x == SConst y = x == y
+
+instance Ord (Const t) where
+  IConst x <= IConst y = x <= y
+  BConst x <= BConst y = x <= y
+  SConst x <= SConst y = x <= y
+
+evalConstant :: Expr a -> Maybe (Const a)
 evalConstant expr = case expr of
-  EVar      _ var         -> Nothing
-  ELitInt   _ (SInt _ i)  -> Just i
-  ELitBool  _ b           -> Just b
-  EApp      {}            -> Nothing
-  EString   _ (SStr _ s)  -> Just s
+  EVar      _ var -> Nothing
+  ELitInt   _ i   -> Just $ IConst i
+  ELitBool  _ b   -> Just $ BConst b
+  EApp      {}    -> Nothing
+  EString   _ s   -> Just $ SConst s
   Neg       _ e -> do
-    val <- evalConstant e
-    return (-val)
+    IConst val <- evalConstant e
+    return $ IConst (-val)
 
   Not       _ e -> do
-    val <- evalConstant e
-    return (not val)
+    BConst val <- evalConstant e
+    return $ BConst $ not val
 
   EOp       _ op lhs rhs -> do
-    valLHS <- evalConstant lhs
-    valRHS <- evalConstant rhs
+    IConst valLHS <- evalConstant lhs
+    IConst valRHS <- evalConstant rhs
     let realOp = getBinOp op
-    return $ realOp valLHS valRHS
+    return $ IConst $ realOp valLHS valRHS
 
   ERel      _ op lhs rhs -> do
     valLHS <- evalConstant lhs
     valRHS <- evalConstant rhs
     let realOp = getRelOp op
-    return $ realOp valLHS valRHS
+    return $ BConst $ realOp valLHS valRHS
 
   EBool     _ op lhs rhs -> case op of
     And _ -> do
-      valLHS <- evalConstant lhs
+      BConst valLHS <- evalConstant lhs
       if not valLHS then
-        return False
+        return $ BConst False
       else do
-        valRHS <- evalConstant rhs
-        return $ valLHS && valRHS
+        BConst valRHS <- evalConstant rhs
+        return $ BConst $ valLHS && valRHS
     
     Or _ -> do
-      valLHS <- evalConstant lhs
+      BConst valLHS <- evalConstant lhs
       if valLHS then
-        return True
+        return $ BConst True
       else do
-        valRHS <- evalConstant rhs
-        return $ valLHS || valRHS
+        BConst valRHS <- evalConstant rhs
+        return $ BConst $ valLHS || valRHS
 
   NewArr    {} -> Nothing
   NewObj    {} -> Nothing
   Cast      {} -> Nothing
 
   Concat    _ lhs rhs -> do
-    valLHS <- evalConstant lhs
-    valRHS <- evalConstant rhs
-    return $ valLHS ++ valRHS
+    SConst valLHS <- evalConstant lhs
+    SConst valRHS <- evalConstant rhs
+    return $ SConst $ valLHS ++ valRHS
 
 
---evalBoolConst :: Expr a -> Maybe Bool
---evalBoolConst expr = case expr of
-  
 
 
 getBinOp :: BinOp -> (Int -> Int -> Int)
@@ -72,7 +96,7 @@ getBinOp (Times _) = (*)
 getBinOp (Div   _) = div
 getBinOp (Mod   _) = mod
 
-getRelOp :: Eq a => RelOp a -> (a -> a -> Bool)
+getRelOp :: RelOp a -> (Const a -> Const a -> Bool)
 getRelOp op = case op of
   LTH _ -> (<)
   LE  _ -> (<=)
