@@ -6,38 +6,30 @@ module BuiltIns where
 import Control.Monad.State hiding (void)
 import Control.Monad.Except hiding (void)
 
+import Data.Singletons.Prelude hiding ( Error )
+
 import TypeCheck.State ( TypeCheckState, emptyState )
-import TypeCheck.PuttersAndDeclarations
+import TypeCheck.StateUtils
+import TypeCheck.Declarations
 import Position.Position
 import qualified Syntax.Syntax as S
+import Syntax.SyntaxDep
 import Errors
 import LangElemClasses
 
-_p :: Pos
-_p = fakePos
-
-
-int :: S.Type
-int = S.Int _p
-str :: S.Type
-str = S.Str _p
-bool :: S.Type
-bool = S.Bool _p
-void :: S.Type
-void = S.Void _p
 
 ident :: String -> S.Ident
-ident = S.Ident _p
+ident = S.Ident fakePos
 
 declareBuiltIn :: (MonadState TypeCheckState m, MonadError Error m)
   => m ()
 
 declareBuiltIn = do
-  declareFunc (ident "printInt") void [int]
-  declareFunc (ident "printString") void [str]
-  declareFunc (ident "error") void ([] :: [S.Type])
-  declareFunc (ident "readInt") int ([] :: [S.Type])
-  declareFunc (ident "readString") str ([] :: [S.Type])
+  declareFunc (ident "printInt") STVoid (SCons STInt SNil)
+  declareFunc (ident "printString") STVoid (SCons STStr SNil)
+  declareFunc (ident "error") STVoid SNil
+  declareFunc (ident "readInt") STInt SNil
+  declareFunc (ident "readString") STStr SNil
   subFuncScope
 
 

@@ -6,7 +6,7 @@
   , ScopedTypeVariables
 #-}
 
-module TypeCheckDep.Declarations where
+module TypeCheck.Declarations where
 
 import qualified Data.Map as M
 import Control.Monad.State
@@ -22,9 +22,9 @@ import Errors
 import LangElemClasses
 import Syntax.Debloater
 import qualified Scope as Sc
-import TypeCheckDep.State
-import TypeCheckDep.StateUtils
-import TypeCheckDep.LatteGetters
+import TypeCheck.State
+import TypeCheck.StateUtils
+import TypeCheck.LatteGetters
 
 import Dependent
 import SingChar

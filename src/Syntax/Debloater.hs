@@ -6,14 +6,14 @@
 
 module Syntax.Debloater where
 
+import Data.Singletons
 
 import qualified FromBNFC.AbsLatte as BNFC
 import qualified Syntax.Syntax as S
-import qualified Syntax.SyntaxGADT as GS
+import qualified Syntax.SyntaxDep as DS
 import Position.Position (position)
-
-
-
+import Dependent
+import SingChar
 
 class ToBeDebloated bloated clean where
   debloat :: bloated -> clean
@@ -211,48 +211,62 @@ instance ToBeDebloated BNFC.MemberDecl S.MemberDecl where
 -- Syntax to SyntaxGADT -------------------------------------------------------
 -- only some elements can be easily "debloated"
 
-instance ToBeDebloated S.Ident (GS.Ident a) where
-  debloat (S.Ident pos x) = GS.Ident pos x
+instance ToBeDebloated S.Ident (DS.Ident a) where
+  debloat (S.Ident pos x) = DS.Ident pos x
+
+instance ToBeDebloated S.Ident (DS.FuncIdent t ts) where
+  debloat (S.Ident pos x) = DS.FuncIdent pos x
+
+instance ToBeDebloated S.Ident (DS.ClassIdent cls) where
+  debloat (S.Ident pos x) = DS.ClassIdent pos x
 
 
 
 
-instance ToBeDebloated S.SInt GS.SInt where
-  debloat (S.SInt pos int) = GS.SInt pos int
-
-instance ToBeDebloated S.SStr GS.SStr where
-  debloat (S.SStr pos str) = GS.SStr pos str
-
-
-instance ToBeDebloated S.BinOp GS.BinOp where
+instance ToBeDebloated S.BinOp DS.BinOp where
   debloat op = case op of
-    S.Plus  p -> GS.Plus  p
-    S.Minus p -> GS.Minus p
-    S.Times p -> GS.Times p
-    S.Div   p -> GS.Div   p
-    S.Mod   p -> GS.Mod   p
+    S.Plus  p -> DS.Plus  p
+    S.Minus p -> DS.Minus p
+    S.Times p -> DS.Times p
+    S.Div   p -> DS.Div   p
+    S.Mod   p -> DS.Mod   p
 
 
-instance ToBeDebloated S.BoolOp GS.BoolOp where
+instance ToBeDebloated S.BoolOp DS.BoolOp where
   debloat op = case op of
-    S.And p -> GS.And p
-    S.Or  p -> GS.Or  p
+    S.And p -> DS.And p
+    S.Or  p -> DS.Or  p
 
-instance ToBeDebloated S.Param GS.Param where
+
+instance ToBeDebloated S.Param (Some DS.Param) where
   debloat (S.Param t id) = case debloat t of
-    GS.AnyT tt -> GS.Param tt (debloat id)
+    Some tt -> Some $ DS.Param tt (debloat id)
 
-instance ToBeDebloated S.Type GS.AnyType where
+instance ToBeDebloated S.Type DS.LatteType where
   debloat t = case t of
-    S.Int p           -> GS.AnyT (GS.Int p)
-    S.Str p           -> GS.AnyT (GS.Str p)
-    S.Bool p          -> GS.AnyT (GS.Bool p)
-    S.Void p          -> GS.AnyT (GS.Void p)
-    S.Arr elemType    -> case debloat elemType of
-                            GS.AnyT elemT -> GS.AnyT (GS.Arr elemT)
+    S.Int p           -> DS.TInt
+    S.Str p           -> DS.TStr
+    S.Bool p          -> DS.TBool
+    S.Void p          -> DS.TVoid
+    S.Arr elemType    -> DS.Arr (debloat elemType)
       
-    S.Custom (S.Ident p id) -> GS.AnyT $ GS.Custom $ GS.Ident p id
+    S.Custom (S.Ident p id) -> DS.Custom $ fromString id
 
-bloatId :: GS.Ident a -> S.Ident
-bloatId (GS.Ident p s) = S.Ident p s
+instance ToBeDebloated S.Type (Some DS.SLatteType) where
+  debloat t = case toSing (debloat t) of
+    SomeSing tt -> Some tt
+
+instance ToBeDebloated S.Type (Some DS.TypeKW) where
+  debloat t = case t of
+    S.Int p           -> Some $ DS.KWInt p
+    S.Str p           -> Some $ DS.KWStr p
+    S.Bool p          -> Some $ DS.KWBool p
+    S.Void p          -> Some $ DS.KWVoid p
+    S.Arr elemType    -> case debloat elemType of
+      Some elemT -> Some $ DS.KWArr elemT
+      
+    S.Custom id -> Some $ DS.KWCustom (debloat id)
+
+bloatId :: DS.Ident a -> S.Ident
+bloatId (DS.Ident p s) = S.Ident p s
 

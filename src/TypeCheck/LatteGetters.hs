@@ -4,7 +4,7 @@
   , GADTs
 #-}
 
-module TypeCheckDep.LatteGetters where
+module TypeCheck.LatteGetters where
 
 import qualified Data.Map as M
 import Control.Monad.State
@@ -20,10 +20,9 @@ import Position.Position
 import Errors
 import LangElemClasses
 import Syntax.Debloater
-import Syntax.DebloaterDep
 import qualified Scope as Sc
-import TypeCheckDep.State
-import TypeCheckDep.StateUtils
+import TypeCheck.State
+import TypeCheck.StateUtils
 
 import Dependent
 
@@ -75,13 +74,6 @@ getCallableInfo var = case var of
       Just parentInfo -> getMethodInfo err parentInfo id
 
 
-{-
-getCallableVar :: (MonadState TypeCheckState m, MonadError Error m)
-  => S.Var -> m (Var Func)
-getCallableVar v = do
-  (var, _) <- getCallableVarAndInfo v
-  return var
--- -}
 
 
 -------------------------------------------------------------------------------

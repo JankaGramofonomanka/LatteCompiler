@@ -9,16 +9,13 @@ module LangElemClasses where
 import qualified FromBNFC.AbsLatte as BNFC
 import FromBNFC.PrintLatte ( printTree )
 import qualified Syntax.Syntax as S
-import qualified Syntax.SyntaxGADT as GS
 import qualified Syntax.SyntaxDep as DS
 
 
 import Position.Position ( HasPosition(position) )
 import Position.SyntaxPosition
 import Syntax.Debloater
-import Syntax.DebloaterDep
 import Syntax.Bloater
-import Syntax.BloaterDep
 import Dependent
 
 -- IsIdent --------------------------------------------------------------------
@@ -31,9 +28,6 @@ instance IsIdent BNFC.PIdent where
 
 instance IsIdent S.Ident where
   name (S.Ident _ s) = s
-
-instance IsIdent (GS.Ident a) where
-  name (GS.Ident _ s) = s
 
 instance IsIdent (DS.Ident a) where
   name (DS.Ident _ s) = s
@@ -57,31 +51,28 @@ class IsType t where
   printType :: t -> String
   printType = printTree . toBNFCType
 
-  anyType :: t -> GS.AnyType
-  anyType = debloat . (debloat :: BNFC.Type -> S.Type) . toBNFCType
-
   someType :: t -> Some DS.SLatteType
   someType = debloat . (debloat :: BNFC.Type -> S.Type) . toBNFCType
 
   isInt, isStr, isBool, isVoid, isNull :: t -> Bool
-  isInt t = case anyType t of
-    GS.AnyT (GS.Int _) -> True
+  isInt t = case someType t of
+    Some DS.STInt -> True
     _ -> False
 
-  isStr t = case anyType t of
-    GS.AnyT (GS.Str _) -> True
+  isStr t = case someType t of
+    Some DS.STStr -> True
     _ -> False
 
-  isBool t = case anyType t of
-    GS.AnyT (GS.Bool _) -> True
+  isBool t = case someType t of
+    Some DS.STBool -> True
     _ -> False
 
-  isVoid t = case anyType t of
-    GS.AnyT (GS.Void _) -> True
+  isVoid t = case someType t of
+    Some DS.STVoid -> True
     _ -> False
 
-  isNull t = case anyType t of
-    GS.AnyT GS.NullT -> True
+  isNull t = case someType t of
+    Some DS.STNull -> True
     _ -> False
 
 
@@ -93,15 +84,7 @@ instance IsType BNFC.Type where
 
 instance IsType S.Type where
   toBNFCType = bloat
-  anyType = debloat
   
-
-instance IsType (GS.Type a) where
-  toBNFCType = bloat . (bloat :: GS.Type a -> S.Type)
-
-instance IsType GS.AnyType where
-  toBNFCType (GS.AnyT t) = toBNFCType t
-  anyType = id
 
 instance IsType (DS.TypeKW t) where
   toBNFCType = bloat . (bloat :: DS.TypeKW t -> S.Type)
@@ -114,9 +97,11 @@ instance IsType DS.LatteType where
 
 instance IsType (DS.SLatteType t) where
   toBNFCType = bloat . (bloat :: DS.SLatteType t -> S.Type)
+  someType = Some
 
 instance IsType (Some DS.SLatteType) where
   toBNFCType (Some t) = toBNFCType t
+  someType = id
 
 -- IsVar ----------------------------------------------------------------------
 
@@ -131,8 +116,8 @@ instance IsVar BNFC.Var where
 instance IsVar S.Var where
   toBNFCVar = bloat
     
-instance IsVar (GS.Var a) where
-  toBNFCVar = bloat . (bloat :: GS.Var a -> S.Var)
+instance IsVar (DS.Var a) where
+  toBNFCVar = bloat . (bloat :: DS.Var a -> S.Var)
     
 
 
@@ -146,19 +131,11 @@ instance IsLit BNFC.PInteger where
 instance IsLit S.SInt where
   printLit (S.SInt _ i) = show i
 
-instance IsLit GS.SInt where
-  printLit (GS.SInt _ i) = show i
-
-
 instance IsLit BNFC.PString where
   printLit (BNFC.PString (_, s)) = show s
 
 instance IsLit S.SStr where
   printLit (S.SStr _ s) = show s
-
-instance IsLit GS.SStr where
-  printLit (GS.SStr _ s) = show s
-
 
 instance IsLit BNFC.PTrue where
   printLit (BNFC.PTrue (_, _)) = show True
@@ -185,8 +162,8 @@ instance IsExpr BNFC.Expr where
 instance IsExpr S.Expr where
   toBNFCExpr = bloat
 
-instance IsExpr (GS.Expr a) where
-  toBNFCExpr = bloat . (bloat :: GS.Expr a -> S.Expr)
+instance IsExpr (DS.Expr a) where
+  toBNFCExpr = bloat . (bloat :: DS.Expr a -> S.Expr)
 
 -- IsOp -----------------------------------------------------------------------
 class IsOp op where
@@ -224,20 +201,20 @@ instance IsOp S.BoolOp where
     S.And _ -> printTree (bloat op :: BNFC.AndOp)
     S.Or _  -> printTree (bloat op :: BNFC.OrOp)
 
-instance IsOp GS.BinOp where
+instance IsOp DS.BinOp where
   printOp op = case op of
-    GS.Plus  _ -> printTree . (bloat :: S.BinOp -> BNFC.AddOp) $ bloat op
-    GS.Minus _ -> printTree . (bloat :: S.BinOp -> BNFC.AddOp) $ bloat op
-    GS.Times _ -> printTree . (bloat :: S.BinOp -> BNFC.MulOp) $ bloat op
-    GS.Div _   -> printTree . (bloat :: S.BinOp -> BNFC.MulOp) $ bloat op
-    GS.Mod _   -> printTree . (bloat :: S.BinOp -> BNFC.MulOp) $ bloat op
+    DS.Plus  _ -> printTree . (bloat :: S.BinOp -> BNFC.AddOp) $ bloat op
+    DS.Minus _ -> printTree . (bloat :: S.BinOp -> BNFC.AddOp) $ bloat op
+    DS.Times _ -> printTree . (bloat :: S.BinOp -> BNFC.MulOp) $ bloat op
+    DS.Div _   -> printTree . (bloat :: S.BinOp -> BNFC.MulOp) $ bloat op
+    DS.Mod _   -> printTree . (bloat :: S.BinOp -> BNFC.MulOp) $ bloat op
 
-instance IsOp (GS.RelOp a) where
+instance IsOp (DS.RelOp a) where
   printOp = printTree . (bloat :: S.RelOp -> BNFC.RelOp) . bloat
 
-instance IsOp GS.BoolOp where
+instance IsOp DS.BoolOp where
   printOp op = case op of
-    GS.And _ -> printTree $ (bloat :: S.BoolOp -> BNFC.AndOp) $ bloat op
-    GS.Or _  -> printTree $ (bloat :: S.BoolOp -> BNFC.OrOp)  $ bloat op
+    DS.And _ -> printTree $ (bloat :: S.BoolOp -> BNFC.AndOp) $ bloat op
+    DS.Or _  -> printTree $ (bloat :: S.BoolOp -> BNFC.OrOp)  $ bloat op
 
 

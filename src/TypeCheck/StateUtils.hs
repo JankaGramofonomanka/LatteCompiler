@@ -6,7 +6,7 @@
 #-}
 
 
-module TypeCheckDep.StateUtils where
+module TypeCheck.StateUtils where
 
 import qualified Data.Map as M
 import Control.Monad.State
@@ -23,7 +23,7 @@ import Errors
 import LangElemClasses
 import Syntax.Debloater
 import qualified Scope as Sc
-import TypeCheckDep.State
+import TypeCheck.State
 
 import Dependent
 import SingChar

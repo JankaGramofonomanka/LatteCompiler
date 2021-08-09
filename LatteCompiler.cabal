@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 105bdfaf564dce0b891a55c29832fc8119481ccc7f568f01576e4bc3f482f8ce
+-- hash: 404bc758c36eb08dfe24051f8be64ef0a05b49349abeb520be9edcee0436a2b1
 
 name:           LatteCompiler
 version:        0.1.0.0
@@ -28,7 +28,6 @@ source-repository head
 library
   exposed-modules:
       BuiltIns
-      BuiltInsDep
       Dependent
       Errors
       FromBNFC.AbsLatte
@@ -47,26 +46,18 @@ library
       Optimization.EvalConstants
       Position.Position
       Position.SyntaxDepPosition
-      Position.SyntaxGADTPosition
       Position.SyntaxPosition
       Scope
       SingChar
       Syntax.Bloater
-      Syntax.BloaterDep
       Syntax.Debloater
-      Syntax.DebloaterDep
       Syntax.Syntax
       Syntax.SyntaxDep
-      Syntax.SyntaxGADT
-      TypeCheck.Getters
-      TypeCheck.PuttersAndDeclarations
+      TypeCheck.Declarations
+      TypeCheck.LatteGetters
       TypeCheck.State
+      TypeCheck.StateUtils
       TypeCheck.TypeCheck
-      TypeCheckDep.Declarations
-      TypeCheckDep.LatteGetters
-      TypeCheckDep.State
-      TypeCheckDep.StateUtils
-      TypeCheckDep.TypeCheck
   other-modules:
       Paths_LatteCompiler
   hs-source-dirs:

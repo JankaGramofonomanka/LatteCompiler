@@ -12,11 +12,11 @@ import FromBNFC.ErrM
 
 import qualified Syntax.Syntax as S
 import qualified Syntax.SyntaxDep as DS
-import TypeCheckDep.TypeCheck ( ToBeTypeChecked(typeCheck) )
-import TypeCheckDep.State ( emptyState )
+import TypeCheck.TypeCheck ( ToBeTypeChecked(typeCheck) )
+import TypeCheck.State ( emptyState )
 import Syntax.Debloater ( ToBeDebloated(debloat) )
 import Errors
-import BuiltInsDep ( initTypeCheckState )
+import BuiltIns ( initTypeCheckState )
 
 parse :: String -> Err BNFC.Program
 parse = pProgram . myLexer

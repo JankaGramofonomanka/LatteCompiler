@@ -1,15 +1,23 @@
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE GADTs #-}
+{-# LANGUAGE 
+    MultiParamTypeClasses
+  , GADTs
+  , FlexibleInstances
+#-}
 
 module Syntax.Bloater where
     
 
+import Data.Singletons.Sigma
+import Data.Singletons.Prelude
+
 
 import qualified FromBNFC.AbsLatte as BNFC
 import qualified Syntax.Syntax as S
-import qualified Syntax.SyntaxGADT as GS
+import qualified Syntax.SyntaxDep as DS
 import Position.Position (position, fakePos)
 
+import Dependent
+import SingChar
 
 
 class ToBeBloated post pre where
@@ -20,142 +28,177 @@ instance ToBeBloated a b => ToBeBloated (Maybe a) (Maybe b) where
 
 
 
-instance ToBeBloated (GS.Ident a) S.Ident where
-  bloat (GS.Ident p id) = S.Ident p id
+  
 
-instance ToBeBloated GS.SInt S.SInt where
-  bloat (GS.SInt p i) = S.SInt p i
+instance ToBeBloated (DS.Ident a) S.Ident where
+  bloat (DS.Ident p id) = S.Ident p id
 
-instance ToBeBloated GS.SStr S.SStr where
-  bloat (GS.SStr p s) = S.SStr p s
+instance ToBeBloated (DS.FuncIdent t ts) S.Ident where
+  bloat (DS.FuncIdent p id) = S.Ident p id
 
-instance ToBeBloated GS.Program S.Program where
-  bloat (GS.Program p defs) = S.Program p (map bloat defs)
+instance ToBeBloated (DS.ClassIdent cls) S.Ident where
+  bloat (DS.ClassIdent p id) = S.Ident p id
 
-instance ToBeBloated GS.TopDef S.TopDef where
-  bloat (GS.FnDef p t id params body)
-    = S.FnDef p (bloat t) (bloat id) (map bloat params) (bloat body)
+instance ToBeBloated DS.Program S.Program where
+  bloat (DS.Program p defs) = S.Program p (map bloat defs)
 
-  bloat (GS.ClassDef p id parentId body)
+instance ToBeBloated (Either DS.ClassDef DS.FnDef) S.TopDef where
+  bloat (Left def) = bloat def
+  bloat (Right def) = bloat def
+
+instance ToBeBloated DS.FnDef S.TopDef where
+  bloat (DS.FnDef p t id params body)
+    = S.FnDef p (bloat t) (bloat id) (bloat params) (bloat body)
+
+
+instance ToBeBloated DS.ClassDef S.TopDef where
+  bloat (DS.ClassDef p id parentId body)
     = S.ClassDef p (bloat id) debloatedParentId (bloat body)
 
     where
       debloatedParentId = case parentId of
         Nothing -> Nothing
-        Just id -> Just (bloat id)
+        Just (_ :&: id) -> Just (bloat id)
 
 
-instance ToBeBloated GS.Param S.Param where 
-  bloat (GS.Param t id) = S.Param (bloat t) (bloat id)
+instance ToBeBloated (DS.Param t) S.Param where
+  bloat (DS.Param t id) = S.Param (bloat t) (bloat id)  
+
+instance ToBeBloated (DS.ParamList ts) [S.Param] where 
+  bloat DNil = []
+  bloat (p :> ps) = bloat p : bloat ps
 
 
-instance ToBeBloated GS.Block S.Block where
-  bloat (GS.Block p stmts) = S.Block p (map bloat stmts)
 
-instance ToBeBloated GS.Stmt S.Stmt where
+instance ToBeBloated DS.Block S.Block where
+  bloat (DS.Block p stmts) = S.Block p (map bloat stmts)
+
+
+instance ToBeBloated DS.Stmt S.Stmt where
   bloat stmt = case stmt of
-    GS.Empty p                       -> S.Empty p
-    GS.BStmt p block                 -> S.BStmt p (bloat block)
-    GS.Decl p t items                -> S.Decl p (bloat t) (map bloat items)
-    GS.Ass p var expr                -> S.Ass p (bloat var) (bloat expr)
-    GS.Incr p var                    -> S.Incr p (bloat var)
-    GS.Decr p var                    -> S.Decr p (bloat var)
-    GS.Ret p expr                    -> S.Ret p (bloat expr)
-    GS.VRet p                        -> S.VRet p
-    GS.Cond p cond stm               -> S.Cond p (bloat cond) (bloat stm)
-    GS.CondElse p cond stmIf stmElse -> S.CondElse p (bloat cond) (bloat stmIf) (bloat stmElse)
-    GS.While p cond loopBody         -> S.While p (bloat cond) (bloat loopBody)
-    GS.SExp p expr                   -> S.SExp p (bloat expr)
-    GS.For p t id arr loopBody       -> S.For p (bloat t) (bloat id) (bloat arr) (bloat loopBody)
+    DS.Empty p                       -> S.Empty p
+    DS.BStmt p block                 -> S.BStmt p (bloat block)
+    DS.Decl p t items                -> S.Decl p (bloat t) (map bloat items)
+    DS.Ass p var expr                -> S.Ass p (bloat var) (bloat expr)
+    DS.Incr p var                    -> S.Incr p (bloat var)
+    DS.Decr p var                    -> S.Decr p (bloat var)
+    DS.Ret p expr                    -> S.Ret p (bloat expr)
+    DS.VRet p                        -> S.VRet p
+    DS.Cond p cond stm               -> S.Cond p (bloat cond) (bloat stm)
+    DS.CondElse p cond stmIf stmElse -> S.CondElse p (bloat cond) (bloat stmIf) (bloat stmElse)
+    DS.While p cond loopBody         -> S.While p (bloat cond) (bloat loopBody)
+    DS.SExp p expr                   -> S.SExp p (bloat expr)
+    DS.For p t id arr loopBody       -> S.For p (bloat t) (bloat id) (bloat arr) (bloat loopBody)
     
 
 
-instance ToBeBloated (GS.Item a) S.Item where
-  bloat (GS.NoInit id) = S.NoInit (bloat id)
-  bloat (GS.Init id e) = S.Init (bloat id) (bloat e)
+instance ToBeBloated (DS.Item a) S.Item where
+  bloat (DS.NoInit id) = S.NoInit (bloat id)
+  bloat (DS.Init id e) = S.Init (bloat id) (bloat e)
 
 
 
-instance ToBeBloated (GS.Type a) S.Type where
+
+
+instance ToBeBloated (DS.TypeKW t) S.Type where
 
   bloat t = case t of
-    GS.Int p        -> S.Int p
-    GS.Str p        -> S.Str p
-    GS.Bool p       -> S.Bool p
-    GS.Void p       -> S.Void p
-    GS.Arr elemType -> S.Arr (bloat elemType)
+    DS.KWInt p        -> S.Int p
+    DS.KWStr p        -> S.Str p
+    DS.KWBool p       -> S.Bool p
+    DS.KWVoid p       -> S.Void p
+    DS.KWArr elemType -> S.Arr (bloat elemType)
 
-    GS.Custom (GS.Ident p id) -> S.Custom (S.Ident p id)
-    
-    GS.NullT -> error "INTERNAL ERROR (bloat NullT)"
+    DS.KWCustom cls   -> S.Custom (bloat cls)
 
-instance ToBeBloated GS.AnyType S.Type where
-  bloat (GS.AnyT t) = bloat t
+instance ToBeBloated DS.LatteType S.Type where
 
-instance ToBeBloated (GS.Var a) S.Var where
-  bloat var = case var of
-    GS.Var    p id    -> S.Var    p (bloat id)
-    GS.Member p e id  -> S.Member p (bloat e) (bloat id)
-    GS.Elem   p e1 e2 -> S.Elem   p (bloat e1) (bloat e2)
-    GS.Null   p       -> S.Null   p
-    GS.Self   p       -> S.Self   p
+  bloat t = case t of
+    DS.TInt         -> S.Int fakePos
+    DS.TStr         -> S.Str fakePos
+    DS.TBool        -> S.Bool fakePos
+    DS.TVoid        -> S.Void fakePos
+    DS.Arr elemType -> S.Arr (bloat elemType)
 
+    DS.Custom cls   -> S.Custom $ S.Ident fakePos (toString cls)
+    DS.TNull        -> error "INTERNAL ERROR (bloat NullT)"
 
-instance ToBeBloated (GS.Expr a) S.Expr where
-  bloat expr = case expr of
-    GS.EVar     p var             -> S.EVar     p (bloat var)
-    GS.ELitInt  p i               -> S.ELitInt  p (bloat i)
-    GS.ELitBool p b               -> S.ELitBool p b
-    GS.EApp     p var args        -> S.EApp     p (bloat var) (map bloatAny args)
-    GS.EString  p s               -> S.EString  p (bloat s)
-    GS.Neg      p e               -> S.Neg      p (bloat e)
-    GS.Not      p e               -> S.Not      p (bloat e)
-    GS.EOp      p op lhs rhs      -> S.EOp      p (bloat op) (bloat lhs) (bloat rhs)
-    GS.ERel     p op lhs rhs      -> S.ERel     p (bloat op) (bloat lhs) (bloat rhs)
-    GS.EBool    p op lhs rhs      -> S.EBool    p (bloat op) (bloat lhs) (bloat rhs)
-    GS.NewArr   p t e             -> S.NewArr   p (bloat t) (bloat e)
-    GS.NewObj   p (GS.Custom cls) -> S.NewObj   p (bloat cls)
-    GS.Cast     p t e             -> S.Cast     p (bloat t) (bloat e)
-    GS.Concat   p lhs rhs         -> S.EOp      p (S.Plus p) (bloat lhs) (bloat rhs)
+instance ToBeBloated (DS.SLatteType t) S.Type where
 
-    where
-      bloatAny :: GS.Any GS.Expr -> S.Expr
-      bloatAny (GS.Any _ expr) = bloat expr
-
-
-instance ToBeBloated GS.BinOp S.BinOp where
-  bloat op = case op of
-    GS.Plus   p -> S.Plus   p
-    GS.Minus  p -> S.Minus  p
-    GS.Times  p -> S.Times  p
-    GS.Div    p -> S.Div    p
-    GS.Mod    p -> S.Mod    p
-
-
-instance ToBeBloated (GS.RelOp a) S.RelOp where
-  bloat op = case op of
-    GS.LTH p -> S.LTH p
-    GS.LE  p -> S.LE  p
-    GS.GTH p -> S.GTH p
-    GS.GE  p -> S.GE  p
-    GS.EQU p -> S.EQU p
-    GS.NE  p -> S.NE  p
+  bloat t = bloat (fromSing t)
   
 
-instance ToBeBloated GS.BoolOp S.BoolOp where
-    bloat (GS.And p) = S.And p
-    bloat (GS.Or  p) = S.Or  p
+instance ToBeBloated (DS.Var a) S.Var where
+  bloat var = case var of
+    DS.Var    p id    -> S.Var    p (bloat id)
+    DS.Attr   p e id  -> S.Member p (bloat e) (bloat id)
+    DS.Elem   p e1 e2 -> S.Elem   p (bloat e1) (bloat e2)
+    DS.Null   p       -> S.Null   p
+    DS.Self   p       -> S.Self   p
+
+instance ToBeBloated (DS.Callable t ts) S.Var where
+  bloat var = case var of
+    DS.Func     p id    -> S.Var    p (bloat id)
+    DS.Method   p e id  -> S.Member p (bloat e) (bloat id)
+
+
+instance ToBeBloated (DS.Expr a) S.Expr where
+  bloat expr = case expr of
+    DS.EVar     p var             -> S.EVar     p (bloat var)
+    DS.ELitInt  p i               -> S.ELitInt  p (S.SInt p i)
+    DS.ELitBool p b               -> S.ELitBool p b
+    DS.EApp     p var args        -> S.EApp     p (bloat var) (bloatExprList args)
+    DS.EString  p s               -> S.EString  p (S.SStr p s)
+    DS.Neg      p e               -> S.Neg      p (bloat e)
+    DS.Not      p e               -> S.Not      p (bloat e)
+    DS.EOp      p op lhs rhs      -> S.EOp      p (bloat op) (bloat lhs) (bloat rhs)
+    DS.ERel     p op lhs rhs      -> S.ERel     p (bloat op) (bloat lhs) (bloat rhs)
+    DS.EBool    p op lhs rhs      -> S.EBool    p (bloat op) (bloat lhs) (bloat rhs)
+    DS.NewArr   p t e             -> S.NewArr   p (bloat t) (bloat e)
+    DS.NewObj   p (DS.KWCustom c) -> S.NewObj   p (bloat c)
+    DS.Cast     p t e             -> S.Cast     p (bloat t) (bloat e)
+    DS.Concat   p lhs rhs         -> S.EOp      p (S.Plus p) (bloat lhs) (bloat rhs)
+
+    where
+      bloatExprList :: DS.ExprList ts -> [S.Expr]
+      bloatExprList DNil = []
+      bloatExprList (e :> es) = bloat e : bloatExprList es
 
 
 
-instance ToBeBloated GS.ClassBody S.ClassBody where
-    bloat (GS.ClassBody p decls) = S.ClassBody p (map bloat decls)
+instance ToBeBloated DS.BinOp S.BinOp where
+  bloat op = case op of
+    DS.Plus   p -> S.Plus   p
+    DS.Minus  p -> S.Minus  p
+    DS.Times  p -> S.Times  p
+    DS.Div    p -> S.Div    p
+    DS.Mod    p -> S.Mod    p
 
 
-instance ToBeBloated GS.MemberDecl S.MemberDecl where
+instance ToBeBloated (DS.RelOp a) S.RelOp where
+  bloat op = case op of
+    DS.LTH p -> S.LTH p
+    DS.LE  p -> S.LE  p
+    DS.GTH p -> S.GTH p
+    DS.GE  p -> S.GE  p
+    DS.EQU p -> S.EQU p
+    DS.NE  p -> S.NE  p
+  
+
+instance ToBeBloated DS.BoolOp S.BoolOp where
+    bloat (DS.And p) = S.And p
+    bloat (DS.Or  p) = S.Or  p
+
+
+
+instance ToBeBloated DS.ClassBody S.ClassBody where
+    bloat (DS.ClassBody p decls) = S.ClassBody p (map bloat decls)
+
+
+instance ToBeBloated DS.MemberDecl S.MemberDecl where
   bloat decl = case decl of
-    GS.AttrDecl p t id  -> S.AttrDecl p (bloat t) (bloat id)
-    GS.MethodDecl def   -> S.MethodDecl (bloat def)
+    DS.AttrDecl p t id  -> S.AttrDecl p (bloat t) (bloat id)
+    DS.MethodDecl def   -> S.MethodDecl (bloat def)
   
 
 
