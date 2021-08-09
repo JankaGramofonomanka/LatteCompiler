@@ -11,15 +11,11 @@ import qualified FromBNFC.AbsLatte as BNFC
 import FromBNFC.ErrM
 
 import qualified Syntax.Syntax as S
---import qualified Syntax.SyntaxGADT as GS
 import qualified Syntax.SyntaxDep as DS
---import TypeCheck.TypeCheck ( ToBeTypeChecked(typeCheck) )
 import TypeCheckDep.TypeCheck ( ToBeTypeChecked(typeCheck) )
---import TypeCheck.State ( emptyState )
 import TypeCheckDep.State ( emptyState )
 import Syntax.Debloater ( ToBeDebloated(debloat) )
 import Errors
---import BuiltIns ( initTypeCheckState )
 import BuiltInsDep ( initTypeCheckState )
 
 parse :: String -> Err BNFC.Program
@@ -50,7 +46,6 @@ processFileContents fileCts = case parse fileCts of
     let absTree = debloat bloatedAbsTree :: S.Program
     let result = runExcept (evalStateT (typeCheck absTree) initTypeCheckState)
 
-    --let exitCode = getExitCode (result :: Either Error GS.Program)
     let exitCode = getExitCode (result :: Either Error DS.Program)
     let output = getOutput result
 
