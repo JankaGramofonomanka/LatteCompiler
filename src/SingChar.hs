@@ -5,6 +5,8 @@
   , DataKinds
   , GADTs
   , TypeFamilies
+  , PolyKinds
+  , TypeOperators
   , StandaloneDeriving
 
   , TypeSynonymInstances
@@ -13,9 +15,13 @@
 
 module SingChar where
 
+import Control.Monad.Except
+
 import Data.Singletons.TH
 import Data.Singletons.Prelude
 import Data.Kind ( Type )
+
+import Dependent
 
 data Ch
   = C_ | C' | C1 | C2 | C3 | C4 | C5 | C6 | C7 | C8 | C9 | C0
@@ -101,3 +107,65 @@ toString = map toChar
 
 singToString :: SStr s -> String
 singToString = map toChar . fromSing
+
+
+
+
+filterChar
+  :: MonadError err m
+  => err
+  -> SCh a
+  -> SCh b
+  -> e b
+  -> m (e a)
+filterChar err c1 c2 x = case (c1, c2) of
+  {
+    (SC_, SC_) -> return x; (SC', SC') -> return x;
+    
+    (SC1, SC1) -> return x; (SC2, SC2) -> return x; (SC3, SC3) -> return x;
+    (SC4, SC4) -> return x; (SC5, SC5) -> return x; (SC6, SC6) -> return x;
+    (SC7, SC7) -> return x; (SC8, SC8) -> return x; (SC9, SC9) -> return x;
+    (SC0, SC0) -> return x; 
+    (SCq, SCq) -> return x; (SCw, SCw) -> return x; (SCe, SCe) -> return x; 
+    (SCr, SCr) -> return x; (SCt, SCt) -> return x; (SCy, SCy) -> return x; 
+    (SCu, SCu) -> return x; (SCi, SCi) -> return x; (SCo, SCo) -> return x; 
+    (SCp, SCp) -> return x; (SCa, SCa) -> return x; (SCs, SCs) -> return x; 
+    (SCd, SCd) -> return x; (SCf, SCf) -> return x; (SCg, SCg) -> return x; 
+    (SCh, SCh) -> return x; (SCj, SCj) -> return x; (SCk, SCk) -> return x; 
+    (SCl, SCl) -> return x; (SCz, SCz) -> return x; (SCx, SCx) -> return x; 
+    (SCc, SCc) -> return x; (SCv, SCv) -> return x; (SCb, SCb) -> return x; 
+    (SCn, SCn) -> return x; (SCm, SCm) -> return x;
+    
+    (SCQ, SCQ) -> return x; (SCW, SCW) -> return x; (SCE, SCE) -> return x;
+    (SCR, SCR) -> return x; (SCT, SCT) -> return x; (SCY, SCY) -> return x;
+    (SCU, SCU) -> return x; (SCI, SCI) -> return x; (SCO, SCO) -> return x;
+    (SCP, SCP) -> return x; (SCA, SCA) -> return x; (SCS, SCS) -> return x;
+    (SCD, SCD) -> return x; (SCF, SCF) -> return x; (SCG, SCG) -> return x;
+    (SCH, SCH) -> return x; (SCJ, SCJ) -> return x; (SCK, SCK) -> return x;
+    (SCL, SCL) -> return x; (SCZ, SCZ) -> return x; (SCX, SCX) -> return x;
+    (SCC, SCC) -> return x; (SCV, SCV) -> return x; (SCB, SCB) -> return x;
+    (SCN, SCN) -> return x; (SCM, SCM) -> return x;
+
+    _ -> throwError err;
+  }
+
+example :: SStr '[Ca, Cb, Cc]
+example = SCons SCa $ SCons SCb $ SCons SCc SNil
+
+--{-
+filterStr
+  :: MonadError err m
+  => err
+  -> SStr a
+  -> SStr b
+  -> e b
+  -> m (e a)
+filterStr _ SNil SNil x = return x
+filterStr err (SCons a as) (SCons b bs) x = do
+  
+  xx <- filterStr err as bs (extractParam2 x)
+  xxx <- filterChar err a b (extractParam2' $ insertParam2 xx)
+  return $ insertParam2' xxx
+
+filterStr err _ _ _ = throwError err
+

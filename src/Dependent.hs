@@ -74,3 +74,15 @@ sLengthInt :: SList ts -> Int
 sLengthInt SNil = 0
 sLengthInt (SCons x xs) = 1 + sLengthInt xs
 
+newtype ExtractParam2'
+  (a :: k3 -> *)
+  (b :: k1 -> k2 -> k3)
+  (st :: k2)
+  (ch :: k1)
+  = ExtractParam2' (a (b ch st))
+
+extractParam2' :: e (op c s) -> ExtractParam2' e op s c
+extractParam2' = ExtractParam2'
+
+insertParam2' :: ExtractParam2' e op s c -> e (op c s)
+insertParam2' (ExtractParam2' x) = x
