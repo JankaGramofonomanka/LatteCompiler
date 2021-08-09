@@ -32,19 +32,19 @@ data PrimType where
   I     :: Nat -> PrimType
   Void  :: PrimType
   Ptr   :: PrimType -> PrimType
-  Arr   :: PrimType -> Natural -> PrimType
+  Array :: PrimType -> Natural -> PrimType
   {-| I'm using `Natural` instead of Nat because I can't figure out how to 
       create a list length of type `SNat`
   -}
 
 type SPrimType :: PrimType -> Type
 data SPrimType t where
-  SI    :: SNat n -> SPrimType (I n)
-  SVoid :: SPrimType 'Void
-  SPtr  :: SPrimType t -> SPrimType (Ptr t)
-  SArr  :: SPrimType t -> SNatural n -> SPrimType (Arr t n)
+  SI      :: SNat n -> SPrimType (I n)
+  SVoid   :: SPrimType 'Void
+  SPtr    :: SPrimType t -> SPrimType (Ptr t)
+  SArray  :: SPrimType t -> SNatural n -> SPrimType (Array t n)
 
-
+genDefunSymbols [''PrimType]
 
 type instance Sing = SPrimType
 
@@ -57,8 +57,8 @@ instance SingI 'Void where
 instance SingI t => SingI ('Ptr t) where
   sing = SPtr sing
 
-instance (SingI n, SingI t) => SingI ('Arr n t) where
-  sing = SArr sing sing
+instance (SingI n, SingI t) => SingI ('Array n t) where
+  sing = SArray sing sing
 
 
 deriving instance Show PrimType
@@ -148,7 +148,7 @@ deriving instance Ord (BitOp t)
 type family ElemOf (t :: PrimType) :: PrimType where
   ElemOf (I n)      = I n
   ElemOf (Ptr t)    = Ptr t
-  ElemOf (Arr t n)  = t
+  ElemOf (Array t n)  = t
 
 type Expr :: PrimType -> Type
 data Expr t where
@@ -224,10 +224,10 @@ type SomeFunc       = Sigma2 PrimType [PrimType] (TyCon2 Func)
 
 
 data StrConst :: Natural ~> Type
-type instance Apply StrConst n = Constant (Arr (I 8) n)
+type instance Apply StrConst n = Constant (Array (I 8) n)
 type SomeStrConst = Sigma Natural StrConst
 
 data StrConstPtr :: Natural ~> Type
-type instance Apply StrConstPtr n = (Value (Ptr (Arr (I 8) n)))
+type instance Apply StrConstPtr n = (Value (Ptr (Array (I 8) n)))
 type SomeStrConstPtr = Sigma Natural StrConstPtr
 
