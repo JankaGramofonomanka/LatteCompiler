@@ -25,12 +25,11 @@ import Data.Kind ( Type )
 import qualified Data.Dependent.Map as DM
 
 import LLVM.LLVM
-import qualified Syntax.SyntaxGADT as S
+import qualified Syntax.SyntaxDep as DS
 import LLVM.TypeConversion
 import LangElemClasses
 import Errors
 import Position.Position
-import Position.SyntaxGADTPosition
 
 import Dependent
 
@@ -48,7 +47,7 @@ type RegCountMap = M.Map String Int
 type ConstCountMap = M.Map String Int
 
 type VarMap     = DM.DMap TypedIdent Reg
-type TypeMap    = DM.DMap S.Ident S.Type
+type TypeMap    = DM.DMap DS.Ident DS.SLatteType
 type StrLitMap  = M.Map String SomeStrConst
 
 data PotentialBlock = PotBlock Label [SimpleInstr]

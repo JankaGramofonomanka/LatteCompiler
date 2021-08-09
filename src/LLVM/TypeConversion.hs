@@ -28,34 +28,45 @@ import Data.GADT.Compare
 
 
 import LLVM.LLVM hiding (CMPKind(..))
-import qualified Syntax.SyntaxGADT as S
+import qualified Syntax.SyntaxDep as DS
 import Data.Singletons.TypeLits (SNat)
 
 import Dependent
 
+{-
+getPrimType :: DS.LatteType -> PrimType
+getPrimType t = case t of
+  DS.TInt     -> I 32
+  DS.TBool    -> I 1
+  DS.TStr     -> Ptr (I 8)
+  DS.TVoid    -> Void
+  (DS.Arr t)  -> Ptr (GetPrimType t)
+-- -}
 
 
-type family GetPrimType (t :: Type) :: PrimType where
-  GetPrimType Int     = I 32
-  GetPrimType Bool    = I 1
-  GetPrimType String  = Ptr (I 8)
-  GetPrimType S.Void  = Void
-  --GetPrimType (S.Arr t) = Ptr (GetPrimType t)
+--{-
+type family GetPrimType (t :: DS.LatteType) :: PrimType where
+  GetPrimType DS.TInt   = I 32
+  GetPrimType DS.TBool  = I 1
+  GetPrimType DS.TStr   = Ptr (I 8)
+  GetPrimType DS.TVoid  = Void
+  GetPrimType (DS.Arr t) = Ptr (GetPrimType t)
+-- -}
 
 type TypedIdent :: PrimType -> Type
 data TypedIdent t where
   TypedIdent :: Sing t -> String -> TypedIdent t
 
-typedIdent :: S.Type t -> S.Ident t -> TypedIdent (GetPrimType t)
-typedIdent t (S.Ident _ s) = TypedIdent st s
+typedIdent :: DS.SLatteType t -> DS.Ident t -> TypedIdent (GetPrimType t)
+typedIdent t (DS.Ident _ s) = TypedIdent st s
 
   where 
     
     st = case t of
-      S.Int _   -> sing @(I 32)
-      S.Str _   -> sing @(Ptr (I 8))
-      S.Bool _  -> sing @(I 1)
-      S.Void _  -> sing @Void
+      DS.STInt  -> sing @(I 32)
+      DS.STStr  -> sing @(Ptr (I 8))
+      DS.STBool -> sing @(I 1)
+      DS.STVoid -> sing @Void
       _         -> undefined
   
       --Arr     :: Eq b => Type b -> Type (Array b)
