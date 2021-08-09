@@ -9,30 +9,29 @@ module TypeCheckDep.LatteGetters where
 import qualified Data.Map as M
 import Control.Monad.State
 import Control.Monad.Except
+import Data.Maybe
 
-import Data.Singletons.Sigma
 import Data.Singletons.Prelude hiding ( Error, Any )
+import Data.Singletons.Sigma
 
 import qualified Syntax.Syntax as S
 import Syntax.SyntaxDep
 import Position.Position
-import Errors ( Error )
-import GenErrors
+import Errors
 import LangElemClasses
+import Syntax.Debloater
 import Syntax.DebloaterDep
 import qualified Scope as Sc
 import TypeCheckDep.State
 import TypeCheckDep.StateUtils
+
 import Dependent
 
 
--- Functions ------------------------------------------------------------------
-type SomeCollable = Sigma2 LatteType [LatteType] (TyCon2 Callable)
-
--- {-
+-------------------------------------------------------------------------------
 getCallableInfo :: (MonadState TypeCheckState m, MonadError Error m)
   => S.Var -> m CallableInfo
-getCallableInfo var = updatePosTemp var $ case var of
+getCallableInfo var = case var of
 
   S.Var p id -> do
     FuncInfo funcId retT paramTs pp <- getFuncInfo id
@@ -41,106 +40,116 @@ getCallableInfo var = updatePosTemp var $ case var of
 
   S.Member p e id -> do
     
-    ownerT :&: owner <- getAnyExpr e
+    ownerType :&: owner <- getAnyExpr e
     
-    updatePosTemp id $ case ownerT of
+    case ownerType of
 
-      SArr _ -> throwPError $ noArrMethodError id
+      SArr _ -> throwError $ noArrMethodError memberPos id
       
-      SCustom clsId -> do
-
-        cls <- getClassIdent p clsId
-        info <- getClassInfo cls
-        let err = noClsMethodError id
-        FuncInfo methId retT paramTs pp <- getMethodInfo err ownerT info id
+      SCustom cls -> do
+        info <- getClassInfo $ mkClsId (position owner) cls
+        let err = noClsMethodError memberPos ownerType id
+        FuncInfo methId retT paramTs pp <- getMethodInfo err info id
 
         return $ CallableInfo (Method p owner methId) retT paramTs pp
         
       
-      _ -> throwTPError (noMethodError id) ownerT
+      _ -> throwError $ noMethodError memberPos ownerType id
     
+      where memberPos = position id
 
-  _ -> throwPError $ notAFuncError var
+  S.Elem p e1 e2 -> throwError $ notAFuncError p var
+
+  S.Null p -> throwError $ notAFuncError p var
+
+  S.Self p -> throwError $ notAFuncError p var
 
   where
 
-    getMethodInfo :: (MonadState TypeCheckState m, MonadError Error m)
-      => TPError t -> SLatteType t -> ClassInfo -> S.Ident -> m FuncInfo
-    getMethodInfo err t info id = updatePosTemp id
-      $ case M.lookup (name id) (methods info) of
-        Just methodInfo -> return methodInfo
-        Nothing -> case parent info of
-          Nothing         -> throwTPError err t
-          Just parentInfo -> getMethodInfo err t parentInfo id
+  getMethodInfo :: MonadError Error m
+    => Error -> ClassInfo -> S.Ident -> m FuncInfo
+  getMethodInfo err info id = case M.lookup (name id) (methods info) of
+    Just methodInfo -> return methodInfo
+    Nothing -> case parent info of
+      Nothing         -> throwError err
+      Just parentInfo -> getMethodInfo err parentInfo id
 
 
--- Variables ------------------------------------------------------------------
+{-
+getCallableVar :: (MonadState TypeCheckState m, MonadError Error m)
+  => S.Var -> m (Var Func)
+getCallableVar v = do
+  (var, _) <- getCallableVarAndInfo v
+  return var
+-- -}
+
+
+-------------------------------------------------------------------------------
 getAnyVar :: (MonadState TypeCheckState m, MonadError Error m)
   => S.Var -> m (Any Var)
-getAnyVar var = updatePosTemp var $ case var of
+getAnyVar var = case var of
   S.Var p id -> do
-    VarInfo x t <- getIdentInfo id
+    VarInfo x t _ <- getIdentInfo id
     
     return $ t :&: Var p x
 
   S.Member p e id -> do
     
-    ownerT :&: owner <- getAnyExpr e
+    ownerType :&: owner <- getAnyExpr e
 
-    updatePosTemp id $ case ownerT of
+    case ownerType of
       SArr t -> do
-        unless (name id == lengthAttr) $ throwPError $ noArrAttrError id
+        unless (name id == lengthAttr)
+          $ throwError $ noArrAttrError memberPos id
         return $ STInt :&: Attr p owner (debloat id)
 
-      
-      SCustom clsId -> do
-
-        cls <- getClassIdent p clsId
-        info <- getClassInfo cls
+      SCustom cls -> do
+        info <- getClassInfo $ mkClsId (position owner) cls
         case M.lookup (name id) (attributes info) of
-          Nothing -> throwTPError (noAttributeError id) ownerT
-          Just (VarInfo _ t) -> return $ t :&: Attr p owner (debloat id)
+          Nothing -> throwError $ noAttributeError memberPos ownerType id
+          Just (VarInfo _ t _) -> return $ t :&: Attr p owner (debloat id)
       
-      _ -> throwTPError (noAttributeError id) ownerT
+      _ -> throwError $ noAttributeError memberPos ownerType id
 
+      where memberPos = position id
 
   S.Elem p e1 e2 -> do
     arrType :&: arr <- getAnyExpr e1
 
-    updatePosTemp e1 $ case arrType of
+    case arrType of
       SArr t -> do
         i <- getExpr STInt e2
         return $ t :&: Elem p arr i
 
-      _ -> throwPError $ notAnArrayArror e1
+      _ -> throwError $ notAnArrayArror (position e2) e1
   
   S.Null p -> return $ STNull :&: Null p
 
   S.Self p -> do
-    n :&: selfT <- getSelfType
+    _ :&: selfT <- getSelfType p
     return $ insertParam2 selfT :&: Self p
 
 getVar :: (MonadState TypeCheckState m, MonadError Error m)
   => SLatteType a -> S.Var -> m (Var a)
 
-getVar t var = updatePosTemp var $ do
+getVar t var = do
   tt :&: v <- getAnyVar var
   
-  let err = wrongVarTypeError var
+  let err = wrongVarTypeError (position var) var t tt
   filterT err t tt v
 
 getTypeOfVar :: (MonadState TypeCheckState m, MonadError Error m)
   => S.Var -> m (Some SLatteType)
-getTypeOfVar var = updatePosTemp var $ do
+getTypeOfVar var = do
   tt :&: v <- getAnyVar var
   return $ Some tt
 
 
 
--- Expressions ----------------------------------------------------------------
+-------------------------------------------------------------------------------
 getAnyExpr :: (MonadState TypeCheckState m, MonadError Error m)
   => S.Expr -> m (Any Expr)
-getAnyExpr expr = updatePosTemp expr $ case expr of
+getAnyExpr expr = case expr of
 
   ---------------------------------------------------------------------
   S.EVar p v -> do
@@ -167,10 +176,10 @@ getAnyExpr expr = updatePosTemp expr $ case expr of
       case operandType of
         STStr -> getStrOpExpr p lhs rhs
         STInt -> getIntOpExpr p op lhs rhs
-        _     -> 
-          throwTPError (exprTypeNotInListError expr expectedList) operandType
+        _     -> throwError
+                  $ exprTypeNotInListError p expr expectedList operandType
 
-          where expectedList = [Some $ KWInt fakePos, Some $ KWStr fakePos]
+          where expectedList = [Some STInt, Some STStr]
 
     _ -> getIntOpExpr p op lhs rhs
 
@@ -196,13 +205,10 @@ getAnyExpr expr = updatePosTemp expr $ case expr of
     Some lhsType <- getTypeOfExpr lhs
     Some rhsType <- getTypeOfExpr rhs
     
-    --let err = wrongExprTypeError rhs
-    --let errCls = typesNotCompatibileError lhs rhs
+    let err = wrongExprTypeError p rhs lhsType rhsType
+    let errCls = typesNotCompatibileError p lhs rhs lhsType rhsType
     
-    
-    -- TODO
-    -- Some t <- getCommonType err errCls lhsType rhsType
-    let t = lhsType
+    Some t <- getCommonType err errCls lhsType rhsType
     
     okOp <- getOp t op
     
@@ -228,34 +234,30 @@ getAnyExpr expr = updatePosTemp expr $ case expr of
   S.NewArr p elemType intExpr -> do
     i <- getExpr STInt intExpr
 
-    Some elemT <- someType elemType
-    kwElemT <- getTypeKW (position elemType) elemT
-    return $ SArr elemT :&: NewArr p kwElemT i
+    elemT :&: elemTKW <- getSomeTypeKW elemType
+    return $ SArr elemT :&: NewArr p elemTKW i
   
 
   S.NewObj p clsId -> do
-    ClassInfo { classId = cls, .. } <- getClassInfo clsId
-    clsId <- getClassIdent p cls
-    return $ SCustom cls :&: NewObj p (KWCustom clsId)
+    ClassInfo { classId = cls, className = clsN, .. } <- getClassInfo clsId
+    return $ SCustom clsN :&: NewObj p (KWCustom cls)
 
   S.Cast p t e -> do
     eType :&: okExpr <- getAnyExpr e
-    Some tt <- someType t
-    kwTT <- getTypeKW (position t) tt
-    return $ tt :&: Cast p kwTT okExpr
+    tt :&: kw <- getSomeTypeKW t
+    return $ tt :&: Cast p kw okExpr
     
 
 getExpr :: (MonadState TypeCheckState m, MonadError Error m)
   => SLatteType a -> S.Expr -> m (Expr a)
-getExpr t expr = updatePosTemp expr $ do
+getExpr t expr = do
   tt :&: okExpr <- getAnyExpr expr
-  
-  let err = wrongExprTypeError expr
+  let err = wrongExprTypeError (position okExpr) expr t tt
   filterT err t tt okExpr
 
 getTypeOfExpr :: (MonadState TypeCheckState m, MonadError Error m)
   => S.Expr -> m (Some SLatteType)
-getTypeOfExpr expr = updatePosTemp expr $ do
+getTypeOfExpr expr = do
   t :&: okExpr <- getAnyExpr expr
   return $ Some t
 
@@ -263,9 +265,8 @@ getTypeOfExpr expr = updatePosTemp expr $ do
 
 
 
-getOp :: (MonadState TypeCheckState m, MonadError Error m)
-  => SLatteType a -> S.RelOp -> m (RelOp a)
-getOp t op = updatePosTemp op $ case (op, t) of
+getOp :: (MonadError Error m) => SLatteType a -> S.RelOp -> m (RelOp a)
+getOp t op = case (op, t) of
   (S.LTH p, STInt)  -> return $ LTH p
   (S.LE  p, STInt)  -> return $ LE  p
   (S.GTH p, STInt)  -> return $ GTH p
@@ -273,19 +274,19 @@ getOp t op = updatePosTemp op $ case (op, t) of
   (S.EQU p, _)      -> return $ EQU p
   (S.NE  p, _)      -> return $ NE  p
   
-  (r, t) -> throwTPError (wrongOpTypeError r) t
-
+  (r, t) -> throwError $ wrongOpTypeError (position op) r t
 
 
 validateArgs :: (MonadState TypeCheckState m, MonadError Error m)
   => Pos -> S.Var -> [S.Expr] -> SList ts -> m (ExprList ts)
 validateArgs p v [] SNil = return DNil
 
-validateArgs p v (expr : exprs) (SCons t ts) = updatePosTemp expr $ do
+validateArgs p v (expr : exprs) (SCons t ts) = do
   okExpr <- getExpr t expr
   okExprs <- validateArgs p v exprs ts
   return $ okExpr :> okExprs
       
-validateArgs p v args paramTypes = updatePosTemp p
-  $ throwPError $ wrongNOParamsError v (sLengthInt paramTypes) (length args)
+validateArgs p v args paramTypes
+  = throwError $ wrongNOParamsError p v (sLengthInt paramTypes) (length args)
+
 

@@ -25,6 +25,7 @@ import Syntax.Debloater
 import qualified Scope as Sc
 
 import Dependent
+import SingChar
 
 
 
@@ -36,15 +37,16 @@ lengthAttr = "length"
 type VarMap = M.Map String VarInfo
 type FuncMap = M.Map String FuncInfo
 type ClassMap = M.Map String ClassInfo
-type ClassNameMap = M.Map ClassId String
---type ClassIdMap = M.Map String ClassId
---type ClassMap = M.Map ClassId ClassInfo
 
 type VarScope = Sc.Scope String VarInfo
 type FuncScope = Sc.Scope String FuncInfo
 
 data VarInfo where
-  VarInfo :: { varId :: Ident t, varType :: SLatteType t } -> VarInfo
+  VarInfo ::
+    { varId :: Ident t
+    , varType :: SLatteType t
+    , varDeclaredAt :: Pos
+    } -> VarInfo
 
 data FuncInfo where
   FuncInfo :: 
@@ -64,7 +66,8 @@ data CallableInfo where
 
 data ClassInfo where 
   ClassInfo :: 
-    { classId         :: SClassId cls
+    { classId         :: ClassIdent cls
+    , className       :: SStr cls
     , parent          :: Maybe ClassInfo
     , attributes      :: VarMap
     , methods         :: FuncMap
@@ -75,21 +78,19 @@ data TypeCheckState = TypeCheckState
   { varScope      :: VarScope
   , funcScope     :: FuncScope
   , classMap      :: ClassMap
-  , classNameMap  :: ClassNameMap
   , returnType    :: Maybe (Some SLatteType)
   , selfType      :: Maybe SomeCustomType
   , currentPos    :: Pos
   , classCounter  :: Natural
   }
 
-type SomeCustomType = Sigma Natural (TyCon1 (ExtractParam2 SLatteType Custom))
+type SomeCustomType = Sigma Str (TyCon1 (ExtractParam2 SLatteType Custom))
 
 emptyState :: TypeCheckState
 emptyState = TypeCheckState 
   { varScope      = Sc.subScope Sc.EmptyScope
   , funcScope     = Sc.subScope Sc.EmptyScope
   , classMap      = M.empty
-  , classNameMap  = M.empty
   , returnType    = Nothing
   , selfType      = Nothing
   , currentPos    = (0, 0)

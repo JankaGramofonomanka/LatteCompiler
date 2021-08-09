@@ -19,7 +19,7 @@ import Data.Singletons.Prelude.List (LastSym0, Last)
 
 import Position.Position ( Pos )
 import Dependent
-
+import SingChar
 
 
 
@@ -29,25 +29,14 @@ data LatteType
   | TStr
   | TBool
   | TVoid
-  
   | Arr LatteType
-
-  {-| classes wil have assigned numbers to them, because strings don't 
-      seem to work with singletons 
-  -}
-  | Custom Natural
+  | Custom Str
   | TNull
 
 genSingletons [''LatteType]
 
-isVoid :: SLatteType t -> Bool
-isVoid STVoid = True
-isVoid _ = False
 
 type Any a = Sigma LatteType (TyCon1 a)
---data Any a where
---  (:&:) :: TypeKW t -> a t -> Any a
---infixr 5 :&:
 
 
 type Ident :: LatteType -> Type
@@ -56,11 +45,9 @@ data Ident a = Ident Pos String deriving (Ord, Show, Read)
 type FuncIdent :: LatteType -> [LatteType] -> Type
 data FuncIdent t ts = FuncIdent Pos String deriving (Ord, Show, Read)
 
-type ClassIdent :: Natural -> Type
+type ClassIdent :: Str -> Type
 data ClassIdent t = ClassIdent Pos String deriving (Ord, Show, Read)
 
-type ClassId = Natural
-type SClassId = SNatural
 
 instance Eq (Ident a) where
   Ident _ x == Ident _ y = x == y
@@ -93,7 +80,7 @@ data ClassDef where
 
 data Param t = Param (TypeKW t) (Ident t)
 type ParamList ts = DList Param ts
-type SomeClassIdent = Sigma Natural (TyCon1 ClassIdent)
+type SomeClassIdent = Sigma Str (TyCon1 ClassIdent)
   
 
 

@@ -13,8 +13,8 @@ import Control.Monad.State hiding ( void )
 import Control.Monad.Except hiding ( void )
 import Data.Maybe
 
-import Data.Singletons.Sigma
 import Data.Singletons.Prelude hiding ( Error )
+import Data.Singletons.Sigma
 
 import qualified Syntax.Syntax as S
 import Syntax.SyntaxDep
@@ -22,15 +22,14 @@ import TypeCheckDep.State
 import TypeCheckDep.StateUtils
 import TypeCheckDep.LatteGetters
 import TypeCheckDep.Declarations
-import Errors ( Error )
-import GenErrors
-import Syntax.DebloaterDep ( ToBeDebloated(debloat), bloatId )
+import Errors
+import Syntax.Debloater ( ToBeDebloated(debloat), bloatId )
 import Syntax.Bloater
 import Syntax.BloaterDep
 import Position.Position
-import LangElemClasses hiding ( isVoid )
-import Dependent
+import LangElemClasses
 
+import Dependent
 
 
 class ToBeTypeChecked pre post where
@@ -65,13 +64,14 @@ instance ToBeTypeChecked S.Program Program where
       declare :: (MonadState TypeCheckState m, MonadError Error m)
         => m () -> S.TopDef -> m ()
       declare acc def = acc >> case def of
-      
-        S.FnDef _ retType id params _ -> do
-          Some retT <- someType retType
-          paramTypes :&: _ <- getParamList params
-          declareFunc id retT paramTypes
+        S.FnDef _ retType id params _ -> case someType retType of
+          Some retT -> do
+            paramTypes :&: _ <- getParamList params
+            declareFunc id retT paramTypes
         
         S.ClassDef _ id maybeParent body -> declareClass id maybeParent body
+
+
 
 
 instance ToBeTypeChecked S.TopDef (Either ClassDef FnDef) where
@@ -84,50 +84,47 @@ instance ToBeTypeChecked S.TopDef (Either ClassDef FnDef) where
     return $ Left okDef
   
 
+
+
 instance ToBeTypeChecked S.TopDef FnDef where
-  typeCheck (S.FnDef p retType id params (S.Block blPos stmts)) 
-    = updatePosTemp p $ do
+  typeCheck (S.FnDef p retType id params (S.Block blPos stmts))
+    = case someType retType of
+        Some retT -> do
+          subVarScope
+          foldl declParam (pure ()) params
+
+          subVarScope
+          putReturnType retType
+          okStmts <- foldl appendTypeChecked (pure []) stmts
+          dropReturnType
+
+          dropVarScope
+          dropVarScope
+
+          _ :&: okParams <- getParamList params
+          let okBlock = Block blPos okStmts
+          retTKW <- getTypeKW (position retType) retT
+          let okDef = FnDef p retTKW (debloat id) okParams okBlock
+          return okDef
+
+    where
+      declParam :: (MonadState TypeCheckState m, MonadError Error m)
+        => m () -> S.Param -> m ()
+      declParam acc (S.Param t id) = case someType t of
+        Some tt -> acc >> declareId (position t) tt id
         
-        Some retT <- someType retType
-        subVarScope
-        foldl declParam (pure ()) params
 
-        subVarScope
-        putReturnType retType
-        okStmts <- foldl appendTypeChecked (pure []) stmts
-        dropReturnType
-
-        dropVarScope
-        dropVarScope
-
-        _ :&: okParams <- getParamList params
-        let okBlock = Block blPos okStmts
-        retTKW <- getTypeKW (position retType) retT
-        let okDef = FnDef p retTKW (debloat id) okParams okBlock
-        return okDef
-
-      where
-        declParam :: (MonadState TypeCheckState m, MonadError Error m)
-          => m () -> S.Param -> m ()
-        declParam acc (S.Param t id) = do
-          acc
-          Some tt <- someType t
-          declareId tt id
-
-        
   typeCheck (S.ClassDef p _ _ _)
-    = updatePosTemp p $ throwPError internalClassToFuncDefError
+    = throwError $ internalClassToFuncDefError p
 
+          
           
 
 instance ToBeTypeChecked S.TopDef ClassDef where
-  --typeCheck (S.ClassDef p id maybeParent (S.ClassBody pp memberDecls))
-  --  = throwTODO
-  --{-
   typeCheck (S.ClassDef p id maybeParent (S.ClassBody pp memberDecls)) = do
-    info@ClassInfo { classId = clsId, .. } <- getClassInfo id
+    info@ClassInfo { className = clsN, .. } <- getClassInfo id
 
-    putSlefType $ clsId :&: extractParam2 (SCustom clsId)
+    putSlefType $ clsN :&: extractParam2 (SCustom clsN)
     subVarScope >> subFuncScope
     depth <- declareMembers (Just info)
     
@@ -146,15 +143,13 @@ instance ToBeTypeChecked S.TopDef ClassDef where
         => Maybe S.Ident -> m (Maybe SomeClassIdent)
       getMbParent Nothing = return Nothing
       getMbParent (Just cls) = do
-        ClassInfo { classId = clsId, .. } <- getClassInfo cls
-        okCls <- getClassIdent (position cls) clsId
-        return $ Just $ clsId :&: okCls
-
+        ClassInfo { classId = clsId, className = clsN, .. } <- getClassInfo cls
+        return $ Just $ clsN :&: clsId
 
       declareMembers :: (MonadState TypeCheckState m, MonadError Error m)
         => Maybe ClassInfo -> m Int
       declareMembers Nothing = return 0
-      declareMembers (Just (ClassInfo clsId parentInfo attrs methods pos))
+      declareMembers (Just (ClassInfo clsId _ parentInfo attrs methods _))
         = do
           depth <- declareMembers parentInfo
 
@@ -166,15 +161,14 @@ instance ToBeTypeChecked S.TopDef ClassDef where
           where
             declAttr :: (MonadState TypeCheckState m, MonadError Error m)
               => m () -> (String, VarInfo) -> m ()
-            declAttr acc (_, VarInfo id t)
-              = acc >> declareId t (bloatId id)
+            declAttr acc (_, VarInfo id t p)
+              = acc >> declareId p t (bloat id)
 
             declMethod :: (MonadState TypeCheckState m, MonadError Error m)
               => m () -> (String, FuncInfo) -> m ()
             declMethod acc (_, FuncInfo id retType argTypes _) = do
               acc
-              cls <- getClassIdent fakePos clsId
-              declareMethod cls (bloat id) retType argTypes
+              declareMethod clsId (bloat id) retType argTypes
 
       appendTypeCheckedMember :: 
         (MonadState TypeCheckState m, MonadError Error m)
@@ -187,17 +181,17 @@ instance ToBeTypeChecked S.TopDef ClassDef where
         S.MethodDecl (S.ClassDef p _ _ _) -> throwError $ nestedClassError p
         
         S.AttrDecl p t id -> do
-          Some tt <- someType t
-          kwT <- getTypeKW (position t) tt
-          return $ AttrDecl p kwT (debloat id)
+            _ :&: kwT <- getSomeTypeKW t
+            return $ AttrDecl p kwT (debloat id)
 
         S.MethodDecl fnDef -> do
           okFnDef <- typeCheck fnDef
           return $ MethodDecl okFnDef
-      -- -}
         
   typeCheck (S.FnDef p _ _ _ _)
-    = updatePosTemp p $ throwPError internalFuncToClassDefError
+    = throwError $ internalFuncToClassDefError p
+
+
 
 
 instance ToBeTypeChecked S.Block Block where
@@ -208,7 +202,7 @@ instance ToBeTypeChecked S.Block Block where
     return $ Block p okStmts
 
 instance ToBeTypeChecked S.Stmt Stmt where
-  typeCheck stmt = updatePosTemp stmt $ case stmt of
+  typeCheck stmt = case stmt of
     S.Empty p -> return $ Empty p
     
     S.BStmt p block -> do
@@ -216,22 +210,21 @@ instance ToBeTypeChecked S.Stmt Stmt where
       return $ BStmt p okBlock
 
     S.Decl p t items -> do
-      Some tt <- someType t
-      kwT <- getTypeKW (position t) tt
-      okItems <- foldl (declItem tt) (pure []) items
-      return $ Decl p kwT okItems
+        tt :&: kwT <- getSomeTypeKW t
+        okItems <- foldl (declItem tt) (pure []) items        
+        return $ Decl p kwT okItems
 
       where
         declItem :: (MonadState TypeCheckState m, MonadError Error m)
           => SLatteType a -> m [Item a] -> S.Item -> m [Item a]
         declItem tt acc (S.NoInit id) = do
           l <- acc          
-          declareId tt id
+          declareId (position t) tt id
           return $ l ++ [NoInit (debloat id)]
 
         declItem tt acc (S.Init id expr) = do
             l <- acc
-            declareId tt id
+            declareId (position t) tt id
             okExpr <- getExpr tt expr
             return $ l ++ [Init (debloat id) okExpr]
           
@@ -251,7 +244,7 @@ instance ToBeTypeChecked S.Stmt Stmt where
       return $ Decr p okVar
       
     S.Ret p expr -> do
-      assertRetTypeIsSomething
+      assertRetTypeIsSomething p
 
       Some retType <- gets $ fromJust . returnType
 
@@ -259,12 +252,11 @@ instance ToBeTypeChecked S.Stmt Stmt where
       return $ Ret p okExpr
 
     S.VRet p -> do
-      assertRetTypeIsSomething
+      assertRetTypeIsSomething p
 
       Some retType <- gets $ fromJust . returnType
-      unless (isVoid retType) $ throwTPError returnVoidError retType
+      unless (isVoid retType) $ throwError $ returnVoidError p retType
       return $ VRet p
-
 
     S.Cond p cond stm -> do
       okCond <- getExpr STBool cond
@@ -287,16 +279,15 @@ instance ToBeTypeChecked S.Stmt Stmt where
       return $ SExp p okExpr
 
     S.For p t id arr loopBody -> do
-      Some tt <- someType t
+        tt :&: kwT <- getSomeTypeKW t
 
-      subVarScope
+        subVarScope
 
-      declareId tt id
-      okArr <- getVar (SArr tt) arr
-      okLoopBody <- typeCheck loopBody
+        declareId p tt id
+        okArr <- getVar (SArr tt) arr
+        okLoopBody <- typeCheck loopBody
 
-      dropVarScope
-    
-      kwT <- getTypeKW (position t) tt
-      return $ For p kwT (debloat id) okArr okLoopBody
+        dropVarScope
+      
+        return $ For p kwT (debloat id) okArr okLoopBody
 

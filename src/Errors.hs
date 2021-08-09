@@ -155,7 +155,7 @@ returnVoidError p t = OnePosError p
 
 voidDeclarationError :: IsIdent i => Pos -> i -> Error
 voidDeclarationError p id = OnePosError p
-  $ "Attempt to declare a variable " ++ name id ++ " if type void"
+  $ "Attempt to declare a variable " ++ name id ++ " of type void"
 
 
 selfOutsideClassError :: Pos -> Error
@@ -181,5 +181,13 @@ internalNoClassError p
 
 internallNullKWError :: Pos -> Error
 internallNullKWError p = OnePosError p "INTERNAL ERROR (Null keyword)"
+
+internalClassToFuncDefError :: Pos -> Error
+internalClassToFuncDefError p = OnePosError p 
+  $ "INTERNAL ERROR (Conversion of class definition to function definition)"
+
+internalFuncToClassDefError :: Pos -> Error
+internalFuncToClassDefError p = OnePosError p 
+  $ "INTERNAL ERROR (Conversion of function definition to class definition)"
 
 

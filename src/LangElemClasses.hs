@@ -16,6 +16,7 @@ import qualified Syntax.SyntaxDep as DS
 import Position.Position ( HasPosition(position) )
 import Position.SyntaxPosition
 import Syntax.Debloater
+import Syntax.DebloaterDep
 import Syntax.Bloater
 import Syntax.BloaterDep
 import Dependent
@@ -56,11 +57,11 @@ class IsType t where
   printType :: t -> String
   printType = printTree . toBNFCType
 
-  toSimpleType :: t -> S.Type
-  toSimpleType t = debloat (toBNFCType t)
-
   anyType :: t -> GS.AnyType
   anyType = debloat . (debloat :: BNFC.Type -> S.Type) . toBNFCType
+
+  someType :: t -> Some DS.SLatteType
+  someType = debloat . (debloat :: BNFC.Type -> S.Type) . toBNFCType
 
   isInt, isStr, isBool, isVoid, isNull :: t -> Bool
   isInt t = case anyType t of
@@ -108,6 +109,14 @@ instance IsType (DS.TypeKW t) where
 instance IsType (Some DS.TypeKW) where
   toBNFCType (Some t) = toBNFCType t
 
+instance IsType DS.LatteType where
+  toBNFCType = bloat . (bloat :: DS.LatteType -> S.Type)
+
+instance IsType (DS.SLatteType t) where
+  toBNFCType = bloat . (bloat :: DS.SLatteType t -> S.Type)
+
+instance IsType (Some DS.SLatteType) where
+  toBNFCType (Some t) = toBNFCType t
 
 -- IsVar ----------------------------------------------------------------------
 

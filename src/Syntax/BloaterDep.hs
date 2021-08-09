@@ -16,6 +16,7 @@ import qualified Syntax.Syntax as S
 import qualified Syntax.SyntaxDep as DS
 import Position.Position (position, fakePos)
 import Dependent
+import SingChar
 
 
 
@@ -101,6 +102,22 @@ instance ToBeBloated (DS.TypeKW t) S.Type where
 
     DS.KWCustom cls   -> S.Custom (bloat cls)
 
+instance ToBeBloated DS.LatteType S.Type where
+
+  bloat t = case t of
+    DS.TInt         -> S.Int fakePos
+    DS.TStr         -> S.Str fakePos
+    DS.TBool        -> S.Bool fakePos
+    DS.TVoid        -> S.Void fakePos
+    DS.Arr elemType -> S.Arr (bloat elemType)
+
+    DS.Custom cls   -> S.Custom $ S.Ident fakePos (toString cls)
+    DS.TNull        -> error "INTERNAL ERROR (bloat NullT)"
+
+instance ToBeBloated (DS.SLatteType t) S.Type where
+
+  bloat t = bloat (fromSing t)
+  
 
 instance ToBeBloated (DS.Var a) S.Var where
   bloat var = case var of
