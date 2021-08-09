@@ -150,7 +150,6 @@ getClassIdent :: (MonadState TypeCheckState m, MonadError Error m)
 getClassIdent idPos cls = do
   let clsName = singToString cls
   let clsId = ClassIdent idPos clsName
-  _ <- getClassInfo clsId
   return clsId
 
 -------------------------------------------------------------------------------

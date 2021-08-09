@@ -3,7 +3,7 @@ module Main where
 import System.Environment (getArgs)
 import System.IO
 import Control.Monad
-import Control.Monad.State
+import Control.Monad.State.Strict
 import Control.Monad.Except
 
 import FromBNFC.ParLatte (myLexer, pProgram)

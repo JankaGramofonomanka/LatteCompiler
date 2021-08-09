@@ -8,6 +8,7 @@
   , TypeApplications
   , TypeFamilies
   , TypeOperators
+  , StandaloneDeriving
 #-}
 
 module Syntax.SyntaxDep where
@@ -33,8 +34,11 @@ data LatteType
   | Custom Str
   | TNull
 
+  deriving Show
+
 genSingletons [''LatteType]
 
+deriving instance Show (SLatteType t)
 
 type Any a = Sigma LatteType (TyCon1 a)
 
