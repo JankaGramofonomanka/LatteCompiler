@@ -128,7 +128,7 @@ getVar t var = do
   tt :&: v <- getAnyVar var
   
   let err = wrongVarTypeError (position var) var t tt
-  filterT err t tt v
+  filterT (position var) err t tt v
 
 getTypeOfVar :: (MonadState TypeCheckState m, MonadError Error m)
   => S.Var -> m (Some SLatteType)
@@ -200,7 +200,7 @@ getAnyExpr expr = case expr of
     let err = wrongExprTypeError p rhs lhsType rhsType
     let errCls = typesNotCompatibileError p lhs rhs lhsType rhsType
     
-    Some t <- getCommonType err errCls lhsType rhsType
+    Some t <- getCommonType (position expr) err errCls lhsType rhsType
     
     okOp <- getOp t op
     
@@ -245,7 +245,7 @@ getExpr :: (MonadState TypeCheckState m, MonadError Error m)
 getExpr t expr = do
   tt :&: okExpr <- getAnyExpr expr
   let err = wrongExprTypeError (position okExpr) expr t tt
-  filterT err t tt okExpr
+  filterT (position expr) err t tt okExpr
 
 getTypeOfExpr :: (MonadState TypeCheckState m, MonadError Error m)
   => S.Expr -> m (Some SLatteType)

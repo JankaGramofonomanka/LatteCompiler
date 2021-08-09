@@ -3,6 +3,7 @@
   , RecordWildCards
   , GADTs
   , DataKinds
+  , RankNTypes
 #-}
 
 
@@ -12,6 +13,8 @@ import qualified Data.Map as M
 import Control.Monad.State
 import Control.Monad.Except
 import Data.Maybe
+
+import Unsafe.Coerce
 
 import Data.Singletons
 import Data.Singletons.Sigma
@@ -29,27 +32,28 @@ import Dependent
 import SingChar
 
 
+mkClsId :: Pos -> SStr s -> ClassIdent s
+mkClsId p s = ClassIdent p $ singToString s
+
+
 filterT :: (MonadState TypeCheckState m, MonadError Error m)
-  => Error -> SLatteType a -> SLatteType b -> e b -> m (e a)
-filterT _ STInt   STInt   x = return x
-filterT _ STStr   STStr   x = return x
-filterT _ STBool  STBool  x = return x
-filterT err (SArr t1) (SArr t2) x = do
-  xx <- filterT err t1 t2 (extractParam2 x)
+  => Pos -> Error -> SLatteType a -> SLatteType b -> e b -> m (e a)
+filterT _ _ STInt   STInt   x = return x
+filterT _ _ STStr   STStr   x = return x
+filterT _ _ STBool  STBool  x = return x
+filterT p err (SArr t1) (SArr t2) x = do
+  xx <- filterT p err t1 t2 (extractParam2 x)
   
   return $ insertParam2 xx
 
-filterT err (SCustom cls1) (SCustom cls2) x = do
+filterT p err (SCustom cls1) (SCustom cls2) x = do
   
-  --assertSubClass err cls1 cls2
-  --return x
+  assertSubClass err (mkClsId p cls1) (mkClsId p cls2)
+  return $ unsafeCoerce x
 
-  -- TODO no auto casting of subclasses
-  xx <- filterStr err cls1 cls2 (extractParam2 x)
-  return $ insertParam2 xx
-    
 
-filterT err expected actual x = throwError err
+filterT p err expected actual x = throwError err
+
 
 
 
@@ -76,7 +80,7 @@ getIdent ::
 getIdent expT id = do
   (VarInfo x actT _) <- getIdentInfo id
   let err = wrongIdentTypeError (position id) id expT actT 
-  filterT err expT actT x
+  filterT (position id) err expT actT x
 
 
 getFuncInfo :: 
@@ -183,8 +187,8 @@ assertRetTypeIsSomething p = do
   when (isNothing maybeRetType) $ throwError $ internalNoReturnTypeError p
 
 getCommonType :: (MonadState TypeCheckState m, MonadError Error m)
-  => Error -> Error -> SLatteType a -> SLatteType b -> m (Some SLatteType)
-getCommonType err errCls t1 t2 = case (t1, t2) of
+  => Pos -> Error -> Error -> SLatteType a -> SLatteType b -> m (Some SLatteType)
+getCommonType p err errCls t1 t2 = case (t1, t2) of
   (SCustom cls1, SCustom cls2) -> do
 
     -- TODO fakePos potentially misleading in case of bugs
@@ -199,15 +203,13 @@ getCommonType err errCls t1 t2 = case (t1, t2) of
       throwError errCls
   
   _ -> do
-    t <- filterT err t1 t2 t2
+    t <- filterT p err t1 t2 t2
     return $ Some t
 
   where
     mkId = mkClsId fakePos
 
 
-mkClsId :: Pos -> SStr s -> ClassIdent s
-mkClsId p s = ClassIdent p $ singToString s
 
 -------------------------------------------------------------------------------
 putVarScope :: MonadState TypeCheckState m => VarScope -> m ()
