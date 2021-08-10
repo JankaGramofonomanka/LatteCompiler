@@ -71,7 +71,8 @@ data PotentialFunc where
     { label :: FuncLabel t ts
     , retType :: Sing t
     , args :: ArgList ts
-    , body :: [SimpleBlock]
+    --, body :: [SimpleBlock]
+    , body :: M.Map Label SimpleBlock
     } -> PotentialFunc
 
 data LLVMState where 
@@ -281,9 +282,9 @@ finishBlock instr = do
     _ -> return ()
 
 addBlock :: MonadState LLVMState m => SimpleBlock -> m ()
-addBlock bl = do
+addBlock bl@SimpleBlock { label = l, .. } = do
   PotFunc { body = blocks, .. } <- gets currentFunc
-  putCurrentFunc $ PotFunc { body = blocks ++ [bl], .. }
+  putCurrentFunc $ PotFunc { body = M.insert l bl blocks, .. }
 
 getCurrentBlockLabel :: MonadState LLVMState m => m Label
 getCurrentBlockLabel = do
@@ -315,6 +316,40 @@ addOutput block newOutput = do
 
 addEdge :: MonadState LLVMState m => Label -> Label -> m ()
 addEdge from to = addOutput from to >> addInput to from
+
+addPhi :: (MonadState LLVMState m, MonadError Error m)
+  => Label -> Reg t -> [(Label, Value t)] -> m ()
+addPhi l reg vals = do
+  assertInputsOk l $ map fst vals
+
+  PotFunc { body = blocks, .. } <- gets currentFunc
+  let newInstr = Ass reg $ Phi vals
+
+  case M.lookup l blocks of
+    Nothing -> do
+      currentL <- getCurrentBlockLabel
+      unless (l == currentL) $ throwError internalNoSuchBlockError
+      
+      PotBlock ll instrs <- getCurrentBlock
+      putCurrentBlock $ PotBlock ll (newInstr : instrs)
+
+    Just (SimpleBlock ll instrs branchInstr) -> do
+      let bl = SimpleBlock ll (newInstr : instrs) branchInstr
+      putCurrentFunc $ PotFunc { body = M.insert l bl blocks, .. }
+
+
+
+assertInputsOk :: (MonadState LLVMState m, MonadError Error m)
+  => Label -> [Label] -> m ()
+assertInputsOk l = mapM_ (assertInputOk l)
+  
+  where
+
+    assertInputOk :: (MonadState LLVMState m, MonadError Error m)
+      => Label -> Label -> m ()
+    assertInputOk l input = do
+      BlockInfo { inputs = ins, .. } <- getBlockInfo l
+      unless (input `elem` ins) $ throwError internalNoSuchInputError
 
 {-
 assertRetTypeOK :: (MonadState LLVMState m, MonadError Error m)

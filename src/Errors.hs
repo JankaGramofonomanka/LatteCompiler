@@ -208,6 +208,8 @@ internalBlockAlredyExistsError :: Error
 internalBlockAlredyExistsError
   = SimpleError "INTERNAL ERROR (block label repeated)"
 
-
+internalNoSuchInputError :: Error
+internalNoSuchInputError = SimpleError
+  $ "INTERNAL ERROR (attempt to add phi instruction with invalid label)"
 
 

@@ -32,10 +32,7 @@ import qualified Syntax.SyntaxDep as DS
 import Position.Position
 import Errors
 
-{-| TODO: As for now, the "var to value" map does not take blocks into account.
-    When `getVarValue` is called, a register from the last block created is 
-    returned, no phi is added.
--}
+
 addStmt :: (MonadState LLVMState m, MonadError Error m) => DS.Stmt -> m ()
 addStmt stmt = case stmt of
   DS.Empty    p         -> return ()

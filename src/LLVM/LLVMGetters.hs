@@ -44,19 +44,31 @@ true, false :: Value ('I 1)
 true = BoolLit True
 false = BoolLit False
 
+
 getIdentValue :: (MonadState LLVMState m, MonadError Error m)
-  => Sing t -> DS.Ident t -> m (Value (GetPrimType t))
-getIdentValue singT x = do
+  => Sing t -> DS.Ident t -> Label -> m (Value (GetPrimType t))
+getIdentValue singT x l = do
   let key = typedIdent singT x
-  m <- getCurrentVarMap
+  m <- getLocalVarMap l
   case DM.lookup key m of
-    Nothing -> throwError $ noSuchVarError (position x) x
     Just val -> return val
+    Nothing -> do
+      BlockInfo { inputs = ins, .. } <- getBlockInfo l
+      case ins of
+        [] -> throwError $ noSuchVarError (position x) x
+        ls -> do
+          vals <- mapM (getIdentValue singT x) ls
+          reg <- getNewReg (name x)
+          addPhi l reg $ zip ls vals
+          return $ Var reg
+          
 
 getVarValue :: (MonadState LLVMState m, MonadError Error m)
   => DS.SLatteType t -> DS.Var t -> m (Value (GetPrimType t))
 getVarValue singT var = case var of
-  DS.Var p x -> getIdentValue singT x
+  DS.Var p x -> do
+    l <- getCurrentBlockLabel 
+    getIdentValue singT x l
 
   DS.Attr {} -> throwTODOP (position var)
   DS.Elem {} -> throwTODOP (position var)
