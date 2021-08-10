@@ -15,6 +15,7 @@
 module LLVM.Convert where
 
 
+import Data.Singletons.Sigma
 
 import Control.Monad.State
 import Control.Monad.Except
@@ -53,8 +54,13 @@ addStmt stmt = case stmt of
     reg <- getNewRegDefault
     addInstr $ Ass reg $ BinOperation SUB val (ILit 1)
 
-  DS.Ret      p singT expr          -> throwTODOP p
-  DS.VRet     p                     -> throwTODOP p
+  DS.Ret      p singT expr -> do
+    v <- getExprValue expr
+    finishBlock $ Ret (sGetPrimType singT :&: v)
+
+  DS.VRet     p -> do
+    finishBlock RetVoid
+    
   DS.Cond     p expr stm            -> throwTODOP p
   DS.CondElse p expr stmIf stmElse  -> throwTODOP p
   DS.While    p expr stm            -> throwTODOP p
