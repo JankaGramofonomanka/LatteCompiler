@@ -48,7 +48,7 @@ getIdentValue :: (MonadState LLVMState m, MonadError Error m)
   => Sing t -> DS.Ident t -> m (Value (GetPrimType t))
 getIdentValue singT x = do
   let key = typedIdent singT x
-  m <- gets varMap
+  m <- getCurrentVarMap
   case DM.lookup key m of
     Nothing -> throwError $ noSuchVarError (position x) x
     Just val -> return val

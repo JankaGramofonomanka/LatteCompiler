@@ -38,6 +38,12 @@ data Sigma2 (t1 :: Type) (t2 :: Type) :: (t1 ~> t2 ~> *) -> * where
     -> f @@ v1 @@ v2 -> Sigma2 t1 t2 f
 infixr 5 :&&:
 
+data Sigma3 t1 t2 t3 :: (t1 ~> t2 ~> t3 ~> *) -> * where
+  (:&&&:) 
+    :: (Sing (v1 :: t1), Sing (v2 :: t2), Sing (v3 :: t3))
+    -> f @@ v1 @@ v2 @@ v3 -> Sigma3 t1 t2 t3 f
+infixr 5 :&&&:
+
 
 type Some :: (k -> Type) -> Type
 data Some f where

@@ -201,4 +201,13 @@ internalFuncToClassDefError :: Pos -> Error
 internalFuncToClassDefError p = OnePosError p 
   $ "INTERNAL ERROR (Conversion of function definition to class definition)"
 
+internalNoSuchBlockError :: Error
+internalNoSuchBlockError = SimpleError "INTERNAL ERROR (no block info)"
+
+internalBlockAlredyExistsError :: Error
+internalBlockAlredyExistsError
+  = SimpleError "INTERNAL ERROR (block label repeated)"
+
+
+
 

@@ -48,11 +48,22 @@ mkStrConst s = s ++ "\00"
 type RegCountMap = M.Map String Int
 type ConstCountMap = M.Map String Int
 type LabelCountMap = M.Map String Int
+type BlockInfoMap = M.Map Label BlockInfo
 
 type DeclarationPosMap = M.Map String Pos
 
-type VarMap     = DM.DMap TypedIdent Value
-type StrLitMap  = M.Map String SomeStrConst
+type VarMap       = M.Map Label LocalVarMap
+type LocalVarMap  = DM.DMap TypedIdent Value
+type StrLitMap    = M.Map String SomeStrConst
+
+data BlockInfo
+  = BlockInfo
+    { inputs :: [Label]
+    , outputs :: [Label]
+    }
+    
+emptyBlockInfo :: BlockInfo
+emptyBlockInfo = BlockInfo [] []
 
 data PotentialBlock = PotBlock Label [SimpleInstr]
 data PotentialFunc where
@@ -71,6 +82,7 @@ data LLVMState where
 
     , varMap        :: VarMap
     , strLitMap     :: StrLitMap
+    , blockInfoMap  :: BlockInfoMap
 
     , declPosMap    :: DeclarationPosMap
     
@@ -105,6 +117,11 @@ putStrLitMap m = do
   LLVMState { strLitMap = _, .. } <- get
   put $ LLVMState { strLitMap = m, .. }
 
+putBlockInfoMap :: MonadState LLVMState m => BlockInfoMap -> m ()
+putBlockInfoMap m = do
+  LLVMState { blockInfoMap = _, .. } <- get
+  put $ LLVMState { blockInfoMap = m, .. }
+
 putDeclPosMap :: MonadState LLVMState m => DeclarationPosMap -> m ()
 putDeclPosMap m = do
   LLVMState { declPosMap = _, .. } <- get
@@ -125,6 +142,15 @@ dropCurrentBlockBlock = do
   LLVMState { currentBlock = _, .. } <- get
   put $ LLVMState { currentBlock = Nothing, .. }
 
+putBlockInfo :: MonadState LLVMState m => Label -> BlockInfo -> m ()
+putBlockInfo label info = do
+  m <- gets blockInfoMap
+  putBlockInfoMap $ M.insert label info m
+
+putLocalVarMap :: MonadState LLVMState m => Label -> LocalVarMap -> m ()
+putLocalVarMap l localM = do
+  m <- gets varMap
+  putVarMap $ M.insert l localM m
 
 -- getters --------------------------------------------------------------------
 getNewReg :: MonadState LLVMState m => String -> m (Reg t)
@@ -185,8 +211,36 @@ getStrLitConstPtr s = do
   n :&: cst <- getStrLitConst s
   return $ n :&: ConstPtr cst
 
+getBlockInfo :: (MonadState LLVMState m, MonadError Error m)
+  => Label -> m BlockInfo
+getBlockInfo l = do
+  m <- gets blockInfoMap
+  case M.lookup l m of
+    Nothing -> throwError internalNoSuchBlockError
+    Just info -> return info
+
+getBlockInfo' :: (MonadState LLVMState m) => Label -> m BlockInfo
+getBlockInfo' l = do
+  m <- gets blockInfoMap
+  case M.lookup l m of
+    Nothing -> return emptyBlockInfo
+    Just info -> return info
 
 
+getLocalVarMap :: (MonadState LLVMState m) => Label -> m LocalVarMap
+getLocalVarMap l = do
+  m <- gets varMap
+  case M.lookup l m of
+    Just mm -> return mm
+    Nothing -> putLocalVarMap l DM.empty >> return DM.empty
+
+getCurrentVarMap :: MonadState LLVMState m => m LocalVarMap
+getCurrentVarMap = getCurrentBlockLabel >>= getLocalVarMap
+
+putCurrentVarMap :: MonadState LLVMState m => LocalVarMap -> m ()
+putCurrentVarMap m = do
+  l <- getCurrentBlockLabel
+  putLocalVarMap l m
   
 -------------------------------------------------------------------------------
 addInstr :: MonadState LLVMState m => SimpleInstr -> m ()
@@ -207,7 +261,10 @@ getCurrentBlock = do
     
 
 newBlock :: MonadState LLVMState m => Label -> m ()
-newBlock l = putCurrentBlock $ PotBlock l []
+newBlock l = do
+  info <- getBlockInfo' l
+  putBlockInfo l info
+  putCurrentBlock $ PotBlock l []
 
 finishBlock :: (MonadState LLVMState m, MonadError Error m)
   => BranchInstr -> m ()
@@ -216,11 +273,48 @@ finishBlock instr = do
   --assertRetTypeOK instr
   let bl = SimpleBlock l body instr
   addBlock bl
+  case instr of
+    Branch ll -> addEdge l ll
+    CondBranch _ ll1 ll2 ->
+      addEdge l ll1 >> addEdge l ll2
+
+    _ -> return ()
 
 addBlock :: MonadState LLVMState m => SimpleBlock -> m ()
 addBlock bl = do
   PotFunc { body = blocks, .. } <- gets currentFunc
   putCurrentFunc $ PotFunc { body = blocks ++ [bl], .. }
+
+getCurrentBlockLabel :: MonadState LLVMState m => m Label
+getCurrentBlockLabel = do
+  PotBlock l _ <- getCurrentBlock
+  return l
+
+getCurrentBlockInfo :: (MonadState LLVMState m, MonadError Error m)
+  => m BlockInfo
+getCurrentBlockInfo = getCurrentBlockLabel >>= getBlockInfo
+
+addBlockInfo :: (MonadState LLVMState m, MonadError Error m)
+  => Label -> BlockInfo -> m ()
+addBlockInfo l info = do
+  m <- gets blockInfoMap
+  case M.lookup l m of
+    Nothing -> putBlockInfoMap $ M.insert l info m
+    Just i -> throwError internalBlockAlredyExistsError
+
+
+addInput :: MonadState LLVMState m => Label -> Label -> m ()
+addInput block newInput = do
+  BlockInfo { inputs = ins, .. } <- getBlockInfo' block
+  putBlockInfo block $ BlockInfo { inputs = ins ++ [newInput], .. }
+
+addOutput :: MonadState LLVMState m => Label -> Label -> m ()
+addOutput block newOutput = do
+  BlockInfo { outputs = outs, .. } <- getBlockInfo' block
+  putBlockInfo block $ BlockInfo { outputs = outs ++ [newOutput], .. }
+
+addEdge :: MonadState LLVMState m => Label -> Label -> m ()
+addEdge from to = addOutput from to >> addInput to from
 
 {-
 assertRetTypeOK :: (MonadState LLVMState m, MonadError Error m)
@@ -241,13 +335,13 @@ declareId :: (MonadState LLVMState m, MonadError Error m)
   => Sing t -> DS.Ident t -> Value (GetPrimType t) -> m ()
 declareId singT x val = do
   let key = typedIdent singT x
-  m <- gets varMap
+  m <- getCurrentVarMap
   case DM.lookup key m of
     Nothing -> do
       pm <- gets declPosMap
       putDeclPosMap $ M.insert (name x) (position x) pm
       
-      putVarMap $ DM.insert key val m
+      putCurrentVarMap $ DM.insert key val m
 
     Just reg -> do
       declaredAt <- getDeclPos x
@@ -289,10 +383,8 @@ overwriteId :: (MonadState LLVMState m, MonadError Error m)
   => Sing t -> DS.Ident t -> Value (GetPrimType t) -> m ()
 overwriteId singT x val = do
   let key = typedIdent singT x
-  m <- gets varMap
-  case DM.lookup key m of
-    Nothing -> throwError $ noSuchVarError (position x) x
-    Just _ -> putVarMap $ DM.insert key val m
+  m <- getCurrentVarMap
+  putCurrentVarMap $ DM.insert key val m
       
       
     
