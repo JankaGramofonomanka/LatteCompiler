@@ -32,14 +32,12 @@ import SingChar
 
 -------------------------------------------------------------------------------
 declareId ::
-  ( MonadState TypeCheckState m,
-    MonadError Error m
-  )
+  (MonadState TypeCheckState m, MonadError Error m)
   => Pos -> SLatteType t -> S.Ident -> m ()
 declareId declarationPos t id = case someType t of
   Some tt -> do
     
-    when (isVoid t) $ throwError $ voidDeclarationError declarationPos id
+    when (isVoid t) $ throwError $ voidDeclarationError declarationPos
 
     varScope <- gets varScope
     
@@ -96,7 +94,7 @@ declareClass id maybeParent body = do
         attrMap <- getAttrMap id body
         methodMap <- getMethodMap id body
 
-        let clsId = debloat id
+        let clsId = ClassIdent (position id) clsName
         let clsP = position id
         let clsInfo = ClassInfo clsId clsName parentInfo attrMap methodMap clsP
         let newClsMap = M.insert (name id) clsInfo clsMap

@@ -44,13 +44,13 @@ type Any a = Sigma LatteType (TyCon1 a)
 
 
 type Ident :: LatteType -> Type
-data Ident a = Ident Pos String deriving (Ord, Show, Read)
+data Ident a = Ident Pos String deriving (Ord, Show)
 
 type FuncIdent :: LatteType -> [LatteType] -> Type
-data FuncIdent t ts = FuncIdent Pos String deriving (Ord, Show, Read)
+data FuncIdent t ts = FuncIdent Pos String deriving (Ord, Show)
 
 type ClassIdent :: Str -> Type
-data ClassIdent t = ClassIdent Pos String deriving (Ord, Show, Read)
+data ClassIdent cls = ClassIdent Pos (SStr cls) deriving (Ord, Show)
 
 
 instance Eq (Ident a) where
@@ -124,6 +124,16 @@ data TypeKW t where
   KWCustom :: ClassIdent cls -> TypeKW (Custom cls)
 
 
+singFromKW :: TypeKW t -> Sing t
+singFromKW kw = case kw of
+  KWInt   _ -> STInt
+  KWStr   _ -> STStr
+  KWBool  _ -> STBool
+  KWVoid  _ -> STVoid
+  
+  KWArr kw -> SArr (singFromKW kw)
+
+  KWCustom (ClassIdent _ cls) -> SCustom cls
 
 
 type Var :: LatteType -> Type
@@ -164,7 +174,7 @@ type ExprList ts = DList Expr ts
 
 
 data BinOp = Plus Pos | Minus Pos | Times Pos | Div Pos | Mod Pos
-  deriving (Eq, Ord, Show, Read)
+  deriving (Eq, Ord, Show)
 
 type RelOp :: LatteType -> Type
 data RelOp a where
@@ -177,7 +187,7 @@ data RelOp a where
   
 
 data BoolOp = And Pos | Or Pos
-  deriving (Eq, Ord, Show, Read)
+  deriving (Eq, Ord, Show)
 
 
 

@@ -30,8 +30,10 @@ import LLVM.TypeConversion
 import LangElemClasses
 import Errors
 import Position.Position
+import Position.SyntaxDepPosition
 
 import Dependent
+import Control.Monad.RWS.Lazy (MonadState)
 
 strLitPrefix :: [Char]
 strLitPrefix = "str"
@@ -47,8 +49,9 @@ type RegCountMap = M.Map String Int
 type ConstCountMap = M.Map String Int
 type LabelCountMap = M.Map String Int
 
-type VarMap     = DM.DMap TypedIdent Reg
-type TypeMap    = DM.DMap DS.Ident DS.SLatteType
+type DeclarationPosMap = M.Map String Pos
+
+type VarMap     = DM.DMap TypedIdent Value
 type StrLitMap  = M.Map String SomeStrConst
 
 data PotentialBlock = PotBlock Label [SimpleInstr]
@@ -67,8 +70,9 @@ data LLVMState where
     , labelCounter  :: LabelCountMap
 
     , varMap        :: VarMap
-    , typeMap       :: TypeMap
     , strLitMap     :: StrLitMap
+
+    , declPosMap    :: DeclarationPosMap
     
     , currentBlock  :: Maybe PotentialBlock
     , currentFunc   :: PotentialFunc
@@ -96,15 +100,15 @@ putVarMap m = do
   LLVMState { varMap = _, .. } <- get
   put $ LLVMState { varMap = m, .. }
 
-putTypeMap :: MonadState LLVMState m => TypeMap -> m ()
-putTypeMap m = do
-  LLVMState { typeMap = _, .. } <- get
-  put $ LLVMState { typeMap = m, .. }
-
 putStrLitMap :: MonadState LLVMState m => StrLitMap -> m ()
 putStrLitMap m = do
   LLVMState { strLitMap = _, .. } <- get
   put $ LLVMState { strLitMap = m, .. }
+
+putDeclPosMap :: MonadState LLVMState m => DeclarationPosMap -> m ()
+putDeclPosMap m = do
+  LLVMState { declPosMap = _, .. } <- get
+  put $ LLVMState { declPosMap = m, .. }
 
 putCurrentBlock :: MonadState LLVMState m => PotentialBlock -> m ()
 putCurrentBlock b = do
@@ -174,6 +178,8 @@ getStrLitConstPtr s = do
   n :&: cst <- getStrLitConst s
   return $ n :&: ConstPtr cst
 
+
+
   
 -------------------------------------------------------------------------------
 addInstr :: MonadState LLVMState m => SimpleInstr -> m ()
@@ -222,5 +228,58 @@ assertRetTypeIs ::(MonadState LLVMState m, MonadError Error m)
   => SPrimType t -> m ()
 assertRetTypeIs t = throwTODO
 -- -}
+
+-------------------------------------------------------------------------------
+declareId :: (MonadState LLVMState m, MonadError Error m)
+  => Sing t -> DS.Ident t -> Value (GetPrimType t) -> m ()
+declareId singT x val = do
+  let key = typedIdent singT x
+  m <- gets varMap
+  case DM.lookup key m of
+    Nothing -> do
+      pm <- gets declPosMap
+      putDeclPosMap $ M.insert (name x) (position x) pm
+      
+  
+      putVarMap $ DM.insert key val m
+
+    Just reg -> do
+      declaredAt <- getDeclPos x
+      throwError $ varAlredyDeclaredError (position x) x declaredAt
+    
+
+getDeclPos ::
+  ( MonadState LLVMState m
+  , IsIdent i
+  , MonadError Error m
+  , HasPosition i
+  )
+  => i -> m Pos
+getDeclPos x = do
+  m <- gets declPosMap
+  case M.lookup (name x) m of
+    Nothing -> throwError $ noSuchVarError (position x) x
+    Just p -> return p
+
+getDefaultValue :: (MonadState LLVMState m, MonadError Error m)
+  => DS.TypeKW t -> m (Value (GetPrimType t))
+getDefaultValue kw = case kw of
+
+  DS.KWInt  _ -> return $ ILit 0
+  DS.KWStr  _ -> do
+    _ :&: arrPtr <- getStrLitConstPtr ""
+    zeroPtr <- getNewRegDefault
+    addInstr $ Ass zeroPtr $ GetElemPtr arrPtr (ILit 0)
+    return $ Var zeroPtr
+
+  DS.KWBool _ -> return $ BoolLit False
+  DS.KWVoid _ -> throwError $ voidDeclarationError (position kw)
+  
+  DS.KWArr t -> Var <$> getNewRegDefault
+  DS.KWCustom clsId -> Var <$> getNewRegDefault
+
+
+
+
 
 

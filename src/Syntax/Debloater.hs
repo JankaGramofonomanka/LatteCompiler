@@ -217,9 +217,11 @@ instance ToBeDebloated S.Ident (DS.Ident a) where
 instance ToBeDebloated S.Ident (DS.FuncIdent t ts) where
   debloat (S.Ident pos x) = DS.FuncIdent pos x
 
-instance ToBeDebloated S.Ident (DS.ClassIdent cls) where
-  debloat (S.Ident pos x) = DS.ClassIdent pos x
-
+--{-
+instance ToBeDebloated S.Ident (Some DS.ClassIdent) where
+  debloat (S.Ident pos x) = case someFromString x of
+    SomeSing s -> Some $ DS.ClassIdent pos s
+-- -}
 
 
 
@@ -265,7 +267,8 @@ instance ToBeDebloated S.Type (Some DS.TypeKW) where
     S.Arr elemType    -> case debloat elemType of
       Some elemT -> Some $ DS.KWArr elemT
       
-    S.Custom id -> Some $ DS.KWCustom (debloat id)
+    S.Custom cls -> case debloat cls of
+      Some clsId -> Some $ DS.KWCustom clsId
 
 bloatId :: DS.Ident a -> S.Ident
 bloatId (DS.Ident p s) = S.Ident p s

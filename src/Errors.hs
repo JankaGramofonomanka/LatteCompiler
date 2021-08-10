@@ -156,9 +156,9 @@ returnVoidError p t = OnePosError p
   $ "Function returns void while it is expected to return " 
     ++ printType t
 
-voidDeclarationError :: IsIdent i => Pos -> i -> Error
-voidDeclarationError p id = OnePosError p
-  $ "Attempt to declare a variable " ++ name id ++ " of type void"
+voidDeclarationError :: Pos -> Error
+voidDeclarationError p = OnePosError p
+  $ "Attempt to declare a variable of type void"
 
 
 selfOutsideClassError :: Pos -> Error

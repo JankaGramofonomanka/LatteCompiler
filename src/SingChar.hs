@@ -30,8 +30,12 @@ data Ch
   | CQ | CW | CE | CR | CT | CY | CU | CI | CO | CP | CA | CS | CD | CF | CG 
   | CH | CJ | CK | CL | CZ | CX | CC | CV | CB | CN | CM
 
+  deriving (Ord, Eq)
+
 genSingletons [''Ch]
 
+deriving instance Eq (SCh ch)
+deriving instance Ord (SCh ch)
 
 fromChar :: Char -> Ch
 fromChar ch = case ch of
@@ -92,6 +96,9 @@ instance Show (SCh ch) where
 type Str = [Ch]
 type SStr :: Str -> Type
 type SStr = SList
+
+deriving instance Eq (SStr s)
+deriving instance Ord (SStr s)
 
 fromString :: String -> Str
 fromString = map fromChar

@@ -33,7 +33,7 @@ import SingChar
 
 
 mkClsId :: Pos -> SStr s -> ClassIdent s
-mkClsId p s = ClassIdent p $ singToString s
+mkClsId = ClassIdent
 
 
 filterT :: (MonadState TypeCheckState m, MonadError Error m)
@@ -114,7 +114,7 @@ getSelfType ::
   ( MonadState TypeCheckState m,
     MonadError Error m
   )
-  => Pos -> m SomeCustomType
+  => Pos -> m (Sigma Str (TyCon1 (ExtractParam2 SLatteType Custom)))
 getSelfType p = do
   maybeSelfType <- gets selfType
   case maybeSelfType of
@@ -134,7 +134,7 @@ getTypeKW kwPos t = case t of
 
   SCustom cls -> do
     
-    clsId <- getClassIdent kwPos cls
+    let clsId = ClassIdent kwPos cls
     return $ KWCustom clsId
   
   STNull       -> throwError $ internallNullKWError kwPos
@@ -148,13 +148,14 @@ getSomeTypeKW t = case someType t of
     return $ tt :&: kw
   
 
-
+{-
 getClassIdent :: (MonadState TypeCheckState m, MonadError Error m)
   => Pos -> SStr s -> m (ClassIdent cls)
 getClassIdent idPos cls = do
   let clsName = singToString cls
   let clsId = ClassIdent idPos clsName
   return clsId
+-- -}
 
 -------------------------------------------------------------------------------
 isParent :: (MonadState TypeCheckState m, MonadError Error m)
@@ -260,10 +261,10 @@ dropReturnType = do
   TypeCheckState { returnType = _, .. } <- get
   put $ TypeCheckState { returnType = Nothing, .. }
 
-putSlefType :: (MonadState TypeCheckState m) => SomeCustomType -> m ()
-putSlefType t = do
+putSlefType :: (MonadState TypeCheckState m) => SLatteType (Custom cls) -> m ()
+putSlefType t@(SCustom s) = do
   TypeCheckState { selfType = _, .. } <- get
-  put $ TypeCheckState { selfType = Just t, .. }
+  put $ TypeCheckState { selfType = Just (s :&: extractParam2 t), .. }
 
 dropSlefType :: (MonadState TypeCheckState m) => m ()
 dropSlefType = do

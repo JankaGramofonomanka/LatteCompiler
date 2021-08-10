@@ -37,7 +37,7 @@ instance ToBeBloated (DS.FuncIdent t ts) S.Ident where
   bloat (DS.FuncIdent p id) = S.Ident p id
 
 instance ToBeBloated (DS.ClassIdent cls) S.Ident where
-  bloat (DS.ClassIdent p id) = S.Ident p id
+  bloat (DS.ClassIdent p id) = S.Ident p $ singToString id
 
 instance ToBeBloated DS.Program S.Program where
   bloat (DS.Program p defs) = S.Program p (map bloat defs)

@@ -17,6 +17,7 @@ import Position.SyntaxPosition
 import Syntax.Debloater
 import Syntax.Bloater
 import Dependent
+import SingChar
 
 -- IsIdent --------------------------------------------------------------------
 class IsIdent a where
@@ -36,7 +37,7 @@ instance IsIdent (DS.FuncIdent t ts) where
   name (DS.FuncIdent _ s) = s
 
 instance IsIdent (DS.ClassIdent cls) where
-  name (DS.ClassIdent _ s) = s
+  name (DS.ClassIdent _ s) = singToString s
 
 
 

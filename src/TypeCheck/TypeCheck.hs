@@ -121,9 +121,9 @@ instance ToBeTypeChecked S.TopDef FnDef where
 
 instance ToBeTypeChecked S.TopDef ClassDef where
   typeCheck (S.ClassDef p id maybeParent (S.ClassBody pp memberDecls)) = do
-    info@ClassInfo { className = clsN, .. } <- getClassInfo id
+    info@ClassInfo { classId = clsId, className = clsN, .. } <- getClassInfo id
 
-    putSlefType $ clsN :&: extractParam2 (SCustom clsN)
+    putSlefType $ SCustom clsN
     subVarScope >> subFuncScope
     depth <- declareMembers (Just info)
     
@@ -134,7 +134,7 @@ instance ToBeTypeChecked S.TopDef ClassDef where
 
     okMaybeParent <- getMbParent maybeParent
     let okBody = ClassBody pp okMemberDecls
-    return $ ClassDef p (debloat id) okMaybeParent okBody
+    return $ ClassDef p clsId okMaybeParent okBody
 
     where
 
