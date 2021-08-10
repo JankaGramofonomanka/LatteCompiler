@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 404bc758c36eb08dfe24051f8be64ef0a05b49349abeb520be9edcee0436a2b1
+-- hash: d53c5017a1717f646157a3ed5f3316093f2b8777b34936e45a8748e03742c154
 
 name:           LatteCompiler
 version:        0.1.0.0
@@ -39,8 +39,8 @@ library
       FromBNFC.TestLatte
       GenErrors
       LangElemClasses
-      LLVM.Conversion
       LLVM.LLVM
+      LLVM.LLVMGetters
       LLVM.State
       LLVM.TypeConversion
       Optimization.EvalConstants

@@ -101,7 +101,7 @@ deriving instance Ord (Value t)
 
 
 -- Labels ---------------------------------------------------------------------
-newtype Label = Label Int deriving (Show, Eq, Ord)
+data Label = Label String Int deriving (Show, Eq, Ord)
 
 type FuncLabel :: PrimType -> [PrimType] -> Type
 data FuncLabel t ts where

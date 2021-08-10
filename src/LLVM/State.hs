@@ -45,6 +45,7 @@ mkStrConst s = s ++ "\00"
 
 type RegCountMap = M.Map String Int
 type ConstCountMap = M.Map String Int
+type LabelCountMap = M.Map String Int
 
 type VarMap     = DM.DMap TypedIdent Reg
 type TypeMap    = DM.DMap DS.Ident DS.SLatteType
@@ -63,7 +64,7 @@ data LLVMState where
   LLVMState ::
     { regCounter    :: RegCountMap
     , constCounter  :: ConstCountMap
-    , labelCounter  :: Int
+    , labelCounter  :: LabelCountMap
 
     , varMap        :: VarMap
     , typeMap       :: TypeMap
@@ -85,7 +86,7 @@ putConstCounter m = do
   LLVMState { constCounter = _, .. } <- get
   put $ LLVMState { constCounter = m, .. }
 
-putLabelCounter :: MonadState LLVMState m => Int -> m ()
+putLabelCounter :: MonadState LLVMState m => LabelCountMap -> m ()
 putLabelCounter n = do
   LLVMState { labelCounter = _, .. } <- get
   put $ LLVMState { labelCounter = n, .. }
@@ -136,14 +137,25 @@ getNewConst :: MonadState LLVMState m => String -> m (Constant t)
 getNewConst s = do
   counter <- gets constCounter
   let n = fromMaybe 0 $ M.lookup s counter
-  putRegCounter $ M.insert s (n + 1) counter
+  putConstCounter $ M.insert s (n + 1) counter
   return $ Const s n
 
-getNewLabel :: MonadState LLVMState m => m Label
-getNewLabel = do
-  n <- gets labelCounter
-  putLabelCounter (n + 1)
-  return $ Label n
+getNewLabel :: MonadState LLVMState m => String -> m Label
+getNewLabel s = do
+  counter <- gets labelCounter
+  let n = fromMaybe 0 $ M.lookup s counter
+  putLabelCounter $ M.insert s (n + 1) counter
+  return $ Label s n
+
+getNewLabelDefault :: MonadState LLVMState m => m Label
+getNewLabelDefault = getNewLabel ""
+
+getIfElseLabels :: MonadState LLVMState m => m (Label, Label, Label)
+getIfElseLabels = do
+  labelIf   <- getNewLabel "If"
+  labelElse <- getNewLabel "Else"
+  labelJoin <- getNewLabel "Join"
+  return (labelIf, labelElse, labelJoin)
 
 getStrLitConst :: MonadState LLVMState m => String -> m SomeStrConst
 getStrLitConst s = do
@@ -175,7 +187,7 @@ getCurrentBlock = do
   case mbBlock of
     Just bl -> return bl
     Nothing -> do
-      l <- getNewLabel
+      l <- getNewLabelDefault
       let bl = PotBlock l []
       putCurrentBlock bl
       return bl

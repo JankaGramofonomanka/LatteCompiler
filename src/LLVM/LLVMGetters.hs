@@ -11,7 +11,7 @@
   , GADTs
   , StandaloneKindSignatures
 #-}
-module LLVM.Conversion where
+module LLVM.LLVMGetters where
 
 
 import Prelude hiding ( EQ )
@@ -100,9 +100,7 @@ getExprValue expr = case expr of
     reg <- getNewRegDefault
 
     cond <- getNewRegDefault
-    labelIf <- getNewLabel
-    labelElse <- getNewLabel
-    labelJoin <- getNewLabel
+    (labelIf, labelElse, labelJoin) <- getIfElseLabels
     
     addInstr $ Ass cond $ ICMP EQ v true
     finishBlock (CondBranch (Var cond) labelIf labelElse)
@@ -140,40 +138,38 @@ getExprValue expr = case expr of
 
 
   DS.EBool p op e1 e2 -> do
-    labelTrue <- getNewLabel
-    labelFalse <- getNewLabel
-    labelJoin <- getNewLabel
+    (labelIf, labelElse, labelJoin) <- getIfElseLabels
 
     
     val1 <- getExprValue e1
-    finishBlock $ CondBranch val1 labelTrue labelFalse
+    finishBlock $ CondBranch val1 labelIf labelElse
     
     case op of
       DS.And _ -> do
-        newBlock labelTrue
+        newBlock labelIf
         val2 <- getExprValue e2
         finishBlock $ Branch labelJoin
 
-        newBlock labelFalse
+        newBlock labelElse
         finishBlock $ Branch labelJoin
 
         newBlock labelJoin
         reg <- getNewRegDefault
-        addInstr $ Ass reg $ Phi [(labelTrue, val2), (labelFalse, false)]
+        addInstr $ Ass reg $ Phi [(labelIf, val2), (labelElse, false)]
         return $ Var reg
 
         
       DS.Or _ -> do
-        newBlock labelTrue
+        newBlock labelIf
         finishBlock $ Branch labelJoin
 
-        newBlock labelFalse
+        newBlock labelElse
         val2 <- getExprValue e2
         finishBlock $ Branch labelJoin
 
         newBlock labelJoin
         reg <- getNewRegDefault
-        addInstr $ Ass reg $ Phi [(labelTrue, true), (labelFalse, val2)]
+        addInstr $ Ass reg $ Phi [(labelIf, true), (labelElse, val2)]
         return $ Var reg
     
   ---------------------------------------------------------------------
