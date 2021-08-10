@@ -158,8 +158,15 @@ getIfElseLabels :: MonadState LLVMState m => m (Label, Label, Label)
 getIfElseLabels = do
   labelIf   <- getNewLabel "If"
   labelElse <- getNewLabel "Else"
-  labelJoin <- getNewLabel "Join"
+  labelJoin <- getNewLabel "IfElseJoin"
   return (labelIf, labelElse, labelJoin)
+
+getWhileLabels :: MonadState LLVMState m => m (Label, Label, Label)
+getWhileLabels = do
+  labelCond <- getNewLabel "Cond"
+  labelLoop <- getNewLabel "Loop"
+  labelJoin <- getNewLabel "LoopJoin"
+  return (labelCond, labelLoop, labelJoin)
 
 getStrLitConst :: MonadState LLVMState m => String -> m SomeStrConst
 getStrLitConst s = do

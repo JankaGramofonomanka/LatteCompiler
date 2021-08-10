@@ -32,7 +32,10 @@ import qualified Syntax.SyntaxDep as DS
 import Position.Position
 import Errors
 
-
+{-| TODO: As for now, the "var to value" map does not take blocks into account.
+    When `getVarValue` is called, a register from the last block created is 
+    returned, no phi is added.
+-}
 addStmt :: (MonadState LLVMState m, MonadError Error m) => DS.Stmt -> m ()
 addStmt stmt = case stmt of
   DS.Empty    p         -> return ()
@@ -61,7 +64,7 @@ addStmt stmt = case stmt of
   DS.VRet     p -> do
     finishBlock RetVoid
 
-  DS.Cond     p expr stm            -> do
+  DS.Cond     p expr stm -> do
     (labelIf, _,  labelJoin) <- getIfElseLabels
     cond <- getExprValue expr
     finishBlock $ CondBranch cond labelIf labelJoin
@@ -72,7 +75,7 @@ addStmt stmt = case stmt of
 
     newBlock labelJoin
 
-  DS.CondElse p expr stmIf stmElse  -> do
+  DS.CondElse p expr stmIf stmElse -> do
     (labelIf, labelElse,  labelJoin) <- getIfElseLabels
     cond <- getExprValue expr
     finishBlock $ CondBranch cond labelIf labelElse
@@ -87,9 +90,25 @@ addStmt stmt = case stmt of
 
     newBlock labelJoin
 
-  DS.While    p expr stm            -> throwTODOP p
-  DS.SExp     p singT expr          -> throwTODOP p
-  DS.For      p t i var stm         -> throwTODOP p
+  DS.While p expr stm -> do
+    (labelCond, labelLoop, labelJoin) <- getWhileLabels
+    
+    finishBlock $ Branch labelCond
+
+    newBlock labelLoop
+    addStmt stm
+    finishBlock $ Branch labelCond
+
+    newBlock labelCond
+    cond <- getExprValue expr
+    finishBlock $ CondBranch cond labelLoop labelJoin
+
+    newBlock labelJoin
+
+
+
+  DS.SExp p singT expr -> throwTODOP p
+  DS.For p t i var stm -> throwTODOP p
 
 
 declareItem :: (MonadState LLVMState m, MonadError Error m)
