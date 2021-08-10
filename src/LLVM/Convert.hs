@@ -60,9 +60,33 @@ addStmt stmt = case stmt of
 
   DS.VRet     p -> do
     finishBlock RetVoid
-    
-  DS.Cond     p expr stm            -> throwTODOP p
-  DS.CondElse p expr stmIf stmElse  -> throwTODOP p
+
+  DS.Cond     p expr stm            -> do
+    (labelIf, _,  labelJoin) <- getIfElseLabels
+    cond <- getExprValue expr
+    finishBlock $ CondBranch cond labelIf labelJoin
+
+    newBlock labelIf
+    addStmt stm
+    finishBlock $ Branch labelJoin
+
+    newBlock labelJoin
+
+  DS.CondElse p expr stmIf stmElse  -> do
+    (labelIf, labelElse,  labelJoin) <- getIfElseLabels
+    cond <- getExprValue expr
+    finishBlock $ CondBranch cond labelIf labelElse
+
+    newBlock labelIf
+    addStmt stmIf
+    finishBlock $ Branch labelJoin
+
+    newBlock labelElse
+    addStmt stmElse
+    finishBlock $ Branch labelJoin
+
+    newBlock labelJoin
+
   DS.While    p expr stm            -> throwTODOP p
   DS.SExp     p singT expr          -> throwTODOP p
   DS.For      p t i var stm         -> throwTODOP p
