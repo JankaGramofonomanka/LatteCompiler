@@ -105,9 +105,10 @@ addStmt stmt = case stmt of
 
     newBlock labelJoin
 
+  DS.SExp p singT expr -> do
+    _ <- getExprValue expr
+    return ()
 
-
-  DS.SExp p singT expr -> throwTODOP p
   DS.For p t i var stm -> throwTODOP p
 
 
