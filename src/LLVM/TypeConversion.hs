@@ -45,6 +45,10 @@ $(singletons[d|
     TStr     -> Ptr (I 8)
     TVoid    -> Void
     (Arr t)  -> Ptr (getPrimType t)
+
+  getPrimTypes :: [LatteType] -> [PrimType]
+  getPrimTypes [] = []
+  getPrimTypes (t : ts) = getPrimType t : getPrimTypes ts
   |])
 
 

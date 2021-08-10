@@ -35,11 +35,11 @@ instance Ord (Const t) where
 
 evalConstant :: Expr a -> Maybe (Const a)
 evalConstant expr = case expr of
-  EVar      _ var -> Nothing
-  ELitInt   _ i   -> Just $ IConst i
-  ELitBool  _ b   -> Just $ BConst b
-  EApp      {}    -> Nothing
-  EString   _ s   -> Just $ SConst s
+  EVar      _ _ var -> Nothing
+  ELitInt   _ i     -> Just $ IConst i
+  ELitBool  _ b     -> Just $ BConst b
+  EApp      {}      -> Nothing
+  EString   _ s     -> Just $ SConst s
   Neg       _ e -> do
     IConst val <- evalConstant e
     return $ IConst (-val)
@@ -54,7 +54,7 @@ evalConstant expr = case expr of
     let realOp = getBinOp op
     return $ IConst $ realOp valLHS valRHS
 
-  ERel      _ op lhs rhs -> do
+  ERel      _ _ op lhs rhs -> do
     valLHS <- evalConstant lhs
     valRHS <- evalConstant rhs
     let realOp = getRelOp op

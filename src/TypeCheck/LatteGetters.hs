@@ -146,7 +146,7 @@ getAnyExpr expr = case expr of
   ---------------------------------------------------------------------
   S.EVar p v -> do
     t :&: var <- getAnyVar v
-    return $ t :&: EVar p var
+    return $ t :&: EVar p t var
     
   S.ELitInt   p (S.SInt _ i)  -> return $ STInt   :&: ELitInt   p i
   S.ELitBool  p b             -> return $ STBool  :&: ELitBool  p b
@@ -207,7 +207,7 @@ getAnyExpr expr = case expr of
     okLHS <- getExpr t lhs
     okRHS <- getExpr t rhs
     
-    return $ STBool :&: ERel p okOp okLHS okRHS
+    return $ STBool :&: ERel p t okOp okLHS okRHS
 
 
 

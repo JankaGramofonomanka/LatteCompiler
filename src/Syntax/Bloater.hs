@@ -144,7 +144,7 @@ instance ToBeBloated (DS.Callable t ts) S.Var where
 
 instance ToBeBloated (DS.Expr a) S.Expr where
   bloat expr = case expr of
-    DS.EVar     p var             -> S.EVar     p (bloat var)
+    DS.EVar     p _ var           -> S.EVar     p (bloat var)
     DS.ELitInt  p i               -> S.ELitInt  p (S.SInt p i)
     DS.ELitBool p b               -> S.ELitBool p b
     DS.EApp     p var args        -> S.EApp     p (bloat var) (bloatExprList args)
@@ -152,7 +152,7 @@ instance ToBeBloated (DS.Expr a) S.Expr where
     DS.Neg      p e               -> S.Neg      p (bloat e)
     DS.Not      p e               -> S.Not      p (bloat e)
     DS.EOp      p op lhs rhs      -> S.EOp      p (bloat op) (bloat lhs) (bloat rhs)
-    DS.ERel     p op lhs rhs      -> S.ERel     p (bloat op) (bloat lhs) (bloat rhs)
+    DS.ERel     p _ op lhs rhs    -> S.ERel     p (bloat op) (bloat lhs) (bloat rhs)
     DS.EBool    p op lhs rhs      -> S.EBool    p (bloat op) (bloat lhs) (bloat rhs)
     DS.NewArr   p t e             -> S.NewArr   p (bloat t) (bloat e)
     DS.NewObj   p (DS.KWCustom c) -> S.NewObj   p (bloat c)

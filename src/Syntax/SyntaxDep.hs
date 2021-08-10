@@ -145,7 +145,7 @@ data Callable t ts where
 
 type Expr :: LatteType -> Type
 data Expr a where
-  EVar      :: Pos -> Var t -> Expr t
+  EVar      :: Pos -> Sing t -> Var t -> Expr t
   ELitInt   :: Pos -> Int -> Expr TInt
   ELitBool  :: Pos -> Bool -> Expr TBool
   EApp      :: Pos -> Callable t ts -> ExprList ts -> Expr t
@@ -153,7 +153,7 @@ data Expr a where
   Neg       :: Pos -> Expr TInt -> Expr TInt
   Not       :: Pos -> Expr TBool -> Expr TBool
   EOp       :: Pos -> BinOp -> Expr TInt -> Expr TInt -> Expr TInt
-  ERel      :: Pos -> RelOp t -> Expr t -> Expr t -> Expr TBool
+  ERel      :: Pos -> Sing t -> RelOp t -> Expr t -> Expr t -> Expr TBool
   EBool     :: Pos -> BoolOp -> Expr TBool -> Expr TBool -> Expr TBool
   NewArr    :: Pos -> TypeKW t -> Expr TInt -> Expr (Arr t)
   NewObj    :: Pos -> TypeKW (Custom cls) -> Expr (Custom cls)

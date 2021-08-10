@@ -76,20 +76,20 @@ instance HasPosition (Var t) where
 
 instance HasPosition (Expr t) where
   position expr = case expr of
-    EVar      p _     -> p
-    ELitInt   p _     -> p
-    ELitBool  p _     -> p
-    EApp      p _ _   -> p
-    EString   p _     -> p
-    Neg       p _     -> p
-    Not       p _     -> p
-    EOp       p _ _ _ -> p
-    ERel      p _ _ _ -> p
-    EBool     p _ _ _ -> p
-    NewArr    p _ _   -> p
-    NewObj    p _     -> p
-    Cast      p _ _   -> p
-    Concat    p _ _   -> p
+    EVar      p _ _     -> p
+    ELitInt   p _       -> p
+    ELitBool  p _       -> p
+    EApp      p _ _     -> p
+    EString   p _       -> p
+    Neg       p _       -> p
+    Not       p _       -> p
+    EOp       p _ _ _   -> p
+    ERel      p _ _ _ _ -> p
+    EBool     p _ _ _   -> p
+    NewArr    p _ _     -> p
+    NewObj    p _       -> p
+    Cast      p _ _     -> p
+    Concat    p _ _     -> p
 
 
 

@@ -26,6 +26,9 @@ prtList f sep (x : xs) = foldl (\acc el -> acc ++ sep ++ f el) (f x) xs
 throwTODO :: MonadError Error m => m a
 throwTODO = throwError $ SimpleError "TODO"
 
+throwTODOP :: MonadError Error m => Pos -> m a
+throwTODOP p = throwError $ OnePosError p "TODO"
+
 noSuchVarError :: IsIdent i => Pos -> i -> Error
 noSuchVarError p i = OnePosError p $ "Variable " ++ name i ++ " does not exist"
 
@@ -160,14 +163,22 @@ voidDeclarationError p id = OnePosError p
 
 selfOutsideClassError :: Pos -> Error
 selfOutsideClassError p
-  = OnePosError p "keyword `self` is being used utside a class scope"
+  = OnePosError p "Keyword `self` is being used utside a class scope"
 
 typesNotCompatibileError :: (IsExpr e1, IsExpr e2, IsType t1, IsType t2)
   => Pos -> e1 -> e2 -> t1 -> t2 -> Error
 typesNotCompatibileError p e1 e2 t1 t2 = OnePosError p
-  $ " expressions " ++ printExpr e1 ++ " and " ++ printExpr e2
+  $ "Expressions " ++ printExpr e1 ++ " and " ++ printExpr e2
     ++ " are of types " ++ printType t1 ++ " and " ++ printType t2
     ++ ", which are incompatible"
+
+
+
+relationNotSupportedError :: (IsOp op, IsType t) => Pos -> op -> t -> Error
+relationNotSupportedError p op t = OnePosError p
+  $ "Relation " ++ printOp op
+    ++ " is not supported for values of type " ++ printType t
+
 
 -- INTERNAL -------------------------------------------------------------------
 

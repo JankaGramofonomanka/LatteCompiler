@@ -161,8 +161,6 @@ getStrLitConstPtr :: MonadState LLVMState m => String -> m SomeStrConstPtr
 getStrLitConstPtr s = do
   n :&: cst <- getStrLitConst s
   return $ n :&: ConstPtr cst
-  
-
 
   
 -------------------------------------------------------------------------------
