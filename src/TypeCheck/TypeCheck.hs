@@ -232,7 +232,7 @@ instance ToBeTypeChecked S.Stmt Stmt where
     S.Ass p var expr -> do
       varType :&: okVar <- getAnyVar var
       okExpr <- getExpr varType expr
-      return $ Ass p okVar okExpr
+      return $ Ass p varType okVar okExpr
 
     S.Incr p var -> do
       okVar <- getVar STInt var
@@ -248,7 +248,7 @@ instance ToBeTypeChecked S.Stmt Stmt where
       Some retType <- gets $ fromJust . returnType
 
       okExpr <- getExpr retType expr
-      return $ Ret p okExpr
+      return $ Ret p retType okExpr
 
     S.VRet p -> do
       assertRetTypeIsSomething p
@@ -274,8 +274,8 @@ instance ToBeTypeChecked S.Stmt Stmt where
       return $ While p okCond okLoopBody
 
     S.SExp p expr -> do
-      _ :&: okExpr <- getAnyExpr expr
-      return $ SExp p okExpr
+      t :&: okExpr <- getAnyExpr expr
+      return $ SExp p t okExpr
 
     S.For p t id arr loopBody -> do
         tt :&: kwT <- getSomeTypeKW t

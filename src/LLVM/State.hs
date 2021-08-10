@@ -240,7 +240,6 @@ declareId singT x val = do
       pm <- gets declPosMap
       putDeclPosMap $ M.insert (name x) (position x) pm
       
-  
       putVarMap $ DM.insert key val m
 
     Just reg -> do
@@ -279,7 +278,17 @@ getDefaultValue kw = case kw of
   DS.KWCustom clsId -> Var <$> getNewRegDefault
 
 
-
+overwriteId :: (MonadState LLVMState m, MonadError Error m)
+  => Sing t -> DS.Ident t -> Value (GetPrimType t) -> m ()
+overwriteId singT x val = do
+  let key = typedIdent singT x
+  m <- gets varMap
+  case DM.lookup key m of
+    Nothing -> throwError $ noSuchVarError (position x) x
+    Just _ -> putVarMap $ DM.insert key val m
+      
+      
+    
 
 
 

@@ -36,15 +36,15 @@ instance HasPosition Stmt where
     Empty     p         -> p
     BStmt     p _       -> p
     Decl      p _ _     -> p
-    Ass       p _ _     -> p
+    Ass       p _ _ _   -> p
     Incr      p _       -> p
     Decr      p _       -> p
-    Ret       p _       -> p
+    Ret       p _ _     -> p
     VRet      p         -> p
     Cond      p _ _     -> p
     CondElse  p _ _ _   -> p
     While     p _ _     -> p
-    SExp      p _       -> p
+    SExp      p _ _     -> p
     For       p _ _ _ _ -> p
 
 

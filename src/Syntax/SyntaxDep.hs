@@ -94,15 +94,15 @@ data Stmt where
   Empty     :: Pos -> Stmt
   BStmt     :: Pos -> Block -> Stmt
   Decl      :: Pos -> TypeKW t -> [Item t] -> Stmt
-  Ass       :: Pos -> Var t -> Expr t -> Stmt
-  Incr      :: Pos -> Var t -> Stmt
-  Decr      :: Pos -> Var t -> Stmt
-  Ret       :: Pos -> Expr t -> Stmt
+  Ass       :: Pos -> Sing t -> Var t -> Expr t -> Stmt
+  Incr      :: Pos -> Var TInt -> Stmt
+  Decr      :: Pos -> Var TInt -> Stmt
+  Ret       :: Pos -> Sing t -> Expr t -> Stmt
   VRet      :: Pos -> Stmt
   Cond      :: Pos -> Expr TBool -> Stmt -> Stmt
   CondElse  :: Pos -> Expr TBool -> Stmt -> Stmt -> Stmt
   While     :: Pos -> Expr TBool -> Stmt -> Stmt
-  SExp      :: Pos -> Expr t -> Stmt
+  SExp      :: Pos -> Sing t -> Expr t -> Stmt
   For       :: Pos -> TypeKW t -> Ident t -> Var (Arr t) -> Stmt -> Stmt
 
 
