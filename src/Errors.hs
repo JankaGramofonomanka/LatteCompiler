@@ -212,4 +212,8 @@ internalNoSuchInputError :: Error
 internalNoSuchInputError = SimpleError
   $ "INTERNAL ERROR (attempt to add phi instruction with invalid label)"
 
+internalInputNotIncludedError :: Error
+internalInputNotIncludedError 
+  = SimpleError "INTERNAL ERROR (an input not included in a phi instruction)"
+
 

@@ -341,15 +341,18 @@ addPhi l reg vals = do
 
 assertInputsOk :: (MonadState LLVMState m, MonadError Error m)
   => Label -> [Label] -> m ()
-assertInputsOk l = mapM_ (assertInputOk l)
+assertInputsOk l inputs = do
+  BlockInfo { inputs = ins, .. } <- getBlockInfo l
+  mapM_ (assertIsElem internalNoSuchInputError ins) inputs
+  mapM_ (assertIsElem internalInputNotIncludedError inputs) ins
   
   where
 
-    assertInputOk :: (MonadState LLVMState m, MonadError Error m)
-      => Label -> Label -> m ()
-    assertInputOk l input = do
-      BlockInfo { inputs = ins, .. } <- getBlockInfo l
-      unless (input `elem` ins) $ throwError internalNoSuchInputError
+    assertIsElem :: (MonadState LLVMState m, MonadError Error m)
+      => Error -> [Label] -> Label -> m ()
+    assertIsElem err ins input = do
+      unless (input `elem` ins) $ throwError err
+    
 
 {-
 assertRetTypeOK :: (MonadState LLVMState m, MonadError Error m)
