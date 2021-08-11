@@ -374,6 +374,12 @@ declareId :: (MonadState LLVMState m, MonadError Error m)
 declareId singT x val = do
   let key = typedIdent singT x
   m <- getCurrentVarMap
+
+  {- 
+    We are checking if `x` is alredy declared in the current block.
+    Technically we should check if it was declared before, but that should be
+    taken care of when converting `Syntax` to `SyntaxDep`
+  -}
   case DM.lookup key m of
     Nothing -> do
       pm <- gets declPosMap
