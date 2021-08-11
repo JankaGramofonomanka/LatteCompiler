@@ -220,12 +220,15 @@ deriving instance Show (Func t ts)
 
 
 -- Program --------------------------------------------------------------------
+type StrLitData :: Natural -> Type
+data StrLitData n = StrLitData (Constant (Array (I 8) n)) String
+
 data LLVMProg
   = LLVM 
     { mainFunc :: Func (I 32) '[]
     , funcs :: [SomeFunc]
     , externFuncs :: [SomeFuncLabel]
-    , constants :: [SomeConstant]
+    , strLits :: [(String, SomeStrConst)]
     }
 
 -- Dependent Pairs ------------------------------------------------------------
@@ -241,7 +244,6 @@ type SomeArgList    = Sigma [PrimType] (TyCon1 (DList Value))
 type SomeFuncLabel  = Sigma2 PrimType [PrimType] (TyCon2 FuncLabel)
 type SomeFunc       = Sigma2 PrimType [PrimType] (TyCon2 Func)
 
-
 data StrConst :: Natural ~> Type
 type instance Apply StrConst n = Constant (Array (I 8) n)
 type SomeStrConst = Sigma Natural StrConst
@@ -249,4 +251,5 @@ type SomeStrConst = Sigma Natural StrConst
 data StrConstPtr :: Natural ~> Type
 type instance Apply StrConstPtr n = (Value (Ptr (Array (I 8) n)))
 type SomeStrConstPtr = Sigma Natural StrConstPtr
+
 

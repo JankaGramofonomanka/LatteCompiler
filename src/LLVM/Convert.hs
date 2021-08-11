@@ -213,19 +213,15 @@ extractLLVM = do
     Nothing -> throwError noMainError
     Just main -> do
 
-      strConstnts <- gets $ map (fromSomeStrConst . snd) . M.toList . strLitMap
+      strConstnts <- gets $ M.toList . strLitMap
 
       let prog = LLVM { mainFunc = main
                       , funcs = funcs
                       , externFuncs = externFuncLabels
-                      , constants = strConstnts
+                      , strLits = strConstnts
                       }
 
       return prog
-
-
-fromSomeStrConst :: SomeStrConst -> SomeConstant
-fromSomeStrConst (len :&: c) = SArray (sing @(I 8)) len :&: c
 
 
 

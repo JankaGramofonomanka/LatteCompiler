@@ -13,7 +13,9 @@ import Data.Singletons.TypeLits
 import Data.Singletons.Prelude hiding ( SGT, SLT )
 
 import LLVM.LLVM
+import LLVM.StateUtils ( mkStrConst )
 import Dependent
+import Data.Data (mkConstr)
 
 
 paste :: String -> [String] -> String
@@ -150,12 +152,12 @@ prtSimpleInstr :: Int -> SimpleInstr -> String
 prtSimpleInstr n instr = replicate n ' ' ++ prt instr
 
 instance SimplePrint BranchInstr where
-  prt (Branch l) = paste " " ["br", prtVarLabel l]
+  prt (Branch l) = paste " " ["br label", prtVarLabel l]
   prt (CondBranch cond labelIf labelElse) = paste " " 
     [ "br"
     , prt i1
-    , prt cond ++ ","
-    , prtVarLabel labelIf ++ ","
+    , prt cond ++ ", label"
+    , prtVarLabel labelIf ++ ", label"
     , prtVarLabel labelElse
     ]
 
@@ -201,9 +203,9 @@ prtFunc n (Func retT paramTs params funcId blocks)
 -- Program --------------------------------------------------------------------
 
 prtProg :: Int -> LLVMProg -> String
-prtProg n (LLVM mainFunc funcs externFuncs constants)
+prtProg n (LLVM mainFunc funcs externFuncs strLits)
   = paste "\n\n" 
-    $ [prtExternFuncs externFuncs, prtConsts constants, prtFunc n mainFunc]
+    $ [prtExternFuncs externFuncs, prtStrLits strLits, prtFunc n mainFunc]
     ++ map (prtSomeFunc n) funcs
 
     where
@@ -223,12 +225,15 @@ prtProg n (LLVM mainFunc funcs externFuncs constants)
       prtTypes SNil = ""
       prtTypes (SCons t ts) = prt t ++ ", " ++ prtTypes ts
       
-      -- TODO add value to constants
-      prtConsts :: [SomeConstant] -> String
-      prtConsts consts = paste "\n" (map prtConst consts)
-      prtConst :: SomeConstant -> String
-      prtConst (t :&: const)
-        = paste " " [prt const, "= internal constant", prt t]
+      
+      prtStrLits :: [(String, SomeStrConst)] -> String
+      prtStrLits consts = paste "\n" (map prtStrLit consts)
+      prtStrLit :: (String, SomeStrConst) -> String
+      prtStrLit (s, n :&: const)
+        = paste " " [ prt const
+                    , "= internal constant"
+                    , prt (SArray i8 n), "c" ++ show (mkStrConst s)
+                    ]
 
 
 
