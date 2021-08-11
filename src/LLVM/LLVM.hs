@@ -47,6 +47,13 @@ data SPrimType t where
 
 genDefunSymbols [''PrimType]
 
+i1 :: SPrimType ('I 1)
+i1 = sing @ (I 1)
+i8 :: SPrimType ('I 8)
+i8 = sing @ (I 8)
+i32 :: SPrimType ('I 32)
+i32 = sing @ (I 32)
+
 type instance Sing = SPrimType
 
 instance SingI n => SingI ('I n) where
@@ -153,11 +160,18 @@ type family ElemOf (t :: PrimType) :: PrimType where
 
 type Expr :: PrimType -> Type
 data Expr t where
-  BinOperation :: BinOp t -> Value t -> Value t -> Expr t
-  Call :: FuncLabel t ts -> ArgList ts -> Expr t
-  GetElemPtr :: Value (Ptr t) -> Value (I n) -> Expr (Ptr (ElemOf t))
-  ICMP :: CMPKind -> Value (I n) -> Value (I n) -> Expr (I 1)
-  Phi :: [(Label, Value t)] -> Expr t
+  BinOperation  :: Sing t -> BinOp t -> Value t -> Value t -> Expr t
+  Call          :: Sing t -> FuncLabel t ts -> ArgList ts -> Expr t
+  GetElemPtr    :: Sing t -> Value (Ptr t)
+                          -> Value (I n)
+                          -> Expr (Ptr (ElemOf t))
+
+  ICMP          :: Sing (I n) -> CMPKind
+                              -> Value (I n)
+                              -> Value (I n)
+                              -> Expr (I 1)
+
+  Phi           :: Sing t -> [(Label, Value t)] -> Expr t
 
 deriving instance Show (Expr t)
 
@@ -169,7 +183,7 @@ data SimpleInstr where
 data BranchInstr where
   Branch :: Label -> BranchInstr
   CondBranch :: Value (I 1) -> Label -> Label -> BranchInstr
-  Ret :: SomeValue -> BranchInstr
+  Ret :: Sing t -> Value t -> BranchInstr
   RetVoid :: BranchInstr
 
 deriving instance Show SimpleInstr

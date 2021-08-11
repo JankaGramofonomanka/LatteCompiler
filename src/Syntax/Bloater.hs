@@ -147,7 +147,7 @@ instance ToBeBloated (DS.Expr a) S.Expr where
     DS.EVar     p _ var           -> S.EVar     p (bloat var)
     DS.ELitInt  p i               -> S.ELitInt  p (S.SInt p i)
     DS.ELitBool p b               -> S.ELitBool p b
-    DS.EApp     p var args        -> S.EApp     p (bloat var) (bloatExprList args)
+    DS.EApp     p _ var args      -> S.EApp     p (bloat var) (bloatExprList args)
     DS.EString  p s               -> S.EString  p (S.SStr p s)
     DS.Neg      p e               -> S.Neg      p (bloat e)
     DS.Not      p e               -> S.Not      p (bloat e)

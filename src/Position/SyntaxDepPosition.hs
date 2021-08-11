@@ -79,7 +79,7 @@ instance HasPosition (Expr t) where
     EVar      p _ _     -> p
     ELitInt   p _       -> p
     ELitBool  p _       -> p
-    EApp      p _ _     -> p
+    EApp      p _ _ _   -> p
     EString   p _       -> p
     Neg       p _       -> p
     Not       p _       -> p

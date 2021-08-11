@@ -220,7 +220,7 @@ getAnyExpr expr = case expr of
   S.EApp p v args -> do
     CallableInfo okV retType paramTypes _ <- getCallableInfo v
     okArgs <- validateArgs p v args paramTypes
-    return $ retType :&: EApp p okV okArgs
+    return $ retType :&: EApp p retType okV okArgs
     
   ---------------------------------------------------------------------
   S.NewArr p elemType intExpr -> do

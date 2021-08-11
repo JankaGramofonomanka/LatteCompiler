@@ -21,6 +21,7 @@ import Control.Monad.State
 import Control.Monad.Except
 
 import Data.Singletons.Sigma
+import Data.Singletons
 import Data.Kind ( Type )
 import qualified Data.Dependent.Map as DM
 
@@ -70,18 +71,22 @@ getExprValue expr = case expr of
   DS.ELitInt  p i -> return (ILit i)
   DS.ELitBool p b -> return (BoolLit b)
   DS.EString  p s -> do
-    (_ :&: ptr) <- getStrLitConstPtr s
+    (n :&: ptr) <- getStrLitConstPtr s
     reg <- getNewRegDefault
-    addInstr $ Ass reg $ GetElemPtr ptr (ILit 0)
+
+    let singT = SArray (sing @(I 8)) n
+    addInstr $ Ass reg $ GetElemPtr singT ptr (ILit 0)
     return $ Var reg
 
   ---------------------------------------------------------------------
-  DS.EApp p f args -> case f of
+  DS.EApp p t f args -> case f of
     DS.Func _ funcId -> do
       let funcLabel = FuncLabel (name funcId)
       argList <- getArgList args
       reg <- getNewRegDefault
-      addInstr $ Ass reg $ Call funcLabel argList
+
+      let singT = sGetPrimType t
+      addInstr $ Ass reg $ Call singT funcLabel argList
       return $ Var reg
 
 
@@ -92,7 +97,7 @@ getExprValue expr = case expr of
   DS.Neg p e -> do
     v <- getExprValue e
     reg <- getNewRegDefault
-    addInstr $ Ass reg $ BinOperation MUL (ILit (-1)) v
+    addInstr $ Ass reg $ BinOperation i32 MUL (ILit (-1)) v
     return $ Var reg
     
   DS.Not p e -> do
@@ -102,7 +107,7 @@ getExprValue expr = case expr of
     cond <- getNewRegDefault
     (labelIf, labelElse, labelJoin) <- getIfElseLabels
     
-    addInstr $ Ass cond $ ICMP EQ v true
+    addInstr $ Ass cond $ ICMP i1 EQ v true
     finishBlock (CondBranch (Var cond) labelIf labelElse)
     
     newBlock labelIf
@@ -111,7 +116,8 @@ getExprValue expr = case expr of
     finishBlock $ Branch labelJoin
     newBlock labelJoin
 
-    addInstr $ Ass reg $ Phi [(labelIf, false), (labelElse, true)]
+    addInstr $ Ass reg
+      $ Phi i1 [(labelIf, false), (labelElse, true)]
     return $ Var reg
 
   ---------------------------------------------------------------------
@@ -120,7 +126,7 @@ getExprValue expr = case expr of
     v2 <- getExprValue e2
     let binOp = getBinOp op
     reg <- getNewRegDefault
-    addInstr $ Ass reg $ BinOperation binOp v1 v2
+    addInstr $ Ass reg $ BinOperation i32 binOp v1 v2
     return $ Var reg
 
   DS.ERel p t op e1 e2 -> case t of
@@ -130,7 +136,7 @@ getExprValue expr = case expr of
         let cmpKind = getCMPKind op
         reg <- getNewRegDefault
     
-        addInstr $ Ass reg $ ICMP cmpKind v1 v2
+        addInstr $ Ass reg $ ICMP i32 cmpKind v1 v2
         return $ Var reg
       
       -- TODO implement relations between other types
@@ -155,7 +161,7 @@ getExprValue expr = case expr of
 
         newBlock labelJoin
         reg <- getNewRegDefault
-        addInstr $ Ass reg $ Phi [(labelIf, val2), (labelElse, false)]
+        addInstr $ Ass reg $ Phi i1 [(labelIf, val2), (labelElse, false)]
         return $ Var reg
 
         
@@ -169,7 +175,7 @@ getExprValue expr = case expr of
 
         newBlock labelJoin
         reg <- getNewRegDefault
-        addInstr $ Ass reg $ Phi [(labelIf, true), (labelElse, val2)]
+        addInstr $ Ass reg $ Phi i1 [(labelIf, true), (labelElse, val2)]
         return $ Var reg
     
   ---------------------------------------------------------------------

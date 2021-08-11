@@ -363,9 +363,10 @@ getDefaultValue kw = case kw of
 
   DS.KWInt  _ -> return $ ILit 0
   DS.KWStr  _ -> do
-    _ :&: arrPtr <- getStrLitConstPtr ""
+    n :&: arrPtr <- getStrLitConstPtr ""
     zeroPtr <- getNewRegDefault
-    addInstr $ Ass zeroPtr $ GetElemPtr arrPtr (ILit 0)
+
+    addInstr $ Ass zeroPtr $ GetElemPtr (SArray i8 n) arrPtr (ILit 0)
     return $ Var zeroPtr
 
   DS.KWBool _ -> return $ BoolLit False
@@ -406,7 +407,7 @@ fillInheritanceMaps = do
 
 addPhi :: (MonadState LLVMState m, MonadError Error m)
   => Label -> TypedIdent t -> m ()
-addPhi label x = do
+addPhi label x@(TypedIdent singT _) = do
   m <- getInheritanceMap label
   let inheritedIds = DM.keys m
   unless (D.Some x `elem` inheritedIds)
@@ -415,7 +416,7 @@ addPhi label x = do
   BlockInfo { inputs = ins, .. } <- getBlockInfo label
   reg <- getInherited label x
   vals <- mapM (getIdentValue x) ins
-  addInstr $ Ass reg $ Phi (zip ins vals)
+  addInstr $ Ass reg $ Phi singT (zip ins vals)
 
 addPhis :: (MonadState LLVMState m, MonadError Error m)
   => Label -> m ()
