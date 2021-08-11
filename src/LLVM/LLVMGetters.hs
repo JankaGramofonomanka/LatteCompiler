@@ -35,8 +35,7 @@ import Position.SyntaxDepPosition
 
 import Dependent
 
-  
-  
+
 
 
 -------------------------------------------------------------------------------
@@ -48,20 +47,12 @@ false = BoolLit False
 getIdentValue :: (MonadState LLVMState m, MonadError Error m)
   => Sing t -> DS.Ident t -> Label -> m (Value (GetPrimType t))
 getIdentValue singT x l = do
-  let key = typedIdent singT x
+  let typedX = typedIdent singT x
   m <- getLocalVarMap l
-  case DM.lookup key m of
-    Just val -> return val
-    Nothing -> do
-      BlockInfo { inputs = ins, .. } <- getBlockInfo l
-      case ins of
-        [] -> throwError $ noSuchVarError (position x) x
-        ls -> do
-          vals <- mapM (getIdentValue singT x) ls
-          reg <- getNewReg (name x)
-          addPhi l reg $ zip ls vals
-          return $ Var reg
-          
+  case DM.lookup typedX m of
+    Just val  -> return val
+    Nothing   -> Var <$> getInherited l singT x
+    
 
 getVarValue :: (MonadState LLVMState m, MonadError Error m)
   => DS.SLatteType t -> DS.Var t -> m (Value (GetPrimType t))

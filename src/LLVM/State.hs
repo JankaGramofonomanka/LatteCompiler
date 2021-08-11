@@ -65,14 +65,23 @@ data BlockInfo
 emptyBlockInfo :: BlockInfo
 emptyBlockInfo = BlockInfo [] []
 
-data PotentialBlock = PotBlock Label [SimpleInstr]
+type InheritenceMap = DM.DMap TypedIdent Reg
+
+data PotentialBlock = PotBlock 
+  { blockLabel :: Label
+  --, inherited :: [InheritanceInfo]
+  , inherited :: InheritenceMap
+  , blockBody :: [SimpleInstr]
+  }
+
 data PotentialFunc where
   PotFunc ::
     { label :: FuncLabel t ts
     , retType :: Sing t
     , args :: ArgList ts
     --, body :: [SimpleBlock]
-    , body :: M.Map Label SimpleBlock
+    --, body :: M.Map Label ([InheritanceInfo], SimpleBlock)
+    , body :: M.Map Label (InheritenceMap, SimpleBlock)
     } -> PotentialFunc
 
 data LLVMState where 
@@ -246,8 +255,8 @@ putCurrentVarMap m = do
 -------------------------------------------------------------------------------
 addInstr :: MonadState LLVMState m => SimpleInstr -> m ()
 addInstr instr = do
-  PotBlock l body <- getCurrentBlock
-  putCurrentBlock $ PotBlock l (body ++ [instr])
+  PotBlock { blockBody = body, .. } <- getCurrentBlock
+  putCurrentBlock $ PotBlock { blockBody = body ++ [instr], .. }
 
 getCurrentBlock :: MonadState LLVMState m => m PotentialBlock
 getCurrentBlock = do
@@ -256,7 +265,7 @@ getCurrentBlock = do
     Just bl -> return bl
     Nothing -> do
       l <- getNewLabelDefault
-      let bl = PotBlock l []
+      let bl = PotBlock l DM.empty []
       putCurrentBlock bl
       return bl
     
@@ -265,15 +274,19 @@ newBlock :: MonadState LLVMState m => Label -> m ()
 newBlock l = do
   info <- getBlockInfo' l
   putBlockInfo l info
-  putCurrentBlock $ PotBlock l []
+  putCurrentBlock $ PotBlock l DM.empty []
 
 finishBlock :: (MonadState LLVMState m, MonadError Error m)
   => BranchInstr -> m ()
 finishBlock instr = do
-  PotBlock l body <- getCurrentBlock
+  PotBlock
+    { blockLabel = l
+    , inherited = m
+    , blockBody = body
+    , .. } <- getCurrentBlock
   --assertRetTypeOK instr
   let bl = SimpleBlock l body instr
-  addBlock bl
+  addBlock m bl
   case instr of
     Branch ll -> addEdge l ll
     CondBranch _ ll1 ll2 ->
@@ -281,14 +294,14 @@ finishBlock instr = do
 
     _ -> return ()
 
-addBlock :: MonadState LLVMState m => SimpleBlock -> m ()
-addBlock bl@SimpleBlock { label = l, .. } = do
+addBlock :: MonadState LLVMState m => InheritenceMap -> SimpleBlock -> m ()
+addBlock m bl@SimpleBlock { label = l, .. } = do
   PotFunc { body = blocks, .. } <- gets currentFunc
-  putCurrentFunc $ PotFunc { body = M.insert l bl blocks, .. }
+  putCurrentFunc $ PotFunc { body = M.insert l (m, bl) blocks, .. }
 
 getCurrentBlockLabel :: MonadState LLVMState m => m Label
 getCurrentBlockLabel = do
-  PotBlock l _ <- getCurrentBlock
+  PotBlock { blockLabel = l, .. } <- getCurrentBlock
   return l
 
 getCurrentBlockInfo :: (MonadState LLVMState m, MonadError Error m)
@@ -317,42 +330,37 @@ addOutput block newOutput = do
 addEdge :: MonadState LLVMState m => Label -> Label -> m ()
 addEdge from to = addOutput from to >> addInput to from
 
-addPhi :: (MonadState LLVMState m, MonadError Error m)
-  => Label -> Reg t -> [(Label, Value t)] -> m ()
-addPhi l reg vals = do
-  assertInputsOk l $ map fst vals
+getInherited :: (MonadState LLVMState m, MonadError Error m)
+  => Label -> Sing t -> DS.Ident t -> m (Reg (GetPrimType t))
+getInherited l singT x = do
+  currentL <- getCurrentBlockLabel
+  let typedX = typedIdent singT x
 
-  PotFunc { body = blocks, .. } <- gets currentFunc
-  let newInstr = Ass reg $ Phi vals
+  if l == currentL then do
+    PotBlock { inherited = m, .. } <- getCurrentBlock
+    case DM.lookup typedX m of
+      Nothing -> do
+        reg <- getNewReg (name x)
+        putCurrentBlock $ PotBlock { inherited = DM.insert typedX reg m , .. }
+        assignValue l singT x (Var reg)
+        return reg
 
-  case M.lookup l blocks of
-    Nothing -> do
-      currentL <- getCurrentBlockLabel
-      unless (l == currentL) $ throwError internalNoSuchBlockError
-      
-      PotBlock ll instrs <- getCurrentBlock
-      putCurrentBlock $ PotBlock ll (newInstr : instrs)
-
-    Just (SimpleBlock ll instrs branchInstr) -> do
-      let bl = SimpleBlock ll (newInstr : instrs) branchInstr
-      putCurrentFunc $ PotFunc { body = M.insert l bl blocks, .. }
-
-
-
-assertInputsOk :: (MonadState LLVMState m, MonadError Error m)
-  => Label -> [Label] -> m ()
-assertInputsOk l inputs = do
-  BlockInfo { inputs = ins, .. } <- getBlockInfo l
-  mapM_ (assertIsElem internalNoSuchInputError ins) inputs
-  mapM_ (assertIsElem internalInputNotIncludedError inputs) ins
+      Just reg -> return reg
   
-  where
-
-    assertIsElem :: (MonadState LLVMState m, MonadError Error m)
-      => Error -> [Label] -> Label -> m ()
-    assertIsElem err ins input = do
-      unless (input `elem` ins) $ throwError err
-    
+  else do
+    PotFunc { body = blocks, .. } <- gets currentFunc
+    case M.lookup l blocks of
+      Nothing -> throwError internalNoSuchBlockError
+      
+      Just (m, bl) -> case DM.lookup typedX m of
+        Nothing -> do
+          reg <- getNewReg (name x)
+          let newBody = M.insert l (DM.insert typedX reg m, bl) blocks
+          putCurrentFunc $ PotFunc { body = newBody, .. }
+          assignValue l singT x (Var reg)
+          return reg
+        
+        Just reg -> return reg
 
 {-
 assertRetTypeOK :: (MonadState LLVMState m, MonadError Error m)
@@ -369,28 +377,14 @@ assertRetTypeIs t = throwTODO
 -- -}
 
 -------------------------------------------------------------------------------
-declareId :: (MonadState LLVMState m, MonadError Error m)
-  => Sing t -> DS.Ident t -> Value (GetPrimType t) -> m ()
-declareId singT x val = do
+assignValue :: (MonadState LLVMState m, MonadError Error m)
+  => Label -> Sing t -> DS.Ident t -> Value (GetPrimType t) -> m ()
+assignValue l singT x val = do
   let key = typedIdent singT x
-  m <- getCurrentVarMap
+  m <- getLocalVarMap l      
+  putLocalVarMap l $ DM.insert key val m
 
-  {- 
-    We are checking if `x` is alredy declared in the current block.
-    Technically we should check if it was declared before, but that should be
-    taken care of when converting `Syntax` to `SyntaxDep`
-  -}
-  case DM.lookup key m of
-    Nothing -> do
-      pm <- gets declPosMap
-      putDeclPosMap $ M.insert (name x) (position x) pm
-      
-      putCurrentVarMap $ DM.insert key val m
 
-    Just reg -> do
-      declaredAt <- getDeclPos x
-      throwError $ varAlredyDeclaredError (position x) x declaredAt
-    
 
 getDeclPos ::
   ( MonadState LLVMState m
@@ -422,14 +416,7 @@ getDefaultValue kw = case kw of
   DS.KWArr t -> Var <$> getNewRegDefault
   DS.KWCustom clsId -> Var <$> getNewRegDefault
 
-
-overwriteId :: (MonadState LLVMState m, MonadError Error m)
-  => Sing t -> DS.Ident t -> Value (GetPrimType t) -> m ()
-overwriteId singT x val = do
-  let key = typedIdent singT x
-  m <- getCurrentVarMap
-  putCurrentVarMap $ DM.insert key val m
-      
+    
       
     
 

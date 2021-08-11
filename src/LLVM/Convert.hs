@@ -111,21 +111,24 @@ addStmt stmt = case stmt of
 
 declareItem :: (MonadState LLVMState m, MonadError Error m)
   => DS.TypeKW t -> DS.Item t -> m ()
-declareItem kw (DS.NoInit x) = do
-  v <- getDefaultValue kw
-  let singT = DS.singFromKW kw
-  declareId singT x v
+declareItem kw it = case it of
+  (DS.NoInit x) -> getDefaultValue kw >>= declIt kw x
 
-declareItem kw (DS.Init x e) = do
-  v <- getExprValue e
-  let singT = DS.singFromKW kw
-  declareId singT x v
+  (DS.Init x e) -> getExprValue e >>= declIt kw x
+
+  where
+    declIt kw x v = do
+      let singT = DS.singFromKW kw
+      l <- getCurrentBlockLabel
+      assignValue l singT x v
 
 
 overwriteVar :: (MonadState LLVMState m, MonadError Error m)
   => Sing t -> DS.Var t -> Value (GetPrimType t) -> m ()
 overwriteVar singT var val = case var of
-  DS.Var p x -> overwriteId singT x val
+  DS.Var p x -> do
+    l <- getCurrentBlockLabel
+    assignValue l singT x val
 
   DS.Attr {} -> throwTODOP (position var)
   DS.Elem {} -> throwTODOP (position var)

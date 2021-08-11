@@ -10,6 +10,7 @@ import qualified FromBNFC.AbsLatte as BNFC
 import FromBNFC.PrintLatte ( printTree )
 import qualified Syntax.Syntax as S
 import qualified Syntax.SyntaxDep as DS
+import qualified LLVM.TypeConversion as LLVM
 
 
 import Position.Position ( HasPosition(position) )
@@ -18,6 +19,7 @@ import Syntax.Debloater
 import Syntax.Bloater
 import Dependent
 import SingChar
+
 
 -- IsIdent --------------------------------------------------------------------
 class IsIdent a where
@@ -39,6 +41,8 @@ instance IsIdent (DS.FuncIdent t ts) where
 instance IsIdent (DS.ClassIdent cls) where
   name (DS.ClassIdent _ s) = singToString s
 
+instance IsIdent (LLVM.TypedIdent t) where
+  name (LLVM.TypedIdent t s) = s
 
 
 -- IsType ---------------------------------------------------------------------
