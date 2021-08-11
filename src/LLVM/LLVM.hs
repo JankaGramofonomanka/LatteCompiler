@@ -188,16 +188,18 @@ data SimpleBlock
 
 -- Functions ------------------------------------------------------------------
 type ArgList ts = DList Value ts
+type ParamList ts = DList Reg ts
 
 type Func :: PrimType -> [PrimType] -> Type
 data Func t ts where
   Func :: SPrimType t
-        -> ArgList ts
+        -> ParamList ts
         -> FuncLabel t ts
         -> [SimpleBlock]
         -> Func t ts
 
 deriving instance Show (DList Value ts)
+deriving instance Show (DList Reg ts)
 deriving instance Show (Func t ts)
 
 

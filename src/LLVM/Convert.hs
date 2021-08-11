@@ -14,8 +14,10 @@
 
 module LLVM.Convert where
 
+import qualified Data.Map as M
 
 import Data.Singletons.Sigma
+import Data.Singletons.Prelude hiding ( Error )
 
 import Control.Monad.State
 import Control.Monad.Except
@@ -31,7 +33,9 @@ import LLVM.TypeConversion
 
 import qualified Syntax.SyntaxDep as DS
 import Position.Position
+import LangElemClasses
 import Errors
+import Dependent
 
 
 addStmt :: (MonadState LLVMState m, MonadError Error m) => DS.Stmt -> m ()
@@ -150,3 +154,52 @@ overwriteVar singT var val = case var of
   DS.Null {} -> throwTODOP (position var)
   DS.Self {} -> throwTODOP (position var)
 
+
+-------------------------------------------------------------------------------
+addFnDef :: (MonadState LLVMState m, MonadError Error m) => DS.FnDef -> m ()
+addFnDef (DS.FnDef p t funcId params (DS.Block _ stmts)) = do
+  incrScopeLevel
+
+  (primTs, primArgs) <- getParams params
+  let currentFunc = PotFunc { label = FuncLabel (name funcId)
+                            , retType = DS.singFromKW t
+                            , argTypes = primTs
+                            , args = primArgs
+                            , body = M.empty
+                            }
+
+  putCurrentFunc currentFunc
+
+  l <- getNewLabel (name funcId)
+  newBlock l
+  declareParams l primArgs params
+
+  mapM_ addStmt stmts
+  finishFunc p
+
+  decrScopeLevel
+  throwTODOP p
+
+getParams :: (MonadState LLVMState m, MonadError Error m)
+ => DS.ParamList ts
+ -> m (SList (GetPrimTypes ts), ParamList (GetPrimTypes ts))
+getParams DNil = return (SNil, DNil)
+getParams (DS.Param kw x :> params) = do
+  (types, args) <- getParams params
+  reg <- getNewReg (name x)
+  return (SCons (sGetPrimType $ DS.singFromKW kw) types, reg :> args)
+
+declareParams :: (MonadState LLVMState m, MonadError Error m)
+  => Label -> ParamList (GetPrimTypes ts) -> DS.ParamList ts -> m ()
+declareParams _ DNil DNil = return ()
+declareParams l (reg :> regs) (DS.Param kw x :> params) = do
+  let singT = DS.singFromKW kw
+  let typedX = typedIdent singT x
+  assignValue l typedX (Var reg)
+
+
+-------------------------------------------------------------------------------
+addProg :: (MonadState LLVMState m, MonadError Error m) => DS.Program -> m ()
+addProg (DS.Program _ defs) = mapM_ addFnDef' defs where
+  addFnDef' (Left def) = throwTODOP (position def)
+  addFnDef' (Right def) = addFnDef def

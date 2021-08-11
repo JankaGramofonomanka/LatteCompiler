@@ -73,7 +73,7 @@ data PotentialFunc where
     { label     :: FuncLabel (GetPrimType t) ts
     , retType   :: Sing t
     , argTypes  :: Sing ts
-    , args      :: ArgList ts
+    , args      :: ParamList ts
     , body      :: M.Map Label (InheritanceMap, SimpleBlock)
     } -> PotentialFunc
 

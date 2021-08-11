@@ -15,6 +15,7 @@ module Syntax.SyntaxDep where
 
 import Data.Singletons.TH
 import Data.Singletons.Sigma
+import Data.Singletons.Prelude
 import Data.Kind ( Type )
 import Data.Singletons.Prelude.List (LastSym0, Last)
 
