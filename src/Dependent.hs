@@ -32,7 +32,7 @@ data DList (f :: k -> Type) (ts :: [k]) where
 infixr 5 :>
 
 
-data Sigma2 (t1 :: Type) (t2 :: Type) :: (t1 ~> t2 ~> *) -> * where
+data Sigma2 t1 t2 :: (t1 ~> t2 ~> *) -> * where
   (:&&:) 
     :: (Sing (v1 :: t1), Sing (v2 :: t2))
     -> f @@ v1 @@ v2 -> Sigma2 t1 t2 f

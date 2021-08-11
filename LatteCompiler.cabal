@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: dba353f7ff15b0b8e5d18e8005838efb56d4d2754b0e7bb33c5f321a04e288cf
+-- hash: 7eb7ed24a946b65ca0d0c9d58be2fda048d0388084cc1e07659fce3893ccc811
 
 name:           LatteCompiler
 version:        0.1.0.0
@@ -42,6 +42,7 @@ library
       LLVM.Convert
       LLVM.LLVM
       LLVM.LLVMGetters
+      LLVM.Print
       LLVM.State
       LLVM.StateUtils
       LLVM.TypeConversion

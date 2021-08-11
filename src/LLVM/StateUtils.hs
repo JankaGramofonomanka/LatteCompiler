@@ -223,13 +223,13 @@ finishFunc p = do
     , .. } <- gets currentFunc
   
   let funcBody = map (snd . snd) $ M.toList body
-  let func = Func (sGetPrimType retT) args l funcBody
+  let func = Func (sGetPrimType retT) argTs args l funcBody
   
   addFunc p retT argTs func
 
 addFunc :: (MonadState LLVMState m, MonadError Error m)
   => Pos -> DS.SLatteType t -> Sing ts -> Func (GetPrimType t) ts -> m ()
-addFunc p t singTs func@(Func singT _ (FuncLabel funcName) _) = do
+addFunc p t singTs func@(Func singT _ _ (FuncLabel funcName) _) = do
   if funcName == "main" then case t of
     DS.STInt -> case singTs of
       SCons _ _ -> throwError $ mainWithArgsError p
@@ -366,7 +366,7 @@ getDefaultValue kw = case kw of
     n :&: arrPtr <- getStrLitConstPtr ""
     zeroPtr <- getNewRegDefault
 
-    addInstr $ Ass zeroPtr $ GetElemPtr (SArray i8 n) arrPtr (ILit 0)
+    addInstr $ Ass zeroPtr $ GetElemPtr (SArray i8 n) i32 arrPtr (ILit 0)
     return $ Var zeroPtr
 
   DS.KWBool _ -> return $ BoolLit False

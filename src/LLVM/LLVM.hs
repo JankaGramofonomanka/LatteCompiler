@@ -161,10 +161,11 @@ type family ElemOf (t :: PrimType) :: PrimType where
 type Expr :: PrimType -> Type
 data Expr t where
   BinOperation  :: Sing t -> BinOp t -> Value t -> Value t -> Expr t
-  Call          :: Sing t -> FuncLabel t ts -> ArgList ts -> Expr t
-  GetElemPtr    :: Sing t -> Value (Ptr t)
-                          -> Value (I n)
-                          -> Expr (Ptr (ElemOf t))
+  Call          :: Sing t -> FuncLabel t ts -> SList ts -> ArgList ts -> Expr t
+  GetElemPtr    :: Sing t
+                -> Sing (I n) -> Value (Ptr t)
+                              -> Value (I n)
+                              -> Expr (Ptr (ElemOf t))
 
   ICMP          :: Sing (I n) -> CMPKind
                               -> Value (I n)
@@ -207,6 +208,7 @@ type ParamList ts = DList Reg ts
 type Func :: PrimType -> [PrimType] -> Type
 data Func t ts where
   Func :: SPrimType t
+        -> SList ts
         -> ParamList ts
         -> FuncLabel t ts
         -> [SimpleBlock]

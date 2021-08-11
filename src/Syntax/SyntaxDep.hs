@@ -159,7 +159,13 @@ data Expr a where
   EVar      :: Pos -> Sing t -> Var t -> Expr t
   ELitInt   :: Pos -> Int -> Expr TInt
   ELitBool  :: Pos -> Bool -> Expr TBool
-  EApp      :: Pos -> Sing t -> Callable t ts -> ExprList ts -> Expr t
+  EApp      :: Pos
+            -> Sing t
+            -> Callable t ts
+            -> SList ts
+            -> ExprList ts
+            -> Expr t
+            
   EString   :: Pos -> String -> Expr TStr
   Neg       :: Pos -> Expr TInt -> Expr TInt
   Not       :: Pos -> Expr TBool -> Expr TBool

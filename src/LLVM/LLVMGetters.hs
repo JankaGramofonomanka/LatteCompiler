@@ -21,7 +21,7 @@ import Control.Monad.State
 import Control.Monad.Except
 
 import Data.Singletons.Sigma
-import Data.Singletons
+import Data.Singletons.Prelude hiding ( Error, SLT, SGT )
 import Data.Kind ( Type )
 import qualified Data.Dependent.Map as DM
 
@@ -75,18 +75,18 @@ getExprValue expr = case expr of
     reg <- getNewRegDefault
 
     let singT = SArray (sing @(I 8)) n
-    addInstr $ Ass reg $ GetElemPtr singT ptr (ILit 0)
+    addInstr $ Ass reg $ GetElemPtr singT i32 ptr (ILit 0)
     return $ Var reg
 
   ---------------------------------------------------------------------
-  DS.EApp p t f args -> case f of
+  DS.EApp p t f argTs args -> case f of
     DS.Func _ funcId -> do
       let funcLabel = FuncLabel (name funcId)
-      argList <- getArgList args
+      (argTypes, argList) <- getArgs argTs args
       reg <- getNewRegDefault
 
       let singT = sGetPrimType t
-      addInstr $ Ass reg $ Call singT funcLabel argList
+      addInstr $ Ass reg $ Call singT funcLabel argTypes argList
       return $ Var reg
 
 
@@ -202,10 +202,12 @@ getCMPKind op = case op of
   DS.NE  _ -> NE
 
 
-getArgList :: (MonadState LLVMState m, MonadError Error m)
-  => DS.ExprList ts -> m (ArgList (GetPrimTypes ts))
-getArgList DNil = return DNil
-getArgList (arg :> args) = do
+getArgs :: (MonadState LLVMState m, MonadError Error m)
+  => SList ts
+  -> DS.ExprList ts
+  -> m (SList (GetPrimTypes ts), ArgList (GetPrimTypes ts))
+getArgs SNil DNil = return (SNil, DNil)
+getArgs (SCons t ts) (arg :> args) = do
   v <- getExprValue arg
-  vs <- getArgList args
-  return $ v :> vs
+  (tts, vs) <- getArgs ts args
+  return (SCons (sGetPrimType t) tts, v :> vs)
