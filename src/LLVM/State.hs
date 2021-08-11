@@ -70,7 +70,7 @@ data PotentialBlock = PotBlock
 
 data PotentialFunc where
   PotFunc ::
-    { label     :: FuncLabel t ts
+    { label     :: FuncLabel (GetPrimType t) ts
     , retType   :: Sing t
     , argTypes  :: Sing ts
     , args      :: ArgList ts

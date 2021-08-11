@@ -22,7 +22,8 @@ import Control.Monad.State
 import Control.Monad.Except
 
 import Data.Singletons.Sigma
-import Data.Singletons
+import Data.Singletons.Prelude hiding ( Error )
+import Data.Singletons.TypeLits hiding ( Error )
 import Data.Kind ( Type )
 import qualified Data.Dependent.Map as DM
 import qualified Data.Some as D
@@ -208,8 +209,8 @@ addBlock m bl@SimpleBlock { label = l, .. } = do
   putCurrentFunc $ PotFunc { body = M.insert l (m, bl) blocks, .. }
 
 finishFunc :: (MonadState LLVMState m, MonadError Error m)
-  => m ()
-finishFunc = do
+  => Pos -> m ()
+finishFunc p = do
   fillInheritanceMaps
   addAllPhis
 
@@ -222,13 +223,28 @@ finishFunc = do
     , .. } <- gets currentFunc
   
   let funcBody = map (snd . snd) $ M.toList body
-  let func = Func retT args l funcBody
+  let func = Func (sGetPrimType retT) args l funcBody
   
-  addFunc retT argTs func
+  addFunc p retT argTs func
 
 addFunc :: (MonadState LLVMState m, MonadError Error m)
-  => Sing t -> Sing ts -> Func t ts -> m ()
-addFunc singT singTs func = throwTODO
+  => Pos -> DS.SLatteType t -> Sing ts -> Func (GetPrimType t) ts -> m ()
+addFunc p t singTs func@(Func singT _ (FuncLabel funcName) _) = do
+  if funcName == "main" then case t of
+    DS.STInt -> case singTs of
+      SCons _ _ -> throwError $ mainWithArgsError p
+      SNil -> do
+        PotProg { mainFunc = _, .. } <- gets currentProg
+        putCurrentProg
+          $ PotProg { mainFunc = Just func, .. }    
+      
+    _ -> throwError $ mainNotIntError p
+  
+  else do
+    PotProg { funcs = funcs, .. } <- gets currentProg
+    putCurrentProg
+      $ PotProg { funcs = funcs ++ [(singT, singTs) :&&: func], .. }
+
 
 
 

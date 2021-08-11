@@ -179,6 +179,12 @@ relationNotSupportedError p op t = OnePosError p
   $ "Relation " ++ printOp op
     ++ " is not supported for values of type " ++ printType t
 
+mainWithArgsError :: Pos -> Error
+mainWithArgsError p = OnePosError p "main function should have 0 arguments"
+
+mainNotIntError :: Pos -> Error
+mainNotIntError p = OnePosError p "main function should return int"
+  
 
 -- INTERNAL -------------------------------------------------------------------
 
