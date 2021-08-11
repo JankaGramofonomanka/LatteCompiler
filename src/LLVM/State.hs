@@ -50,8 +50,6 @@ type ConstCountMap = M.Map String Int
 type LabelCountMap = M.Map String Int
 type BlockInfoMap = M.Map Label BlockInfo
 
-type DeclarationPosMap = M.Map String Pos
-
 type VarMap       = M.Map Label LocalVarMap
 type LocalVarMap  = DM.DMap TypedIdent Value
 type StrLitMap    = M.Map String SomeStrConst
@@ -69,7 +67,6 @@ type InheritenceMap = DM.DMap TypedIdent Reg
 
 data PotentialBlock = PotBlock 
   { blockLabel :: Label
-  --, inherited :: [InheritanceInfo]
   , inherited :: InheritenceMap
   , blockBody :: [SimpleInstr]
   }
@@ -79,8 +76,6 @@ data PotentialFunc where
     { label :: FuncLabel t ts
     , retType :: Sing t
     , args :: ArgList ts
-    --, body :: [SimpleBlock]
-    --, body :: M.Map Label ([InheritanceInfo], SimpleBlock)
     , body :: M.Map Label (InheritenceMap, SimpleBlock)
     } -> PotentialFunc
 
@@ -94,8 +89,6 @@ data LLVMState where
     , strLitMap     :: StrLitMap
     , blockInfoMap  :: BlockInfoMap
 
-    , declPosMap    :: DeclarationPosMap
-    
     , currentBlock  :: Maybe PotentialBlock
     , currentFunc   :: PotentialFunc
     } -> LLVMState
@@ -131,11 +124,6 @@ putBlockInfoMap :: MonadState LLVMState m => BlockInfoMap -> m ()
 putBlockInfoMap m = do
   LLVMState { blockInfoMap = _, .. } <- get
   put $ LLVMState { blockInfoMap = m, .. }
-
-putDeclPosMap :: MonadState LLVMState m => DeclarationPosMap -> m ()
-putDeclPosMap m = do
-  LLVMState { declPosMap = _, .. } <- get
-  put $ LLVMState { declPosMap = m, .. }
 
 putCurrentBlock :: MonadState LLVMState m => PotentialBlock -> m ()
 putCurrentBlock b = do
@@ -385,19 +373,6 @@ assignValue l singT x val = do
   putLocalVarMap l $ DM.insert key val m
 
 
-
-getDeclPos ::
-  ( MonadState LLVMState m
-  , IsIdent i
-  , MonadError Error m
-  , HasPosition i
-  )
-  => i -> m Pos
-getDeclPos x = do
-  m <- gets declPosMap
-  case M.lookup (name x) m of
-    Nothing -> throwError $ noSuchVarError (position x) x
-    Just p -> return p
 
 getDefaultValue :: (MonadState LLVMState m, MonadError Error m)
   => DS.TypeKW t -> m (Value (GetPrimType t))
