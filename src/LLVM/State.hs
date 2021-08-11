@@ -21,8 +21,10 @@ import Control.Monad.State
 import Control.Monad.Except
 
 import Data.Singletons.Sigma
+import Data.Singletons
 import Data.Kind ( Type )
 import qualified Data.Dependent.Map as DM
+import qualified Data.Some as D
 
 import LLVM.LLVM
 import qualified Syntax.SyntaxDep as DS
@@ -33,7 +35,6 @@ import Position.Position
 import Position.SyntaxDepPosition
 
 import Dependent
-import Control.Monad.RWS.Lazy (MonadState)
 
 strLitPrefix :: [Char]
 strLitPrefix = "str"
@@ -64,21 +65,29 @@ data BlockInfo
 emptyBlockInfo :: Int -> BlockInfo
 emptyBlockInfo = BlockInfo [] []
 
-type InheritenceMap = DM.DMap TypedIdent Reg
+type InheritanceMap = DM.DMap TypedIdent Reg
 
 data PotentialBlock = PotBlock 
   { blockLabel  :: Label
-  , inherited   :: InheritenceMap
+  , inherited   :: InheritanceMap
   , blockBody   :: [SimpleInstr]
   }
 
 data PotentialFunc where
   PotFunc ::
-    { label   :: FuncLabel t ts
-    , retType :: Sing t
-    , args    :: ArgList ts
-    , body    :: M.Map Label (InheritenceMap, SimpleBlock)
+    { label     :: FuncLabel t ts
+    , retType   :: Sing t
+    , argTypes  :: Sing ts
+    , args      :: ArgList ts
+    , body      :: M.Map Label (InheritanceMap, SimpleBlock)
     } -> PotentialFunc
+
+data PotentialProg where
+  PotProg ::
+    { mainFunc :: Maybe (Func (I 32) '[])
+    , funcs :: [SomeFunc]
+    } -> PotentialProg
+
 
 data LLVMState where 
   LLVMState ::
@@ -92,6 +101,7 @@ data LLVMState where
 
     , currentBlock      :: Maybe PotentialBlock
     , currentFunc       :: PotentialFunc
+    , currentProg       :: PotentialProg
     , currentScopeLevel :: Int
     } -> LLVMState
 
@@ -136,6 +146,12 @@ putCurrentFunc :: MonadState LLVMState m => PotentialFunc -> m ()
 putCurrentFunc f = do
   LLVMState { currentFunc = _, .. } <- get
   put $ LLVMState { currentFunc = f, .. }
+
+putCurrentProg :: MonadState LLVMState m => PotentialProg -> m ()
+putCurrentProg prog = do
+  LLVMState { currentProg = _, .. } <- get
+  put $ LLVMState { currentProg = prog, .. }
+
 
 dropCurrentBlockBlock :: MonadState LLVMState m => m ()
 dropCurrentBlockBlock = do
@@ -299,10 +315,36 @@ finishBlock instr = do
 
     _ -> return ()
 
-addBlock :: MonadState LLVMState m => InheritenceMap -> SimpleBlock -> m ()
+addBlock :: MonadState LLVMState m => InheritanceMap -> SimpleBlock -> m ()
 addBlock m bl@SimpleBlock { label = l, .. } = do
   PotFunc { body = blocks, .. } <- gets currentFunc
   putCurrentFunc $ PotFunc { body = M.insert l (m, bl) blocks, .. }
+
+finishFunc :: (MonadState LLVMState m, MonadError Error m)
+  => m ()
+finishFunc = do
+  fillInheritanceMaps
+  addAllPhis
+
+  PotFunc
+    { label = l
+    , retType = retT
+    , argTypes = argTs
+    , args = args
+    , body = body
+    , .. } <- gets currentFunc
+  
+  let funcBody = map (snd . snd) $ M.toList body
+  let func = Func retT args l funcBody
+  
+  addFunc retT argTs func
+
+addFunc :: (MonadState LLVMState m, MonadError Error m)
+  => Sing t -> Sing ts -> Func t ts -> m ()
+addFunc singT singTs func = throwTODO
+
+
+
 
 getCurrentBlockLabel :: MonadState LLVMState m => m Label
 getCurrentBlockLabel = do
@@ -335,37 +377,67 @@ addOutput block newOutput = do
 addEdge :: MonadState LLVMState m => Label -> Label -> m ()
 addEdge from to = addOutput from to >> addInput to from
 
-getInherited :: (MonadState LLVMState m, MonadError Error m)
-  => Label -> Sing t -> DS.Ident t -> m (Reg (GetPrimType t))
-getInherited l singT x = do
+getInherited' :: (MonadState LLVMState m, MonadError Error m)
+  => Label -> TypedIdent t -> m (Bool, Reg t)
+getInherited' l x = do
   currentL <- getCurrentBlockLabel
-  let typedX = typedIdent singT x
 
   if l == currentL then do
     PotBlock { inherited = m, .. } <- getCurrentBlock
-    case DM.lookup typedX m of
+    case DM.lookup x m of
       Nothing -> do
         reg <- getNewReg (name x)
-        putCurrentBlock $ PotBlock { inherited = DM.insert typedX reg m , .. }
-        assignValue l singT x (Var reg)
-        return reg
+        putCurrentBlock $ PotBlock { inherited = DM.insert x reg m , .. }
+        assignValue l x (Var reg)
+        return (True, reg)
 
-      Just reg -> return reg
+      Just reg -> return (False, reg)
   
   else do
     PotFunc { body = blocks, .. } <- gets currentFunc
     case M.lookup l blocks of
       Nothing -> throwError internalNoSuchBlockError
       
-      Just (m, bl) -> case DM.lookup typedX m of
+      Just (m, bl) -> case DM.lookup x m of
         Nothing -> do
           reg <- getNewReg (name x)
-          let newBody = M.insert l (DM.insert typedX reg m, bl) blocks
+          let newBody = M.insert l (DM.insert x reg m, bl) blocks
           putCurrentFunc $ PotFunc { body = newBody, .. }
-          assignValue l singT x (Var reg)
-          return reg
+          assignValue l x (Var reg)
+          return (True, reg)
         
-        Just reg -> return reg
+        Just reg -> return (False, reg)
+
+
+getInherited :: (MonadState LLVMState m, MonadError Error m)
+  => Label -> TypedIdent t -> m (Reg t)
+getInherited l x = snd <$> getInherited' l x
+  
+getInheritanceMap :: (MonadState LLVMState m, MonadError Error m)
+  => Label -> m InheritanceMap
+getInheritanceMap l = do
+  currentL <- getCurrentBlockLabel
+
+  if l == currentL then do
+    PotBlock { inherited = m, .. } <- getCurrentBlock
+    return m
+  
+  else do
+    PotFunc { body = blocks, .. } <- gets currentFunc
+    case M.lookup l blocks of
+      Nothing -> throwError internalNoSuchBlockError
+      Just (m, bl) -> return m
+
+
+
+getIdentValue :: (MonadState LLVMState m, MonadError Error m)
+  => TypedIdent t -> Label -> m (Value t)
+getIdentValue x l = do
+  m <- getLocalVarMap l
+  case DM.lookup x m of
+    Just val  -> return val
+    Nothing   -> Var <$> getInherited l x
+    
 
 {-
 assertRetTypeOK :: (MonadState LLVMState m, MonadError Error m)
@@ -383,11 +455,10 @@ assertRetTypeIs t = throwTODO
 
 -------------------------------------------------------------------------------
 assignValue :: (MonadState LLVMState m, MonadError Error m)
-  => Label -> Sing t -> DS.Ident t -> Value (GetPrimType t) -> m ()
-assignValue l singT x val = do
-  let key = typedIdent singT x
+  => Label -> TypedIdent t -> Value t -> m ()
+assignValue l x val = do
   m <- getLocalVarMap l      
-  putLocalVarMap l $ DM.insert key val m
+  putLocalVarMap l $ DM.insert x val m
 
 
 
@@ -408,9 +479,62 @@ getDefaultValue kw = case kw of
   DS.KWArr t -> Var <$> getNewRegDefault
   DS.KWCustom clsId -> Var <$> getNewRegDefault
 
+fillInheritanceMaps :: (MonadState LLVMState m, MonadError Error m) => m ()
+fillInheritanceMaps = do
+  labels <- gets (map fst . M.toList . blockInfoMap)
+  loopThrough labels
+
+  where
+    loopThrough :: (MonadState LLVMState m, MonadError Error m)
+      => [Label] -> m ()
+    loopThrough labels = do
+      changesMade <- foldl propagInheritances (pure False) labels
+      when changesMade $ loopThrough labels
     
+    propagInheritances :: (MonadState LLVMState m, MonadError Error m)
+      => m Bool ->  Label -> m Bool
+    propagInheritances acc label = do
+      accChanges <- acc
+      m <- getInheritanceMap label
+      let inheritedIds = DM.keys m
+      changesMade <- foldl (propagInheritance label) (pure False) inheritedIds
+      return $ accChanges || changesMade
       
-    
+    propagInheritance :: (MonadState LLVMState m, MonadError Error m)
+      => Label -> m Bool -> D.Some TypedIdent -> m Bool
+    propagInheritance label acc (D.Some x) = do
+      accChanges <- acc
+      BlockInfo { inputs = ins, .. } <- getBlockInfo label
+      changesMade <- any fst <$> mapM (\l -> getInherited' l x) ins
+      return $ accChanges || changesMade
 
 
+addPhi :: (MonadState LLVMState m, MonadError Error m)
+  => Label -> TypedIdent t -> m ()
+addPhi label x = do
+  m <- getInheritanceMap label
+  let inheritedIds = DM.keys m
+  unless (D.Some x `elem` inheritedIds)
+    $ throwError internalPhiNotPartOfInheritedError
+
+  BlockInfo { inputs = ins, .. } <- getBlockInfo label
+  reg <- getInherited label x
+  vals <- mapM (getIdentValue x) ins
+  addInstr $ Ass reg $ Phi (zip ins vals)
+
+addPhis :: (MonadState LLVMState m, MonadError Error m)
+  => Label -> m ()
+addPhis label = do
+  m <- getInheritanceMap label
+  let inheritedIds = DM.keys m
+  mapM_ (addPhi' label) inheritedIds
+
+  where
+    addPhi' l (D.Some x) = addPhi l x
+
+
+addAllPhis :: (MonadState LLVMState m, MonadError Error m) => m ()
+addAllPhis = do
+  labels <- gets (map fst . M.toList . blockInfoMap)
+  mapM_ addPhis labels
 

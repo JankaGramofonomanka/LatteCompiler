@@ -134,7 +134,7 @@ declareItem kw it = case it of
     declIt kw x v = do
       let singT = DS.singFromKW kw
       l <- getCurrentBlockLabel
-      assignValue l singT x v
+      assignValue l (typedIdent singT x) v
 
 
 overwriteVar :: (MonadState LLVMState m, MonadError Error m)
@@ -142,7 +142,7 @@ overwriteVar :: (MonadState LLVMState m, MonadError Error m)
 overwriteVar singT var val = case var of
   DS.Var p x -> do
     l <- getCurrentBlockLabel
-    assignValue l singT x val
+    assignValue l (typedIdent singT x) val
 
   DS.Attr {} -> throwTODOP (position var)
   DS.Elem {} -> throwTODOP (position var)

@@ -221,5 +221,8 @@ internalScopeLevelBelowZeroError
   = SimpleError "INTERNAL ERROR (scope level below 0)"
 
 
+internalPhiNotPartOfInheritedError :: Error
+internalPhiNotPartOfInheritedError
+  = SimpleError "INTERNAL ERROR (phi takes uninherited values)"
 
 
