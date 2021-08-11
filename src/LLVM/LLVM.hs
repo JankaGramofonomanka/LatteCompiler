@@ -33,8 +33,9 @@ data PrimType where
   Void  :: PrimType
   Ptr   :: PrimType -> PrimType
   Array :: PrimType -> Natural -> PrimType
-  {-| I'm using `Natural` instead of Nat because I can't figure out how to 
-      create a list length of type `SNat`
+  {-
+    I'm using `Natural` instead of Nat because I can't figure out how to 
+    create a list length of type `SNat`
   -}
 
 type SPrimType :: PrimType -> Type
