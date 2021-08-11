@@ -1,4 +1,8 @@
-{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE
+    FlexibleContexts
+  , DataKinds
+  , TypeApplications
+#-}
 
 module BuiltIns where
 
@@ -7,6 +11,7 @@ import Control.Monad.State hiding (void)
 import Control.Monad.Except hiding (void)
 
 import Data.Singletons.Prelude hiding ( Error )
+import Data.Singletons.TypeLits hiding ( Error )
 
 import TypeCheck.State ( TypeCheckState, emptyState )
 import TypeCheck.StateUtils
@@ -14,8 +19,10 @@ import TypeCheck.Declarations
 import Position.Position
 import qualified Syntax.Syntax as S
 import Syntax.SyntaxDep
+import LLVM.LLVM
 import Errors
 import LangElemClasses
+import Dependent
 
 
 ident :: String -> S.Ident
@@ -44,5 +51,13 @@ initTypeCheckState
       = error "INTERNAL ERROR (built-in functions declaration)"
 
 
+externFuncLabels :: [SomeFuncLabel]
+externFuncLabels
+  = [ (SVoid,             sing @'[I 32])      :&&: FuncLabel "printInt"
+    , (SVoid,             sing @'[Ptr (I 8)]) :&&: FuncLabel "printString"
+    , (SVoid,             sing @'[])          :&&: FuncLabel "error"
+    , (sing @(I 32),      sing @'[])          :&&: FuncLabel "readInt"
+    , (sing @(Ptr (I 8)), sing @'[])          :&&: FuncLabel "readString"
+    ]
 
 

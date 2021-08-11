@@ -185,6 +185,8 @@ mainWithArgsError p = OnePosError p "main function should have 0 arguments"
 mainNotIntError :: Pos -> Error
 mainNotIntError p = OnePosError p "main function should return int"
   
+noMainError :: Error
+noMainError = SimpleError "main function is not defined"
 
 -- INTERNAL -------------------------------------------------------------------
 

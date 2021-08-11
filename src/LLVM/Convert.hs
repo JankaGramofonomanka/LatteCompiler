@@ -36,6 +36,7 @@ import Position.Position
 import LangElemClasses
 import Errors
 import Dependent
+import BuiltIns
 
 
 addStmt :: (MonadState LLVMState m, MonadError Error m) => DS.Stmt -> m ()
@@ -203,3 +204,28 @@ addProg :: (MonadState LLVMState m, MonadError Error m) => DS.Program -> m ()
 addProg (DS.Program _ defs) = mapM_ addFnDef' defs where
   addFnDef' (Left def) = throwTODOP (position def)
   addFnDef' (Right def) = addFnDef def
+
+
+extractLLVM :: (MonadState LLVMState m, MonadError Error m) => m LLVMProg
+extractLLVM = do
+  PotProg { mainFunc = mbMain, funcs = funcs, .. } <- gets currentProg
+  case mbMain of
+    Nothing -> throwError noMainError
+    Just main -> do
+
+      strConstnts <- gets $ map (fromSomeStrConst . snd) . M.toList . strLitMap
+
+      let prog = LLVM { mainFunc = main
+                      , funcs = funcs
+                      , externFuncs = externFuncLabels
+                      , constants = strConstnts
+                      }
+
+      return prog
+
+
+fromSomeStrConst :: SomeStrConst -> SomeConstant
+fromSomeStrConst (len :&: c) = SArray (sing @(I 8)) len :&: c
+
+
+
