@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: d9f8825db6c7c5d6874015c7162866f7f01390180079449d924fb5c3c7536936
+-- hash: 1595d5c50de449c31a4c7be6535c6b27f5f682a2eef275afc592b351f75e5921
 
 name:           LatteCompiler
 version:        0.1.0.0
@@ -42,7 +42,6 @@ library
       LLVM.Convert
       LLVM.LLVM
       LLVM.LLVMGetters
-      LLVM.State
       LLVM.TypeConversion
       Optimization.EvalConstants
       Position.Position
@@ -50,6 +49,7 @@ library
       Position.SyntaxPosition
       Scope
       SingChar
+      State
       Syntax.Bloater
       Syntax.Debloater
       Syntax.Syntax

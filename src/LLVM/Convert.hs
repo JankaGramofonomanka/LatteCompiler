@@ -35,8 +35,22 @@ import Errors
 
 addStmt :: (MonadState LLVMState m, MonadError Error m) => DS.Stmt -> m ()
 addStmt stmt = case stmt of
-  DS.Empty    p         -> return ()
-  DS.BStmt    p bl      -> throwTODOP p
+  DS.Empty    p -> return ()
+  DS.BStmt    p (DS.Block _ stmts) -> do
+    
+    enter <- getNewLabel "EnterSubScope"
+    exit <- getNewLabel "ExitSubScope"
+    
+    finishBlock $ Branch enter
+    incrScopeLevel
+    newBlock enter
+
+    mapM_ addStmt stmts
+
+    finishBlock $ Branch exit
+    decrScopeLevel 
+    newBlock exit    
+
   DS.Decl     p t items -> do
     foldl (\m item -> m >> declareItem t item) (pure ()) items
     

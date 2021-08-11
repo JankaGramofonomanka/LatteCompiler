@@ -58,25 +58,26 @@ data BlockInfo
   = BlockInfo
     { inputs :: [Label]
     , outputs :: [Label]
+    , scopeLevel :: Int
     }
     
-emptyBlockInfo :: BlockInfo
+emptyBlockInfo :: Int -> BlockInfo
 emptyBlockInfo = BlockInfo [] []
 
 type InheritenceMap = DM.DMap TypedIdent Reg
 
 data PotentialBlock = PotBlock 
-  { blockLabel :: Label
-  , inherited :: InheritenceMap
-  , blockBody :: [SimpleInstr]
+  { blockLabel  :: Label
+  , inherited   :: InheritenceMap
+  , blockBody   :: [SimpleInstr]
   }
 
 data PotentialFunc where
   PotFunc ::
-    { label :: FuncLabel t ts
+    { label   :: FuncLabel t ts
     , retType :: Sing t
-    , args :: ArgList ts
-    , body :: M.Map Label (InheritenceMap, SimpleBlock)
+    , args    :: ArgList ts
+    , body    :: M.Map Label (InheritenceMap, SimpleBlock)
     } -> PotentialFunc
 
 data LLVMState where 
@@ -89,8 +90,9 @@ data LLVMState where
     , strLitMap     :: StrLitMap
     , blockInfoMap  :: BlockInfoMap
 
-    , currentBlock  :: Maybe PotentialBlock
-    , currentFunc   :: PotentialFunc
+    , currentBlock      :: Maybe PotentialBlock
+    , currentFunc       :: PotentialFunc
+    , currentScopeLevel :: Int
     } -> LLVMState
 
 
@@ -221,7 +223,10 @@ getBlockInfo' :: (MonadState LLVMState m) => Label -> m BlockInfo
 getBlockInfo' l = do
   m <- gets blockInfoMap
   case M.lookup l m of
-    Nothing -> return emptyBlockInfo
+    Nothing -> do
+      scL <- gets currentScopeLevel
+      return $ emptyBlockInfo scL
+
     Just info -> return info
 
 
@@ -240,6 +245,18 @@ putCurrentVarMap m = do
   l <- getCurrentBlockLabel
   putLocalVarMap l m
   
+incrScopeLevel :: MonadState LLVMState m => m ()
+incrScopeLevel = do
+  LLVMState { currentScopeLevel = l, .. } <- get
+  put $ LLVMState { currentScopeLevel = l + 1, .. }
+
+decrScopeLevel :: (MonadState LLVMState m, MonadError Error m) => m ()
+decrScopeLevel = do
+  LLVMState { currentScopeLevel = l, .. } <- get
+  when (l <= 0) $ throwError internalScopeLevelBelowZeroError
+  put $ LLVMState { currentScopeLevel = l - 1, .. }
+
+
 -------------------------------------------------------------------------------
 addInstr :: MonadState LLVMState m => SimpleInstr -> m ()
 addInstr instr = do

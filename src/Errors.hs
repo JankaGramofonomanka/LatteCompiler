@@ -216,4 +216,10 @@ internalInputNotIncludedError :: Error
 internalInputNotIncludedError 
   = SimpleError "INTERNAL ERROR (an input not included in a phi instruction)"
 
+internalScopeLevelBelowZeroError :: Error
+internalScopeLevelBelowZeroError
+  = SimpleError "INTERNAL ERROR (scope level below 0)"
+
+
+
 
