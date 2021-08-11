@@ -27,6 +27,7 @@ import qualified Data.Dependent.Map as DM
 import LLVM.LLVM
 import qualified Syntax.SyntaxDep as DS
 import LLVM.State
+import LLVM.StateUtils
 import LLVM.TypeConversion
 import LangElemClasses
 import Errors

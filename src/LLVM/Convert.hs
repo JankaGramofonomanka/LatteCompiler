@@ -24,6 +24,7 @@ import Data.Singletons
 
 import LLVM.LLVM
 import LLVM.State
+import LLVM.StateUtils
 import LLVM.LLVMGetters
 import LLVM.TypeConversion
 
