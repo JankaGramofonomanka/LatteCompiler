@@ -82,7 +82,7 @@ addStmt stmt = case stmt of
     finishBlock RetVoid
 
   DS.Cond     p expr stm -> do
-    (labelIf, _,  labelJoin) <- getIfElseLabels
+    (labelIf, _, labelJoin) <- getIfElseLabels
     cond <- getExprValue expr
     finishBlock $ CondBranch cond labelIf labelJoin
 
@@ -179,6 +179,8 @@ addFnDef (DS.FnDef p t funcId params (DS.Block _ stmts)) = do
   finishFunc p
 
   decrScopeLevel
+
+  dropBlockInfos
 
 getParams :: (MonadState LLVMState m, MonadError Error m)
  => DS.ParamList ts

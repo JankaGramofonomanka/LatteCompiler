@@ -38,6 +38,7 @@ import Position.Position
 import Position.SyntaxDepPosition
 
 import Dependent
+import Control.Monad.RWS.Class (MonadState)
 
 strLitPrefix :: [Char]
 strLitPrefix = "str"
@@ -255,7 +256,8 @@ addFunc p t singTs func@(Func singT _ _ (FuncLabel funcName) _) = do
       $ PotProg { funcs = funcs ++ [(singT, singTs) :&&: func], .. }
 
 
-
+dropBlockInfos :: MonadState LLVMState m => m ()
+dropBlockInfos = putBlockInfoMap M.empty
 
 
 
