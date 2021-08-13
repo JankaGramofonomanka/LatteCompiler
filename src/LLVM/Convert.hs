@@ -179,7 +179,6 @@ addFnDef (DS.FnDef p t funcId params (DS.Block _ stmts)) = do
   finishFunc p
 
   decrScopeLevel
-  throwTODOP p
 
 getParams :: (MonadState LLVMState m, MonadError Error m)
  => DS.ParamList ts
