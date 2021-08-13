@@ -14,8 +14,6 @@
   , UndecidableInstances
 
   , TemplateHaskell
-
-  , EmptyCase
 #-}
 
 module LLVM.TypeConversion where
@@ -35,6 +33,7 @@ import Syntax.SyntaxDep
 import Data.Singletons.TypeLits (SNat)
 
 import Dependent
+import Unsafe.Coerce ( unsafeCoerce )
 
 
 $(singletons[d|
@@ -73,7 +72,7 @@ instance GEq SNat where
 
     where
       admit :: SNat n1 -> SNat n2 -> n1 :~: n2
-      admit n1 n2 = case () of {}
+      admit n1 n2 = unsafeCoerce Refl
 
 instance GEq SNatural where
   geq SZero SZero = Just Refl
