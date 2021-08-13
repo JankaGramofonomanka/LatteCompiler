@@ -27,6 +27,7 @@ dependencies:
 - singletons
 - dependent-map
 - some
+- filepath
 
 library:
   source-dirs: src

@@ -95,10 +95,26 @@ data LLVMState where
     , blockInfoMap  :: BlockInfoMap
 
     , currentBlock      :: Maybe PotentialBlock
-    , currentFunc       :: PotentialFunc
+    , currentFunc       :: Maybe PotentialFunc
     , currentProg       :: PotentialProg
     , currentScopeLevel :: Int
     } -> LLVMState
+
+emptyState :: LLVMState
+emptyState = LLVMState
+  { regCounter = M.empty
+  , constCounter = M.empty
+  , labelCounter = M.empty
+
+  , varMap        = M.empty
+  , strLitMap     = M.empty
+  , blockInfoMap  = M.empty
+
+  , currentBlock      = Nothing
+  , currentFunc       = Nothing
+  , currentProg       = PotProg { mainFunc = Nothing, funcs = [] }
+  , currentScopeLevel = 0
+  }
 
 
 -- putters --------------------------------------------------------------------
@@ -140,7 +156,7 @@ putCurrentBlock b = do
 putCurrentFunc :: MonadState LLVMState m => PotentialFunc -> m ()
 putCurrentFunc f = do
   LLVMState { currentFunc = _, .. } <- get
-  put $ LLVMState { currentFunc = f, .. }
+  put $ LLVMState { currentFunc = Just f, .. }
 
 putCurrentProg :: MonadState LLVMState m => PotentialProg -> m ()
 putCurrentProg prog = do

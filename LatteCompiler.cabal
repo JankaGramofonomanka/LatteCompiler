@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 7eb7ed24a946b65ca0d0c9d58be2fda048d0388084cc1e07659fce3893ccc811
+-- hash: e66a831d8b8ff1d038d36a7bb498fab129d3c4bbbea3b2ffd99935048183a4f8
 
 name:           LatteCompiler
 version:        0.1.0.0
@@ -50,6 +50,7 @@ library
       Position.Position
       Position.SyntaxDepPosition
       Position.SyntaxPosition
+      Program
       Scope
       SingChar
       Syntax.Bloater
@@ -70,6 +71,7 @@ library
     , base >=4.7 && <5
     , containers
     , dependent-map
+    , filepath
     , mtl
     , singletons
     , some
@@ -88,6 +90,7 @@ executable latc
     , base >=4.7 && <5
     , containers
     , dependent-map
+    , filepath
     , mtl
     , singletons
     , some
@@ -106,6 +109,7 @@ executable latc_llvm
     , base >=4.7 && <5
     , containers
     , dependent-map
+    , filepath
     , mtl
     , singletons
     , some
@@ -125,6 +129,7 @@ test-suite LatteCompiler-test
     , base >=4.7 && <5
     , containers
     , dependent-map
+    , filepath
     , mtl
     , singletons
     , some

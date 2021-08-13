@@ -134,6 +134,14 @@ getCurrentBlock = do
       putCurrentBlock bl
       return bl
 
+getCurrentFunc :: (MonadState LLVMState m, MonadError Error m)
+  => m PotentialFunc
+getCurrentFunc = do
+  mbFunc <- gets currentFunc
+  case mbFunc of
+    Just bl -> return bl
+    Nothing -> throwError internalNoFuncError
+
 getCurrentBlockLabel :: MonadState LLVMState m => m Label
 getCurrentBlockLabel = do
   PotBlock { blockLabel = l, .. } <- getCurrentBlock
@@ -203,9 +211,10 @@ finishBlock instr = do
 
     _ -> return ()
 
-addBlock :: MonadState LLVMState m => InheritanceMap -> SimpleBlock -> m ()
+addBlock :: (MonadState LLVMState m, MonadError Error m)
+  => InheritanceMap -> SimpleBlock -> m ()
 addBlock m bl@SimpleBlock { label = l, .. } = do
-  PotFunc { body = blocks, .. } <- gets currentFunc
+  PotFunc { body = blocks, .. } <- getCurrentFunc
   putCurrentFunc $ PotFunc { body = M.insert l (m, bl) blocks, .. }
 
 finishFunc :: (MonadState LLVMState m, MonadError Error m)
@@ -220,7 +229,7 @@ finishFunc p = do
     , argTypes = argTs
     , args = args
     , body = body
-    , .. } <- gets currentFunc
+    , .. } <- getCurrentFunc
   
   let funcBody = map (snd . snd) $ M.toList body
   let func = Func (sGetPrimType retT) argTs args l funcBody
@@ -289,7 +298,7 @@ getInherited' l x = do
       Just reg -> return (False, reg)
   
   else do
-    PotFunc { body = blocks, .. } <- gets currentFunc
+    PotFunc { body = blocks, .. } <- getCurrentFunc
     case M.lookup l blocks of
       Nothing -> throwError internalNoSuchBlockError
       
@@ -318,7 +327,7 @@ getInheritanceMap l = do
     return m
   
   else do
-    PotFunc { body = blocks, .. } <- gets currentFunc
+    PotFunc { body = blocks, .. } <- getCurrentFunc
     case M.lookup l blocks of
       Nothing -> throwError internalNoSuchBlockError
       Just (m, bl) -> return m

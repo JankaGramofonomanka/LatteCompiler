@@ -6,45 +6,39 @@ make
 echo ""
 echo "-- C O M P I L A T I O N -------------------------"
 
-for i in {1..9}
-do 
+for file in ./lattests/good/*.lat
+do
     echo ""
-    echo "core00$i.lat:"
-    ./latc_llvm ./lattests/good/core00$i.lat
+    filename="$(basename $file .lat)" 
+    echo "$filename.lat"
+    ./latc_llvm $file
 done
-
-for i in {10..28} 31 32
-do 
-    echo ""
-    echo "core0$i.lat:"
-    ./latc_llvm ./lattests/good/core0$i.lat
-done
-
 
 
 echo ""
 echo "-- E X E C U T I O N -----------------------------"
 
-for i in {1..9}
+for file in ./lattests/good/*.lat
 do 
     echo ""
-    echo "core00$i.lat:"
+    dir="$(dirname $file)"
+    filename="$(basename $file .lat)"
+    llfile="$dir/$filename.ll"
+    input="$dir/$filename.input"
+
+    echo "$filename.lat"
+    
     echo "-- OUTPUT ------------------------------------"
-    lli ./lattests/good/core00$i.bc
+    if test -f $input
+    then
+        cat $input | lli $llfile
+    else
+        lli $llfile
+    fi
     echo "-- EXPECTED ----------------------------------"
-    cat ./lattests/good/core00$i.output
+    cat $file.output
 done
 
-for i in {10..28} 31 32
-do 
-    echo ""
-    echo "core0$i.lat:"
-    echo "-- OUTPUT ------------------------------------"
-    lli ./lattests/good/core0$i.bc
-    echo "-- EXPECTED ----------------------------------"
-    cat ./lattests/good/core0$i.output
-
-done
 
 make clean
 

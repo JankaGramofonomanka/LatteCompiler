@@ -11,9 +11,9 @@ found here: https://www.mimuw.edu.pl/~ben/Zajecia/Mrj2020/Latte/
 
 - To verify semantic correctness of a program, run
   ```
-  ./latc [FILE]
+  ./latc [FILE.lat]
   ```
-  where `FILE` is the file with code you want to verify.
+  where `FILE.lat` is the file with code you want to verify.
   If the code is correct, the output will be
   ```
   OK
@@ -30,8 +30,8 @@ found here: https://www.mimuw.edu.pl/~ben/Zajecia/Mrj2020/Latte/
 - (NOT IMPLEMENTED YET)
   You can compile your code to llvm by running
   ```
-  ./latc_llvm [FILE]
+  ./latc_llvm [FILE].lat
   ```
-  where `FILE` is the fil with code you want to compile.
-  the llvm code will be outputted.
+  where `FILE.lat` is the file with code you want to compile.
+  the llvm code will be outputed to a file `FILE.ll`.
 

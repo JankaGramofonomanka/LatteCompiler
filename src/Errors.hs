@@ -233,4 +233,6 @@ internalPhiNotPartOfInheritedError :: Error
 internalPhiNotPartOfInheritedError
   = SimpleError "INTERNAL ERROR (phi takes uninherited values)"
 
-
+internalNoFuncError :: Error
+internalNoFuncError
+  = SimpleError "INTERNAL ERROR (no function being converted)"
