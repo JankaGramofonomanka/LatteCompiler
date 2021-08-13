@@ -1,21 +1,23 @@
 .stack-work/
 restart_bnfc
-./lattests/good/*.ll
-./lattests/good/*.bc
 
-./lattests/extensions/arrays1/*.ll
-./lattests/extensions/arrays1/*.bc
+lattests/good/*.ll
+lattests/good/*.bc
 
-./lattests/extensions/objects1/*.ll
-./lattests/extensions/objects1/*.bc
+lattests/extensions/arrays1/*.ll
+lattests/extensions/arrays1/*.bc
 
-./lattests/extensions/objects2/*.ll
-./lattests/extensions/objects2/*.bc
+lattests/extensions/objects1/*.ll
+lattests/extensions/objects1/*.bc
 
-./lattests/extensions/struct/*.ll
-./lattests/extensions/struct/*.bc
+lattests/extensions/objects2/*.ll
+lattests/extensions/objects2/*.bc
+
+lattests/extensions/struct/*.ll
+lattests/extensions/struct/*.bc
 
 latc
 latc_llvm
 
 .toignore/
+.vscode/
