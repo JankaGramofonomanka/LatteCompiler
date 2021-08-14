@@ -18,6 +18,7 @@ import qualified Syntax.SyntaxDep as DS
 
 import TypeCheck.TypeCheck ( ToBeTypeChecked(typeCheck) )
 import Syntax.Debloater ( ToBeDebloated(debloat) )
+import Optimization.EvalConstants
 
 import qualified LLVM.LLVM as LLVM
 import LLVM.Convert
@@ -44,7 +45,7 @@ processTreeTemp tree = evalStateT (typeCheck tree) initTypeCheckState
 processTree :: MonadError Error m => S.Program -> m LLVM.LLVMProg
 processTree tree = do
   typeChecked <- evalStateT (typeCheck tree) initTypeCheckState
-  evalStateT (addProg typeChecked >> extractLLVM) emptyState
+  evalStateT (addProg (evalConstants typeChecked) >> extractLLVM) emptyState
   
 
 
