@@ -20,11 +20,15 @@ import Syntax.Bloater
 import Dependent
 import SingChar
 
+ticks :: String -> String
+ticks s = "`" ++ s ++ "`"
 
 -- IsIdent --------------------------------------------------------------------
 class IsIdent a where
 
   name :: a -> String
+  printIdent :: a -> String
+  printIdent = ticks . name
 
 instance IsIdent BNFC.PIdent where
   name (BNFC.PIdent (_, s)) = s
@@ -54,7 +58,7 @@ class IsType t where
   toBNFCType :: t -> BNFC.Type
 
   printType :: t -> String
-  printType = printTree . toBNFCType
+  printType = ticks . printTree . toBNFCType
 
   someType :: t -> Some DS.SLatteType
   someType = debloat . (debloat :: BNFC.Type -> S.Type) . toBNFCType
@@ -113,7 +117,7 @@ instance IsType (Some DS.SLatteType) where
 class IsVar v where
   toBNFCVar :: v -> BNFC.Var
   printVar :: v -> String
-  printVar = printTree . toBNFCVar
+  printVar = ticks . printTree . toBNFCVar
 
 instance IsVar BNFC.Var where
   toBNFCVar = id
@@ -128,29 +132,31 @@ instance IsVar (DS.Var a) where
 
 -- IsLit ----------------------------------------------------------------------
 class IsLit l where
+  prtLit :: l -> String
   printLit :: l -> String
+  printLit = ticks . prtLit
 
 instance IsLit BNFC.PInteger where
-  printLit (BNFC.PInteger (_, i)) = show i
+  prtLit (BNFC.PInteger (_, i)) = show i
 
 instance IsLit S.SInt where
-  printLit (S.SInt _ i) = show i
+  prtLit (S.SInt _ i) = show i
 
 instance IsLit BNFC.PString where
-  printLit (BNFC.PString (_, s)) = show s
+  prtLit (BNFC.PString (_, s)) = show s
 
 instance IsLit S.SStr where
-  printLit (S.SStr _ s) = show s
+  prtLit (S.SStr _ s) = show s
 
 instance IsLit BNFC.PTrue where
-  printLit (BNFC.PTrue (_, _)) = show True
+  prtLit (BNFC.PTrue (_, _)) = show True
 
 instance IsLit BNFC.PFalse where
-  printLit (BNFC.PFalse (_, _)) = show False
+  prtLit (BNFC.PFalse (_, _)) = show False
 
 instance IsLit Bool where
-  printLit True = show True
-  printLit False = show False
+  prtLit True = show True
+  prtLit False = show False
 
 
 
@@ -159,7 +165,7 @@ instance IsLit Bool where
 class IsExpr e where
   toBNFCExpr :: e -> BNFC.Expr
   printExpr :: e -> String
-  printExpr = printTree . toBNFCExpr
+  printExpr = ticks . printTree . toBNFCExpr
 
 instance IsExpr BNFC.Expr where
   toBNFCExpr = id
@@ -172,26 +178,28 @@ instance IsExpr (DS.Expr a) where
 
 -- IsOp -----------------------------------------------------------------------
 class IsOp op where
+  prtOp :: op -> String
   printOp :: op -> String
+  printOp = ticks . prtOp
 
 instance IsOp BNFC.AddOp where
-  printOp = printTree
+  prtOp = printTree
   
 
 instance IsOp BNFC.MulOp where
-  printOp = printTree
+  prtOp = printTree
 
 instance IsOp BNFC.RelOp where
-  printOp = printTree
+  prtOp = printTree
 
 instance IsOp BNFC.AndOp where
-  printOp = printTree
+  prtOp = printTree
 
 instance IsOp BNFC.OrOp  where
-  printOp = printTree
+  prtOp = printTree
 
 instance IsOp S.BinOp where
-  printOp op = case op of
+  prtOp op = case op of
     S.Plus  _ -> printTree (bloat op :: BNFC.AddOp)
     S.Minus _ -> printTree (bloat op :: BNFC.AddOp)
     S.Times _ -> printTree (bloat op :: BNFC.MulOp)
@@ -199,15 +207,15 @@ instance IsOp S.BinOp where
     S.Mod _   -> printTree (bloat op :: BNFC.MulOp)
 
 instance IsOp S.RelOp where
-  printOp = printTree . (bloat :: S.RelOp -> BNFC.RelOp)
+  prtOp = printTree . (bloat :: S.RelOp -> BNFC.RelOp)
 
 instance IsOp S.BoolOp where
-  printOp op = case op of
+  prtOp op = case op of
     S.And _ -> printTree (bloat op :: BNFC.AndOp)
     S.Or _  -> printTree (bloat op :: BNFC.OrOp)
 
 instance IsOp DS.BinOp where
-  printOp op = case op of
+  prtOp op = case op of
     DS.Plus  _ -> printTree . (bloat :: S.BinOp -> BNFC.AddOp) $ bloat op
     DS.Minus _ -> printTree . (bloat :: S.BinOp -> BNFC.AddOp) $ bloat op
     DS.Times _ -> printTree . (bloat :: S.BinOp -> BNFC.MulOp) $ bloat op
@@ -215,10 +223,10 @@ instance IsOp DS.BinOp where
     DS.Mod _   -> printTree . (bloat :: S.BinOp -> BNFC.MulOp) $ bloat op
 
 instance IsOp (DS.RelOp a) where
-  printOp = printTree . (bloat :: S.RelOp -> BNFC.RelOp) . bloat
+  prtOp = printTree . (bloat :: S.RelOp -> BNFC.RelOp) . bloat
 
 instance IsOp DS.BoolOp where
-  printOp op = case op of
+  prtOp op = case op of
     DS.And _ -> printTree $ (bloat :: S.BoolOp -> BNFC.AndOp) $ bloat op
     DS.Or _  -> printTree $ (bloat :: S.BoolOp -> BNFC.OrOp)  $ bloat op
 
