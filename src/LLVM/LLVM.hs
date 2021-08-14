@@ -165,7 +165,14 @@ data Expr t where
   GetElemPtr    :: Sing t
                 -> Sing (I n) -> Value (Ptr t)
                               -> Value (I n)
-                              -> Expr (Ptr (ElemOf t))
+                              -> Expr (Ptr t)
+  
+  GetArrElemPtr :: Sing (Array t k)
+                -> Sing (I n)
+                -> Sing (I m) -> Value (Ptr (Array t k))
+                              -> Value (I n)
+                              -> Value (I m)
+                              -> Expr (Ptr t)
 
   ICMP          :: Sing (I n) -> CMPKind
                               -> Value (I n)

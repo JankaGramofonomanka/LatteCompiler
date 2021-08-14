@@ -377,7 +377,8 @@ getDefaultValue kw = case kw of
     n :&: arrPtr <- getStrLitConstPtr ""
     zeroPtr <- getNewRegDefault
 
-    addInstr $ Ass zeroPtr $ GetElemPtr (SArray i8 n) i32 arrPtr (ILit 0)
+    addInstr $ Ass zeroPtr
+      $ GetArrElemPtr (SArray i8 n) i32 i32 arrPtr (ILit 0) (ILit 0)
     return $ Var zeroPtr
 
   DS.KWBool _ -> return $ BoolLit False

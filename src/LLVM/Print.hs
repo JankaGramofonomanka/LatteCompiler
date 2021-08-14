@@ -140,6 +140,17 @@ instance SimplePrint (Expr t) where
     , prt indexT
     , prt index
     ]
+  
+  prt (GetArrElemPtr contT indexT1 indexT2 container index1 index2) = paste " " 
+    [ "getelementptr"
+    , prt contT ++ ","
+    , prt (SPtr contT)
+    , prt container ++ ","
+    , prt indexT1
+    , prt index1 ++ ","
+    , prt indexT2
+    , prt index2 ++ ","
+    ]
 
   prt (ICMP t kind lhs rhs)
     = paste " " ["icmp", prt kind, prt t, prt lhs ++ ",", prt rhs]

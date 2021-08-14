@@ -76,7 +76,7 @@ getExprValue expr = case expr of
     reg <- getNewRegDefault
 
     let singT = SArray (sing @(I 8)) n
-    addInstr $ Ass reg $ GetElemPtr singT i32 ptr (ILit 0)
+    addInstr $ Ass reg $ GetArrElemPtr singT i32 i32 ptr (ILit 0) (ILit 0)
     return $ Var reg
 
   ---------------------------------------------------------------------
@@ -87,8 +87,16 @@ getExprValue expr = case expr of
       reg <- getNewRegDefault
 
       let singT = sGetPrimType t
-      addInstr $ Ass reg $ Call singT funcLabel argTypes argList
-      return $ Var reg
+      case singT of
+        SVoid -> do
+          addInstr $ VoidExpr $ Call singT funcLabel argTypes argList
+          return $ Var reg
+
+        _ -> do
+          addInstr $ Ass reg $ Call singT funcLabel argTypes argList
+          return $ Var reg
+      
+      
 
 
     DS.Method {} -> throwTODOP p
