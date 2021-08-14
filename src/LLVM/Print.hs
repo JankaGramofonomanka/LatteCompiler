@@ -3,6 +3,8 @@
   , ScopedTypeVariables
   , DataKinds
   , KindSignatures
+  , PolyKinds
+  , RankNTypes
 #-}
 
 module LLVM.Print where
@@ -20,10 +22,17 @@ import Data.Data (mkConstr)
 
 paste :: String -> [String] -> String
 paste _ [] = ""
+paste _ [x] = x
 paste sep (x : xs) = x ++ sep ++ paste sep xs
 
 class SimplePrint a where
   prt :: a -> String
+
+sPaste :: String -> SList (xs :: [PrimType]) -> String
+sPaste sep SNil = ""
+sPaste sep (SCons x SNil) = prt x
+sPaste sep (SCons x xs) = prt x ++ sep ++ sPaste sep xs
+
 
 -- Primitive Types ------------------------------------------------------------
 
@@ -119,6 +128,7 @@ instance SimplePrint (Expr t) where
     where
       prtArgs :: SList ts -> ArgList ts -> String
       prtArgs SNil DNil = ""
+      prtArgs (SCons t SNil) (arg :> DNil) = paste " " [prt t, prt arg]
       prtArgs (SCons t ts) (arg :> args)
         = paste " " [prt t, prt arg] ++ ", " ++ prtArgs ts args
       
@@ -195,6 +205,7 @@ prtFunc n (Func retT paramTs params funcId blocks)
     where
       prtParams :: SList ts -> ParamList ts -> String
       prtParams SNil DNil = ""
+      prtParams (SCons t SNil) (arg :> DNil) = paste " " [prt t, prt arg]
       prtParams (SCons t ts) (arg :> args)
         = paste " " [prt t, prt arg] ++ ", " ++ prtParams ts args
 
@@ -218,13 +229,8 @@ prtProg n (LLVM mainFunc funcs externFuncs strLits)
       prtExternFunc ((t, ts) :&&: funcLabel)
         = paste " " [ "declare"
                     , prt t
-                    , prt funcLabel ++ "(" ++ prtTypes ts ++ ")"
+                    , prt funcLabel ++ "(" ++ sPaste ", " ts ++ ")"
                     ]
-      
-      prtTypes :: SList (ts :: [PrimType]) -> String
-      prtTypes SNil = ""
-      prtTypes (SCons t ts) = prt t ++ ", " ++ prtTypes ts
-      
       
       prtStrLits :: [(String, SomeStrConst)] -> String
       prtStrLits consts = paste "\n" (map prtStrLit consts)
