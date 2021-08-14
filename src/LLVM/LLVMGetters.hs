@@ -131,17 +131,34 @@ getExprValue expr = case expr of
     return $ Var reg
 
   DS.ERel p t op e1 e2 -> case t of
-      DS.STInt -> do
-        v1 <- getExprValue e1
-        v2 <- getExprValue e2
-        let cmpKind = getCMPKind op
-        reg <- getNewRegDefault
-    
-        addInstr $ Ass reg $ ICMP i32 cmpKind v1 v2
-        return $ Var reg
+      DS.STInt -> getOpDefault t op e1 e2
       
+      DS.STBool -> getOpDefault t op e1 e2
+        
+
       -- TODO implement relations between other types
       _ -> throwError $ relationNotSupportedError p op t
+
+      where
+        getOpDefault :: 
+          ( MonadState LLVMState m
+          , MonadError Error m
+          , GetPrimType t ~ I n
+          )
+          => Sing t
+          -> DS.RelOp t
+          -> DS.Expr t
+          -> DS.Expr t
+          -> m (Value (I 1))
+          
+        getOpDefault singT op ex1 ex2 = do
+          v1 <- getExprValue ex1
+          v2 <- getExprValue ex2
+          let cmpKind = getCMPKind op
+          reg <- getNewRegDefault
+      
+          addInstr $ Ass reg $ ICMP (sGetPrimType singT) cmpKind v1 v2
+          return $ Var reg
 
 
   DS.EBool p op e1 e2 -> do
