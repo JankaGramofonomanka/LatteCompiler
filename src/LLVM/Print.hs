@@ -238,7 +238,7 @@ prtProg n (LLVM mainFunc funcs externFuncs strLits)
       prtStrLit (s, n :&: const)
         = paste " " [ prt const
                     , "= internal constant"
-                    , prt (SArray i8 n), "c" ++ show (mkStrConst s)
+                    , prt (SArray i8 n), "c\"" ++ s ++ "\\00\""
                     ]
 
 

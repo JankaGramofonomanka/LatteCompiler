@@ -249,7 +249,7 @@ instance ToBeBloated S.SInt BNFC.PInteger where
   bloat (S.SInt p i) = BNFC.PInteger (p, show i)
 
 instance ToBeBloated S.SStr BNFC.PString where
-  bloat (S.SStr p s) = BNFC.PString (p, s)
+  bloat (S.SStr p s) = BNFC.PString (p, "\"" ++ s ++ "\"")
 
 instance ToBeBloated S.Program BNFC.Program where
   bloat (S.Program p defs) = BNFC.Program $ map bloat defs

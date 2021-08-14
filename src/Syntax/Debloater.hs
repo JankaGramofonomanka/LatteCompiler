@@ -30,7 +30,10 @@ instance ToBeDebloated BNFC.PInteger S.SInt where
   debloat (BNFC.PInteger (pos, str)) = S.SInt pos (read str)
 
 instance ToBeDebloated BNFC.PString S.SStr where
-  debloat (BNFC.PString (pos, str)) = S.SStr pos str
+  debloat (BNFC.PString (pos, str)) = S.SStr pos (stripQuotes str)
+    
+    where
+      stripQuotes s = init (tail s)
 
 instance ToBeDebloated BNFC.Program S.Program where
   debloat prog@(BNFC.Program defs)
