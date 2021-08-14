@@ -58,6 +58,11 @@ externFuncLabels
     , (SVoid,             sing @'[])          :&&: FuncLabel "error"
     , (sing @(I 32),      sing @'[])          :&&: FuncLabel "readInt"
     , (sing @(Ptr (I 8)), sing @'[])          :&&: FuncLabel "readString"
+    
+    , (sing @(Ptr (I 8)), sing @'[Ptr (I 8), Ptr (I 8)]) :&&: strConcatLabel
     ]
 
+
+strConcatLabel :: FuncLabel (Ptr (I 8)) '[Ptr (I 8), Ptr (I 8)]
+strConcatLabel = FuncLabel ".strconcat"
 

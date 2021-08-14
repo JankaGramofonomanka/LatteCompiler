@@ -36,6 +36,7 @@ import Position.Position
 import Position.SyntaxDepPosition
 
 import Dependent
+import BuiltIns
 
 
 
@@ -182,7 +183,16 @@ getExprValue expr = case expr of
   DS.NewArr   p t e        -> throwTODOP p
   DS.NewObj   p t          -> throwTODOP p
   DS.Cast     p t e        -> throwTODOP p
-  DS.Concat   p e1 e2      -> throwTODOP p
+  DS.Concat   p e1 e2      -> do
+    v1 <- getExprValue e1
+    v2 <- getExprValue e2
+    reg <- getNewRegDefault
+
+    let singT = sing @(Ptr (I 8))
+    let singTs = SCons singT $ SCons singT SNil
+    let args = v1 :> v2 :> DNil
+    addInstr $ Ass reg $ Call singT strConcatLabel singTs args
+    return $ Var reg
 
 getBinOp :: DS.BinOp -> BinOp (I n)
 getBinOp op = case op of
