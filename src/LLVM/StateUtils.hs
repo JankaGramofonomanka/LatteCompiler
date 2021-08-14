@@ -56,7 +56,7 @@ getNewReg s = do
   return $ Reg s n
 
 getNewRegDefault :: MonadState LLVMState m => m (Reg t)
-getNewRegDefault = getNewReg ""
+getNewRegDefault = getNewReg "."
 
 getNewConst :: MonadState LLVMState m => String -> m (Constant t)
 getNewConst s = do
@@ -73,7 +73,7 @@ getNewLabel s = do
   return $ Label s n
 
 getNewLabelDefault :: MonadState LLVMState m => m Label
-getNewLabelDefault = getNewLabel ""
+getNewLabelDefault = getNewLabel "."
 
 getIfElseLabels :: MonadState LLVMState m => m (Label, Label, Label)
 getIfElseLabels = do
