@@ -54,10 +54,10 @@ instance SimplePrint (SPrimType t) where
 
 -- Simple Values --------------------------------------------------------------
 instance SimplePrint (Reg t) where
-  prt (Reg s i) = "%" ++ s ++ show i
+  prt (Reg s i) = "%" ++ s ++ "." ++  show i
 
 instance SimplePrint (Constant t) where
-  prt (Const s i) = "@" ++ s ++ show i
+  prt (Const s i) = "@" ++ s ++ "." ++ show i
 
 instance SimplePrint (Value t) where
   prt (Var reg) = prt reg
@@ -69,7 +69,7 @@ instance SimplePrint (Value t) where
 
 -- Labels ---------------------------------------------------------------------
 instance SimplePrint Label where
-  prt (Label s i) = s ++ show i
+  prt (Label s i) = s ++ "." ++ show i
 
 prtVarLabel :: Label -> String
 prtVarLabel l = "%" ++ prt l
