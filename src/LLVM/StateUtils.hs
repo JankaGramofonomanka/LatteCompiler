@@ -347,6 +347,16 @@ getInheritanceMap l = do
       Just (m, bl) -> return m
 
 
+getIdentValue' :: (MonadState LLVMState m, MonadError Error m)
+  => TypedIdent t -> Label -> m (Bool, Value t)
+getIdentValue' x l = do
+  m <- getLocalVarMap l
+  case DM.lookup x m of
+    Just val  -> return (False, val)
+    Nothing   -> do
+      (changes, reg) <- getInherited' l x
+      return (changes, Var reg)
+    
 
 getIdentValue :: (MonadState LLVMState m, MonadError Error m)
   => TypedIdent t -> Label -> m (Value t)
@@ -425,9 +435,32 @@ fillInheritanceMaps = do
     propagInheritance label acc (D.Some x) = do
       accChanges <- acc
       BlockInfo { inputs = ins, .. } <- getBlockInfo label
-      changesMade <- any fst <$> mapM (\l -> getInherited' l x) ins
+      changesMade <- any fst <$> mapM (getIdentValue' x) ins
       return $ accChanges || changesMade
 
+
+
+prependInstr :: (MonadState LLVMState m, MonadError Error m)
+  => Label -> SimpleInstr -> m ()
+prependInstr l instr = do
+  currentL <- getCurrentBlockLabel
+  if l == currentL then do
+    PotBlock { blockBody = body, .. } <- getCurrentBlock
+    putCurrentBlock $ PotBlock { blockBody = instr : body, .. }
+  
+  else do
+    PotFunc { body = body, .. } <- getCurrentFunc
+    case M.lookup l body of
+      Nothing -> throwError internalNoSuchBlockError
+      Just (m, block) -> do
+        let newBlock = pependInstrInBlock block instr
+        let newBody = M.insert l (m, newBlock) body
+
+        putCurrentFunc $ PotFunc { body = newBody, .. }
+  
+  where
+    pependInstrInBlock SimpleBlock { body = instrs, .. } instr
+      = SimpleBlock { body = instr : instrs, .. }
 
 addPhi :: (MonadState LLVMState m, MonadError Error m)
   => Label -> TypedIdent t -> m ()
@@ -440,7 +473,7 @@ addPhi label x@(TypedIdent singT _) = do
   BlockInfo { inputs = ins, .. } <- getBlockInfo label
   reg <- getInherited label x
   vals <- mapM (getIdentValue x) ins
-  addInstr $ Ass reg $ Phi singT (zip ins vals)
+  prependInstr label $ Ass reg $ Phi singT (zip ins vals)
 
 addPhis :: (MonadState LLVMState m, MonadError Error m)
   => Label -> m ()
