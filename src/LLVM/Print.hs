@@ -15,7 +15,6 @@ import Data.Singletons.TypeLits
 import Data.Singletons.Prelude hiding ( SGT, SLT )
 
 import LLVM.LLVM
-import LLVM.StateUtils ( mkStrConst )
 import Dependent
 import Data.Data (mkConstr)
 

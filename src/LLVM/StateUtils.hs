@@ -20,6 +20,7 @@ import qualified Data.Map as M
 import Data.Maybe
 import Control.Monad.State
 import Control.Monad.Except
+import Data.List
 
 import Data.Singletons.Sigma
 import Data.Singletons.Prelude hiding ( Error )
@@ -39,6 +40,7 @@ import Position.SyntaxDepPosition
 
 import Dependent
 import Control.Monad.RWS.Class (MonadState)
+
 
 strLitPrefix :: [Char]
 strLitPrefix = "str"
@@ -106,150 +108,245 @@ getStrLitConstPtr s = do
   n :&: cst <- getStrLitConst s
   return $ n :&: ConstPtr cst
 
-getBlockInfo :: (MonadState LLVMState m, MonadError Error m)
-  => Label -> m BlockInfo
-getBlockInfo l = do
-  m <- gets blockInfoMap
-  case M.lookup l m of
-    Nothing -> throwError internalNoBlockInfoError
-    Just info -> return info
 
-getBlockInfo' :: (MonadState LLVMState m) => Label -> m BlockInfo
-getBlockInfo' l = do
-  m <- gets blockInfoMap
-  case M.lookup l m of
-    Nothing -> do
-      scL <- gets currentScopeLevel
-      return $ emptyBlockInfo scL
-
-    Just info -> return info
-
-getCurrentBlock :: MonadState LLVMState m => m PotentialBlock
-getCurrentBlock = do
-  mbBlock <- gets currentBlock
-  case mbBlock of
-    Just bl -> return bl
-    Nothing -> do
-      l <- getNewLabelDefault
-      let bl = PotBlock l DM.empty []
-      putCurrentBlock bl
-      return bl
-
-getCurrentFunc :: (MonadState LLVMState m, MonadError Error m)
-  => m PotentialFunc
-getCurrentFunc = do
-  mbFunc <- gets currentFunc
-  case mbFunc of
-    Just bl -> return bl
-    Nothing -> throwError internalNoFuncError
-
-getCurrentBlockLabel :: MonadState LLVMState m => m Label
-getCurrentBlockLabel = do
-  PotBlock { blockLabel = l, .. } <- getCurrentBlock
-  return l
-
-getCurrentBlockInfo :: (MonadState LLVMState m, MonadError Error m)
-  => m BlockInfo
-getCurrentBlockInfo = getCurrentBlockLabel >>= getBlockInfo
-
-getLocalVarMap :: (MonadState LLVMState m) => Label -> m LocalVarMap
-getLocalVarMap l = do
-  m <- gets varMap
-  case M.lookup l m of
-    Just mm -> return mm
-    Nothing -> putLocalVarMap l DM.empty >> return DM.empty
-
-getCurrentVarMap :: MonadState LLVMState m => m LocalVarMap
-getCurrentVarMap = getCurrentBlockLabel >>= getLocalVarMap
-
-putCurrentVarMap :: MonadState LLVMState m => LocalVarMap -> m ()
-putCurrentVarMap m = do
+-------------------------------------------------------------------------------
+addInstr :: LLVMConverter m => SimpleInstr -> m ()
+addInstr instr = do
   l <- getCurrentBlockLabel
-  putLocalVarMap l m
-  
-incrScopeLevel :: MonadState LLVMState m => m ()
-incrScopeLevel = do
-  LLVMState { currentScopeLevel = l, .. } <- get
-  put $ LLVMState { currentScopeLevel = l + 1, .. }
+  appendInstr l instr
 
-decrScopeLevel :: (MonadState LLVMState m, MonadError Error m) => m ()
-decrScopeLevel = do
-  LLVMState { currentScopeLevel = l, .. } <- get
-  when (l <= 0) $ throwError internalScopeLevelBelowZeroError
-  put $ LLVMState { currentScopeLevel = l - 1, .. }
+appendInstr :: LLVMConverter m => Label -> SimpleInstr -> m ()
+appendInstr label instr = do
+  PotBlock { blockBody = body, .. } <- getPotBlock label
+  putPotBlock $ PotBlock { blockBody = body ++ [instr], .. }
+
+prependInstr :: LLVMConverter m => Label -> SimpleInstr -> m ()
+prependInstr label instr = do
+  PotBlock { blockBody = body, .. } <- getPotBlock label
+  putPotBlock $ PotBlock { blockBody = instr : body, .. }
+
+
+
+
+
+addInput :: LLVMConverter m => Label -> Label -> m ()
+addInput label newInput = do
+  PotBlock { inputs = ins, .. } <- getPotBlock' label
+  putPotBlock PotBlock { inputs = ins ++ [newInput], .. }
+
+addOutput :: LLVMConverter m => Label -> Label -> m ()
+addOutput label newOutput = do
+  PotBlock { outputs = outs, .. } <- getPotBlock' label
+  putPotBlock PotBlock { outputs = outs ++ [newOutput], .. }
+
+addEdge :: LLVMConverter m => Label -> Label -> m ()
+addEdge from to = addOutput from to >> addInput to from
+
+
+
+
+addBranchInstr :: LLVMConverter m => Label -> BranchInstr -> m () -> m ()
+addBranchInstr label instr preprocess = do
+  PotBlock { branchInstr = mbInstr, .. } <- getPotBlock label
+  case mbInstr of
+    Nothing -> do
+      preprocess
+      putPotBlock $ PotBlock { branchInstr = Just instr, .. }
+    
+    Just Ret {} -> return ()
+    Just RetVoid -> return ()
+    Just instr -> throwError internalMultipleBranchesError
+
+
+branch :: LLVMConverter m => Label -> Label -> m ()
+branch label output = do
+  addBranchInstr label (Branch output) $ addEdge label output
+    
+
+condBranch :: LLVMConverter m => Label -> Value (I 1) -> Label -> Label -> m ()
+condBranch label cond labelIf labelElse = do
+  
+  addBranchInstr label (CondBranch cond labelIf labelElse)
+    $ addEdge label labelIf >> addEdge label labelElse
+
+ret :: LLVMConverter m => Label -> Sing t -> Value t -> m ()
+ret label singT value = addBranchInstr label (Ret singT value) $ return ()
+  
+retVoid :: LLVMConverter m => Label-> m ()
+retVoid label = addBranchInstr label RetVoid $ return ()
+
+branch' :: LLVMConverter m => Label -> m ()
+branch' output = do
+  l <- getCurrentBlockLabel
+  branch l output
+
+condBranch' :: LLVMConverter m => Value (I 1) -> Label -> Label -> m ()
+condBranch' cond labelIf labelElse = do
+  l <- getCurrentBlockLabel
+  condBranch l cond labelIf labelElse
+
+ret' :: LLVMConverter m => Sing t -> Value t -> m ()
+ret' singT val = do
+  l <- getCurrentBlockLabel
+  ret l singT val
+
+retVoid' :: LLVMConverter m => m ()
+retVoid' = getCurrentBlockLabel >>= retVoid
+
+
+
+
 
 
 -------------------------------------------------------------------------------
-addInstr :: MonadState LLVMState m => SimpleInstr -> m ()
-addInstr instr = do
-  PotBlock { blockBody = body, .. } <- getCurrentBlock
-  putCurrentBlock $ PotBlock { blockBody = body ++ [instr], .. }
+newMaybeEntryBlock :: LLVMConverter m => Bool -> Label -> m ()
+newMaybeEntryBlock isEntry l = do
+  PotBlock { isEntry = _, .. } <- getPotBlock' l
+  putPotBlock $ PotBlock { isEntry = isEntry, .. }
+  
+  putCurrentBlockLabel l
+  order <- getBlockOrder
+  putBlockOrder $ order ++ [l]
+
+newBlock :: LLVMConverter m => Label -> m ()
+newBlock = newMaybeEntryBlock False
+
+newEntryBlock  :: LLVMConverter m => Label -> m ()
+newEntryBlock = newMaybeEntryBlock True
 
 
+
+-------------------------------------------------------------------------------
+getInherited' :: LLVMConverter m => Label -> TypedIdent t -> m (Bool, Reg t)
+getInherited' l x = do
+
+  PotBlock { inherited = m, .. } <- getPotBlock l
+  case DM.lookup x m of
+    Nothing -> do
+      reg <- getNewReg (name x)
+      putPotBlock $ PotBlock { inherited = DM.insert x reg m , .. }
+      assignValue l x (Var reg)
+      return (True, reg)
+
+    Just reg -> return (False, reg)
+  
+
+getInherited :: LLVMConverter m => Label -> TypedIdent t -> m (Reg t)
+getInherited l x = snd <$> getInherited' l x
+  
+getInheritanceMap :: LLVMConverter m => Label -> m InheritanceMap
+getInheritanceMap l = do
+  PotBlock { inherited = m, .. } <- getPotBlock l
+  return m
+
+
+
+getIdentValue' :: LLVMConverter m => TypedIdent t -> Label -> m (Bool, Value t)
+getIdentValue' x l = do
+  m <- getLocalVarMap l
+  case DM.lookup x m of
+    Just val  -> return (False, val)
+    Nothing   -> do
+      (changes, reg) <- getInherited' l x
+      return (changes, Var reg)
     
 
-newBlock :: MonadState LLVMState m => Label -> m ()
-newBlock l = do
-  info <- getBlockInfo' l
-  putBlockInfo l info
-  putCurrentBlock $ PotBlock l DM.empty []
+getIdentValue :: LLVMConverter m => TypedIdent t -> Label -> m (Value t)
+getIdentValue x l = do
+  m <- getLocalVarMap l
+  case DM.lookup x m of
+    Just val  -> return val
+    Nothing   -> Var <$> getInherited l x
+    
 
-finishBlock :: (MonadState LLVMState m, MonadError Error m)
+{-
+assertRetTypeOK :: LLVMConverter m
   => BranchInstr -> m ()
-finishBlock instr = do
-  PotBlock
-    { blockLabel = l
-    , inherited = m
-    , blockBody = body
-    , .. } <- getCurrentBlock
-  --assertRetTypeOK instr
-  let bl = SimpleBlock l body instr
-  addBlock m bl
-  case instr of
-    Branch ll -> addEdge l ll
-    CondBranch _ ll1 ll2 ->
-      addEdge l ll1 >> addEdge l ll2
+assertRetTypeOK instr = case instr of
+  Branch {}           -> return ()
+  CondBranch {}       -> return ()
+  Ret (t :&: v)       -> assertRetTypeIs t
+  RetVoid             -> assertRetTypeIs SVoid
 
-    _ -> return ()
+assertRetTypeIs ::LLVMConverter m
+  => SPrimType t -> m ()
+assertRetTypeIs t = throwTODO
+-- -}
 
-addBlock :: (MonadState LLVMState m, MonadError Error m)
-  => InheritanceMap -> SimpleBlock -> m ()
-addBlock m bl@SimpleBlock { label = l, .. } = do
-  PotFunc { body = blocks, blockOrder = order, .. } <- getCurrentFunc
+-------------------------------------------------------------------------------
+assignValue :: LLVMConverter m => Label -> TypedIdent t -> Value t -> m ()
+assignValue l x val = do
+  m <- getLocalVarMap l      
+  putLocalVarMap l $ DM.insert x val m
+
+
+
+getDefaultValue :: LLVMConverter m => DS.TypeKW t -> m (Value (GetPrimType t))
+getDefaultValue kw = case kw of
+
+  DS.KWInt  _ -> return $ ILit 0
+  DS.KWStr  _ -> do
+    n :&: arrPtr <- getStrLitConstPtr ""
+    zeroPtr <- getNewRegDefault
+
+    addInstr $ Ass zeroPtr
+      $ GetArrElemPtr (SArray i8 n) i32 i32 arrPtr (ILit 0) (ILit 0)
+    return $ Var zeroPtr
+
+  DS.KWBool _ -> return $ BoolLit False
+  DS.KWVoid _ -> throwError $ voidDeclarationError (position kw)
   
-  putCurrentFunc
-    $ PotFunc { body = M.insert l (m, bl) blocks
-              , blockOrder = order ++ [l]
-              , .. 
-              }
+  DS.KWArr t -> Var <$> getNewRegDefault
+  DS.KWCustom clsId -> Var <$> getNewRegDefault
 
-finishFunc :: (MonadState LLVMState m, MonadError Error m)
-  => Pos -> m ()
+
+
+
+
+
+-------------------------------------------------------------------------------
+finishFunc :: LLVMConverter m => Pos -> m ()
 finishFunc p = do
+  dropZombieBlocks
   fillInheritanceMaps
   addAllPhis
-
+  
   PotFunc
     { label       = l
     , retType     = retT
     , argTypes    = argTs
     , args        = args
-    , body        = body
     , blockOrder  = order
     , .. } <- getCurrentFunc
   
 
-  funcBody <- mapM (getBlock body) order
+  funcBody <- mapM (getBlock retT) order
   let func = Func (sGetPrimType retT) argTs args l funcBody
   
   addFunc p retT argTs func
 
   where
-    getBlock m l = case M.lookup l m of
-      Nothing -> throwError $ internalNoSuchBlockError
-      Just (_, block) -> return block
+    getBlock retT label = do
+      
+      PotBlock 
+        { blockLabel  = l
+        , blockBody   = body
+        , branchInstr = mbInstr
+        , .. } <- getPotBlock label
+          
+      case mbInstr of
+        Just instr ->
+          return SimpleBlock { label = l, body = body, lastInstr = instr }
+        Nothing -> case retT of
+          DS.STVoid ->
+            return SimpleBlock { label = l, body = body, lastInstr = RetVoid }
+          
+          _ -> throwError internalNoBranchError
+          
+          
 
-addFunc :: (MonadState LLVMState m, MonadError Error m)
+
+addFunc :: LLVMConverter m
   => Pos -> DS.SLatteType t -> Sing ts -> Func (GetPrimType t) ts -> m ()
 addFunc p t singTs func@(Func singT _ _ (FuncLabel funcName) _) = do
   if funcName == "main" then case t of
@@ -268,161 +365,21 @@ addFunc p t singTs func@(Func singT _ _ (FuncLabel funcName) _) = do
       $ PotProg { funcs = funcs ++ [(singT, singTs) :&&: func], .. }
 
 
-dropBlockInfos :: MonadState LLVMState m => m ()
-dropBlockInfos = putBlockInfoMap M.empty
 
-
-
-addBlockInfo :: (MonadState LLVMState m, MonadError Error m)
-  => Label -> BlockInfo -> m ()
-addBlockInfo l info = do
-  m <- gets blockInfoMap
-  case M.lookup l m of
-    Nothing -> putBlockInfoMap $ M.insert l info m
-    Just i -> throwError internalBlockAlredyExistsError
-
-
-addInput :: MonadState LLVMState m => Label -> Label -> m ()
-addInput block newInput = do
-  BlockInfo { inputs = ins, .. } <- getBlockInfo' block
-  putBlockInfo block $ BlockInfo { inputs = ins ++ [newInput], .. }
-
-addOutput :: MonadState LLVMState m => Label -> Label -> m ()
-addOutput block newOutput = do
-  BlockInfo { outputs = outs, .. } <- getBlockInfo' block
-  putBlockInfo block $ BlockInfo { outputs = outs ++ [newOutput], .. }
-
-addEdge :: MonadState LLVMState m => Label -> Label -> m ()
-addEdge from to = addOutput from to >> addInput to from
-
-getInherited' :: (MonadState LLVMState m, MonadError Error m)
-  => Label -> TypedIdent t -> m (Bool, Reg t)
-getInherited' l x = do
-  currentL <- getCurrentBlockLabel
-
-  if l == currentL then do
-    PotBlock { inherited = m, .. } <- getCurrentBlock
-    case DM.lookup x m of
-      Nothing -> do
-        reg <- getNewReg (name x)
-        putCurrentBlock $ PotBlock { inherited = DM.insert x reg m , .. }
-        assignValue l x (Var reg)
-        return (True, reg)
-
-      Just reg -> return (False, reg)
-  
-  else do
-    PotFunc { body = blocks, .. } <- getCurrentFunc
-    case M.lookup l blocks of
-      Nothing -> throwError internalNoSuchBlockError
-      
-      Just (m, bl) -> case DM.lookup x m of
-        Nothing -> do
-          reg <- getNewReg (name x)
-          let newBody = M.insert l (DM.insert x reg m, bl) blocks
-          putCurrentFunc $ PotFunc { body = newBody, .. }
-          assignValue l x (Var reg)
-          return (True, reg)
-        
-        Just reg -> return (False, reg)
-
-
-getInherited :: (MonadState LLVMState m, MonadError Error m)
-  => Label -> TypedIdent t -> m (Reg t)
-getInherited l x = snd <$> getInherited' l x
-  
-getInheritanceMap :: (MonadState LLVMState m, MonadError Error m)
-  => Label -> m InheritanceMap
-getInheritanceMap l = do
-  currentL <- getCurrentBlockLabel
-
-  if l == currentL then do
-    PotBlock { inherited = m, .. } <- getCurrentBlock
-    return m
-  
-  else do
-    PotFunc { body = blocks, .. } <- getCurrentFunc
-    case M.lookup l blocks of
-      Nothing -> throwError internalNoSuchBlockError
-      Just (m, bl) -> return m
-
-
-getIdentValue' :: (MonadState LLVMState m, MonadError Error m)
-  => TypedIdent t -> Label -> m (Bool, Value t)
-getIdentValue' x l = do
-  m <- getLocalVarMap l
-  case DM.lookup x m of
-    Just val  -> return (False, val)
-    Nothing   -> do
-      (changes, reg) <- getInherited' l x
-      return (changes, Var reg)
-    
-
-getIdentValue :: (MonadState LLVMState m, MonadError Error m)
-  => TypedIdent t -> Label -> m (Value t)
-getIdentValue x l = do
-  m <- getLocalVarMap l
-  case DM.lookup x m of
-    Just val  -> return val
-    Nothing   -> Var <$> getInherited l x
-    
-
-{-
-assertRetTypeOK :: (MonadState LLVMState m, MonadError Error m)
-  => BranchInstr -> m ()
-assertRetTypeOK instr = case instr of
-  Branch {}           -> return ()
-  CondBranch {}       -> return ()
-  Ret (t :&: v)       -> assertRetTypeIs t
-  RetVoid             -> assertRetTypeIs SVoid
-
-assertRetTypeIs ::(MonadState LLVMState m, MonadError Error m)
-  => SPrimType t -> m ()
-assertRetTypeIs t = throwTODO
--- -}
 
 -------------------------------------------------------------------------------
-assignValue :: (MonadState LLVMState m, MonadError Error m)
-  => Label -> TypedIdent t -> Value t -> m ()
-assignValue l x val = do
-  m <- getLocalVarMap l      
-  putLocalVarMap l $ DM.insert x val m
-
-
-
-getDefaultValue :: (MonadState LLVMState m, MonadError Error m)
-  => DS.TypeKW t -> m (Value (GetPrimType t))
-getDefaultValue kw = case kw of
-
-  DS.KWInt  _ -> return $ ILit 0
-  DS.KWStr  _ -> do
-    n :&: arrPtr <- getStrLitConstPtr ""
-    zeroPtr <- getNewRegDefault
-
-    addInstr $ Ass zeroPtr
-      $ GetArrElemPtr (SArray i8 n) i32 i32 arrPtr (ILit 0) (ILit 0)
-    return $ Var zeroPtr
-
-  DS.KWBool _ -> return $ BoolLit False
-  DS.KWVoid _ -> throwError $ voidDeclarationError (position kw)
-  
-  DS.KWArr t -> Var <$> getNewRegDefault
-  DS.KWCustom clsId -> Var <$> getNewRegDefault
-
-fillInheritanceMaps :: (MonadState LLVMState m, MonadError Error m) => m ()
+fillInheritanceMaps :: LLVMConverter m => m ()
 fillInheritanceMaps = do
-  labels <- gets (map fst . M.toList . blockInfoMap)
+  labels <- getBlockOrder
   loopThrough labels
 
   where
-    loopThrough :: (MonadState LLVMState m, MonadError Error m)
-      => [Label] -> m ()
+    loopThrough :: LLVMConverter m => [Label] -> m ()
     loopThrough labels = do
       changesMade <- foldl propagInheritances (pure False) labels
       when changesMade $ loopThrough labels
     
-    propagInheritances :: (MonadState LLVMState m, MonadError Error m)
-      => m Bool ->  Label -> m Bool
+    propagInheritances :: LLVMConverter m => m Bool ->  Label -> m Bool
     propagInheritances acc label = do
       accChanges <- acc
       m <- getInheritanceMap label
@@ -430,53 +387,27 @@ fillInheritanceMaps = do
       changesMade <- foldl (propagInheritance label) (pure False) inheritedIds
       return $ accChanges || changesMade
       
-    propagInheritance :: (MonadState LLVMState m, MonadError Error m)
+    propagInheritance :: LLVMConverter m
       => Label -> m Bool -> D.Some TypedIdent -> m Bool
     propagInheritance label acc (D.Some x) = do
       accChanges <- acc
-      BlockInfo { inputs = ins, .. } <- getBlockInfo label
+      PotBlock { inputs = ins, .. } <- getPotBlock label
       changesMade <- any fst <$> mapM (getIdentValue' x) ins
       return $ accChanges || changesMade
 
-
-
-prependInstr :: (MonadState LLVMState m, MonadError Error m)
-  => Label -> SimpleInstr -> m ()
-prependInstr l instr = do
-  currentL <- getCurrentBlockLabel
-  if l == currentL then do
-    PotBlock { blockBody = body, .. } <- getCurrentBlock
-    putCurrentBlock $ PotBlock { blockBody = instr : body, .. }
-  
-  else do
-    PotFunc { body = body, .. } <- getCurrentFunc
-    case M.lookup l body of
-      Nothing -> throwError internalNoSuchBlockError
-      Just (m, block) -> do
-        let newBlock = pependInstrInBlock block instr
-        let newBody = M.insert l (m, newBlock) body
-
-        putCurrentFunc $ PotFunc { body = newBody, .. }
-  
-  where
-    pependInstrInBlock SimpleBlock { body = instrs, .. } instr
-      = SimpleBlock { body = instr : instrs, .. }
-
-addPhi :: (MonadState LLVMState m, MonadError Error m)
-  => Label -> TypedIdent t -> m ()
+addPhi :: LLVMConverter m => Label -> TypedIdent t -> m ()
 addPhi label x@(TypedIdent singT _) = do
   m <- getInheritanceMap label
   let inheritedIds = DM.keys m
   unless (D.Some x `elem` inheritedIds)
     $ throwError internalPhiNotPartOfInheritedError
 
-  BlockInfo { inputs = ins, .. } <- getBlockInfo label
+  PotBlock { inputs = ins, .. } <- getPotBlock label
   reg <- getInherited label x
   vals <- mapM (getIdentValue x) ins
   prependInstr label $ Ass reg $ Phi singT (zip ins vals)
 
-addPhis :: (MonadState LLVMState m, MonadError Error m)
-  => Label -> m ()
+addPhis :: LLVMConverter m => Label -> m ()
 addPhis label = do
   m <- getInheritanceMap label
   let inheritedIds = DM.keys m
@@ -486,8 +417,50 @@ addPhis label = do
     addPhi' l (D.Some x) = addPhi l x
 
 
-addAllPhis :: (MonadState LLVMState m, MonadError Error m) => m ()
+addAllPhis :: LLVMConverter m => m ()
 addAllPhis = do
-  labels <- gets (map fst . M.toList . blockInfoMap)
+  labels <- getBlockOrder
   mapM_ addPhis labels
+
+
+
+-------------------------------------------------------------------------------
+dropZombieBlocks :: LLVMConverter m => m ()
+dropZombieBlocks = do
+  labels <- getBlockOrder
+  changeMade <- or <$> mapM dropIfZombie labels
+  when changeMade dropZombieBlocks
+
+  where
+  
+    dropIfZombie :: LLVMConverter m => Label -> m Bool
+    dropIfZombie label = do
+      block <- getPotBlock label
+      if isEntry block then
+        return False
+      else case inputs block of
+        [] -> dropPotBlock label >> return True
+        _ -> return False
+
+    dropPotBlock :: LLVMConverter m => Label -> m ()
+    dropPotBlock l = do
+      labels <- getBlockOrder
+      putBlockOrder $ delete l labels
+
+      dropInputs l
+
+      PotFunc { body = body, .. } <- getCurrentFunc
+      putCurrentFunc $ PotFunc { body = M.delete l body, .. }
+      
+
+    dropInputs :: LLVMConverter m => Label -> m ()
+    dropInputs l = do
+      labels <- getBlockOrder
+      mapM_ (dropInput l) labels
+
+    dropInput :: LLVMConverter m => Label -> Label -> m ()
+    dropInput input output = do
+      PotBlock { inputs = ins, .. } <- getPotBlock output
+
+      putPotBlock $ PotBlock { inputs = delete input ins, .. }
 

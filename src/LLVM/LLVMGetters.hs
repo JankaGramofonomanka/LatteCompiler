@@ -49,7 +49,7 @@ false = BoolLit False
 
 
 
-getVarValue :: (MonadState LLVMState m, MonadError Error m)
+getVarValue :: LLVMConverter m
   => DS.SLatteType t -> DS.Var t -> m (Value (GetPrimType t))
 getVarValue singT var = case var of
   DS.Var p x -> do
@@ -63,8 +63,7 @@ getVarValue singT var = case var of
 
 
 
-getExprValue :: (MonadState LLVMState m, MonadError Error m)
-  => DS.Expr t -> m (Value (GetPrimType t))
+getExprValue :: LLVMConverter m => DS.Expr t -> m (Value (GetPrimType t))
 getExprValue expr = case expr of
   DS.EVar p singT v -> getVarValue singT v
 
@@ -117,12 +116,12 @@ getExprValue expr = case expr of
     (labelIf, labelElse, labelJoin) <- getIfElseLabels
     
     addInstr $ Ass cond $ ICMP i1 EQ v true
-    finishBlock (CondBranch (Var cond) labelIf labelElse)
+    condBranch' (Var cond) labelIf labelElse
     
     newBlock labelIf
-    finishBlock $ Branch labelJoin
+    branch' labelJoin
     newBlock labelElse
-    finishBlock $ Branch labelJoin
+    branch' labelJoin
     newBlock labelJoin
 
     addInstr $ Ass reg
@@ -149,8 +148,7 @@ getExprValue expr = case expr of
 
       where
         getOpDefault :: 
-          ( MonadState LLVMState m
-          , MonadError Error m
+          ( LLVMConverter m
           , GetPrimType t ~ I n
           )
           => Sing t
@@ -174,16 +172,16 @@ getExprValue expr = case expr of
 
     
     val1 <- getExprValue e1
-    finishBlock $ CondBranch val1 labelIf labelElse
+    condBranch' val1 labelIf labelElse
     
     case op of
       DS.And _ -> do
         newBlock labelIf
         val2 <- getExprValue e2
-        finishBlock $ Branch labelJoin
+        branch' labelJoin
 
         newBlock labelElse
-        finishBlock $ Branch labelJoin
+        branch' labelJoin
 
         newBlock labelJoin
         reg <- getNewRegDefault
@@ -193,11 +191,11 @@ getExprValue expr = case expr of
         
       DS.Or _ -> do
         newBlock labelIf
-        finishBlock $ Branch labelJoin
+        branch' labelJoin
 
         newBlock labelElse
         val2 <- getExprValue e2
-        finishBlock $ Branch labelJoin
+        branch' labelJoin
 
         newBlock labelJoin
         reg <- getNewRegDefault
@@ -237,7 +235,7 @@ getCMPKind op = case op of
   DS.NE  _ -> NE
 
 
-getArgs :: (MonadState LLVMState m, MonadError Error m)
+getArgs :: LLVMConverter m
   => SList ts
   -> DS.ExprList ts
   -> m (SList (GetPrimTypes ts), ArgList (GetPrimTypes ts))

@@ -217,6 +217,10 @@ internalNoSuchBlockError = SimpleError "INTERNAL ERROR (block not found)"
 internalNoBlockInfoError :: Error
 internalNoBlockInfoError = SimpleError "INTERNAL ERROR (no block info)"
 
+internalNoCurrentBlockError :: Error
+internalNoCurrentBlockError
+  = SimpleError "INTERNAL ERROR (no block being currently written)"
+
 internalBlockAlredyExistsError :: Error
 internalBlockAlredyExistsError
   = SimpleError "INTERNAL ERROR (block label repeated)"
@@ -241,3 +245,11 @@ internalPhiNotPartOfInheritedError
 internalNoFuncError :: Error
 internalNoFuncError
   = SimpleError "INTERNAL ERROR (no function being converted)"
+
+internalMultipleBranchesError :: Error
+internalMultipleBranchesError
+  = SimpleError "INTERNAL ERROR (multiple branch instructions in one block)"
+
+internalNoBranchError :: Error
+internalNoBranchError
+  = SimpleError "INTERNAL ERROR (block without branch instruction)"

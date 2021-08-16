@@ -39,7 +39,7 @@ import Dependent
 import BuiltIns
 
 
-addStmt :: (MonadState LLVMState m, MonadError Error m) => DS.Stmt -> m ()
+addStmt :: LLVMConverter m => DS.Stmt -> m ()
 addStmt stmt = case stmt of
   DS.Empty    p -> return ()
   DS.BStmt    p (DS.Block _ stmts) -> do
@@ -47,13 +47,13 @@ addStmt stmt = case stmt of
     enter <- getNewLabel "EnterSubScope"
     exit <- getNewLabel "ExitSubScope"
     
-    finishBlock $ Branch enter
+    branch' enter
     incrScopeLevel
     newBlock enter
 
     mapM_ addStmt stmts
 
-    finishBlock $ Branch exit
+    branch' exit
     decrScopeLevel 
     newBlock exit    
 
@@ -76,49 +76,49 @@ addStmt stmt = case stmt of
 
   DS.Ret      p singT expr -> do
     v <- getExprValue expr
-    finishBlock $ Ret (sGetPrimType singT) v
+    ret' (sGetPrimType singT) v
 
   DS.VRet     p -> do
-    finishBlock RetVoid
+    retVoid'
 
   DS.Cond     p expr stm -> do
     (labelIf, _, labelJoin) <- getIfElseLabels
     cond <- getExprValue expr
-    finishBlock $ CondBranch cond labelIf labelJoin
+    condBranch' cond labelIf labelJoin
 
     newBlock labelIf
     addStmtIgnoreBlock stm
-    finishBlock $ Branch labelJoin
+    branch' labelJoin
 
     newBlock labelJoin
 
   DS.CondElse p expr stmIf stmElse -> do
     (labelIf, labelElse,  labelJoin) <- getIfElseLabels
     cond <- getExprValue expr
-    finishBlock $ CondBranch cond labelIf labelElse
+    condBranch' cond labelIf labelElse
 
     newBlock labelIf
     addStmtIgnoreBlock stmIf
-    finishBlock $ Branch labelJoin
+    branch' labelJoin
 
     newBlock labelElse
     addStmtIgnoreBlock stmElse
-    finishBlock $ Branch labelJoin
+    branch' labelJoin
 
     newBlock labelJoin
 
   DS.While p expr stm -> do
     (labelCond, labelLoop, labelJoin) <- getWhileLabels
     
-    finishBlock $ Branch labelCond
+    branch' labelCond
 
     newBlock labelLoop
     addStmtIgnoreBlock stm
-    finishBlock $ Branch labelCond
+    branch' labelCond
 
     newBlock labelCond
     cond <- getExprValue expr
-    finishBlock $ CondBranch cond labelLoop labelJoin
+    condBranch' cond labelLoop labelJoin
 
     newBlock labelJoin
 
@@ -129,8 +129,7 @@ addStmt stmt = case stmt of
   DS.For p t i var stm -> throwTODOP p
 
 
-declareItem :: (MonadState LLVMState m, MonadError Error m)
-  => DS.TypeKW t -> DS.Item t -> m ()
+declareItem :: LLVMConverter m => DS.TypeKW t -> DS.Item t -> m ()
 declareItem kw it = case it of
   (DS.NoInit x) -> getDefaultValue kw >>= declIt kw x
 
@@ -143,7 +142,7 @@ declareItem kw it = case it of
       assignValue l (typedIdent singT x) v
 
 
-overwriteVar :: (MonadState LLVMState m, MonadError Error m)
+overwriteVar :: LLVMConverter m
   => Sing t -> DS.Var t -> Value (GetPrimType t) -> m ()
 overwriteVar singT var val = case var of
   DS.Var p x -> do
@@ -156,8 +155,7 @@ overwriteVar singT var val = case var of
   DS.Self {} -> throwTODOP (position var)
 
 
-addStmtIgnoreBlock :: (MonadState LLVMState m, MonadError Error m)
-  => DS.Stmt -> m ()
+addStmtIgnoreBlock :: LLVMConverter m => DS.Stmt -> m ()
 addStmtIgnoreBlock stmt = case stmt of
   DS.BStmt _ (DS.Block _ stmts) -> do
     incrScopeLevel
@@ -167,7 +165,7 @@ addStmtIgnoreBlock stmt = case stmt of
   _ -> addStmt stmt
 
 -------------------------------------------------------------------------------
-addFnDef :: (MonadState LLVMState m, MonadError Error m) => DS.FnDef -> m ()
+addFnDef :: LLVMConverter m => DS.FnDef -> m ()
 addFnDef (DS.FnDef p t funcId params (DS.Block _ stmts)) = do
   incrScopeLevel
 
@@ -183,7 +181,7 @@ addFnDef (DS.FnDef p t funcId params (DS.Block _ stmts)) = do
   putCurrentFunc currentFunc
 
   l <- getNewLabel (name funcId)
-  newBlock l
+  newEntryBlock l
   declareParams l primArgs params
 
   mapM_ addStmt stmts
@@ -191,18 +189,15 @@ addFnDef (DS.FnDef p t funcId params (DS.Block _ stmts)) = do
 
   decrScopeLevel
 
-  dropBlockInfos
-
-getParams :: (MonadState LLVMState m, MonadError Error m)
- => DS.ParamList ts
- -> m (SList (GetPrimTypes ts), ParamList (GetPrimTypes ts))
+getParams :: LLVMConverter m
+ => DS.ParamList ts -> m (SList (GetPrimTypes ts), ParamList (GetPrimTypes ts))
 getParams DNil = return (SNil, DNil)
 getParams (DS.Param kw x :> params) = do
   (types, args) <- getParams params
   reg <- getNewReg (name x)
   return (SCons (sGetPrimType $ DS.singFromKW kw) types, reg :> args)
 
-declareParams :: (MonadState LLVMState m, MonadError Error m)
+declareParams :: LLVMConverter m
   => Label -> ParamList (GetPrimTypes ts) -> DS.ParamList ts -> m ()
 declareParams _ DNil DNil = return ()
 declareParams l (reg :> regs) (DS.Param kw x :> params) = do
@@ -212,13 +207,13 @@ declareParams l (reg :> regs) (DS.Param kw x :> params) = do
 
 
 -------------------------------------------------------------------------------
-addProg :: (MonadState LLVMState m, MonadError Error m) => DS.Program -> m ()
+addProg :: LLVMConverter m => DS.Program -> m ()
 addProg (DS.Program _ defs) = mapM_ addFnDef' defs where
   addFnDef' (Left def) = throwTODOP (position def)
   addFnDef' (Right def) = addFnDef def
 
 
-extractLLVM :: (MonadState LLVMState m, MonadError Error m) => m LLVMProg
+extractLLVM :: LLVMConverter m => m LLVMProg
 extractLLVM = do
   PotProg { mainFunc = mbMain, funcs = funcs, .. } <- gets currentProg
   case mbMain of
