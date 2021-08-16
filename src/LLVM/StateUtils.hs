@@ -111,7 +111,7 @@ getBlockInfo :: (MonadState LLVMState m, MonadError Error m)
 getBlockInfo l = do
   m <- gets blockInfoMap
   case M.lookup l m of
-    Nothing -> throwError internalNoSuchBlockError
+    Nothing -> throwError internalNoBlockInfoError
     Just info -> return info
 
 getBlockInfo' :: (MonadState LLVMState m) => Label -> m BlockInfo
@@ -215,8 +215,13 @@ finishBlock instr = do
 addBlock :: (MonadState LLVMState m, MonadError Error m)
   => InheritanceMap -> SimpleBlock -> m ()
 addBlock m bl@SimpleBlock { label = l, .. } = do
-  PotFunc { body = blocks, .. } <- getCurrentFunc
-  putCurrentFunc $ PotFunc { body = M.insert l (m, bl) blocks, .. }
+  PotFunc { body = blocks, blockOrder = order, .. } <- getCurrentFunc
+  
+  putCurrentFunc
+    $ PotFunc { body = M.insert l (m, bl) blocks
+              , blockOrder = order ++ [l]
+              , .. 
+              }
 
 finishFunc :: (MonadState LLVMState m, MonadError Error m)
   => Pos -> m ()
@@ -225,17 +230,24 @@ finishFunc p = do
   addAllPhis
 
   PotFunc
-    { label = l
-    , retType = retT
-    , argTypes = argTs
-    , args = args
-    , body = body
+    { label       = l
+    , retType     = retT
+    , argTypes    = argTs
+    , args        = args
+    , body        = body
+    , blockOrder  = order
     , .. } <- getCurrentFunc
   
-  let funcBody = map (snd . snd) $ M.toList body
+
+  funcBody <- mapM (getBlock body) order
   let func = Func (sGetPrimType retT) argTs args l funcBody
   
   addFunc p retT argTs func
+
+  where
+    getBlock m l = case M.lookup l m of
+      Nothing -> throwError $ internalNoSuchBlockError
+      Just (_, block) -> return block
 
 addFunc :: (MonadState LLVMState m, MonadError Error m)
   => Pos -> DS.SLatteType t -> Sing ts -> Func (GetPrimType t) ts -> m ()

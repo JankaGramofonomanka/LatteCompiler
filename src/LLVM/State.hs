@@ -70,11 +70,12 @@ data PotentialBlock = PotBlock
 
 data PotentialFunc where
   PotFunc ::
-    { label     :: FuncLabel (GetPrimType t) ts
-    , retType   :: Sing t
-    , argTypes  :: Sing ts
-    , args      :: ParamList ts
-    , body      :: M.Map Label (InheritanceMap, SimpleBlock)
+    { label       :: FuncLabel (GetPrimType t) ts
+    , retType     :: Sing t
+    , argTypes    :: Sing ts
+    , args        :: ParamList ts
+    , body        :: M.Map Label (InheritanceMap, SimpleBlock)
+    , blockOrder  :: [Label]
     } -> PotentialFunc
 
 data PotentialProg where

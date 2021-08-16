@@ -212,7 +212,10 @@ internalFuncToClassDefError p = OnePosError p
   $ "INTERNAL ERROR (Conversion of function definition to class definition)"
 
 internalNoSuchBlockError :: Error
-internalNoSuchBlockError = SimpleError "INTERNAL ERROR (no block info)"
+internalNoSuchBlockError = SimpleError "INTERNAL ERROR (block not found)"
+
+internalNoBlockInfoError :: Error
+internalNoBlockInfoError = SimpleError "INTERNAL ERROR (no block info)"
 
 internalBlockAlredyExistsError :: Error
 internalBlockAlredyExistsError

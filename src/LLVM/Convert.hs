@@ -162,11 +162,12 @@ addFnDef (DS.FnDef p t funcId params (DS.Block _ stmts)) = do
   incrScopeLevel
 
   (primTs, primArgs) <- getParams params
-  let currentFunc = PotFunc { label = FuncLabel (name funcId)
-                            , retType = DS.singFromKW t
-                            , argTypes = primTs
-                            , args = primArgs
-                            , body = M.empty
+  let currentFunc = PotFunc { label       = FuncLabel (name funcId)
+                            , retType     = DS.singFromKW t
+                            , argTypes    = primTs
+                            , args        = primArgs
+                            , body        = M.empty
+                            , blockOrder  = []
                             }
 
   putCurrentFunc currentFunc
