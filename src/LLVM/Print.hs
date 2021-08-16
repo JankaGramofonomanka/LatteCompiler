@@ -149,7 +149,7 @@ instance SimplePrint (Expr t) where
     , prt indexT1
     , prt index1 ++ ","
     , prt indexT2
-    , prt index2 ++ ","
+    , prt index2
     ]
 
   prt (ICMP t kind lhs rhs)
