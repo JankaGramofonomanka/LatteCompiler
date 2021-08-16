@@ -87,7 +87,7 @@ addStmt stmt = case stmt of
     finishBlock $ CondBranch cond labelIf labelJoin
 
     newBlock labelIf
-    addStmt stm
+    addStmtIgnoreBlock stm
     finishBlock $ Branch labelJoin
 
     newBlock labelJoin
@@ -98,11 +98,11 @@ addStmt stmt = case stmt of
     finishBlock $ CondBranch cond labelIf labelElse
 
     newBlock labelIf
-    addStmt stmIf
+    addStmtIgnoreBlock stmIf
     finishBlock $ Branch labelJoin
 
     newBlock labelElse
-    addStmt stmElse
+    addStmtIgnoreBlock stmElse
     finishBlock $ Branch labelJoin
 
     newBlock labelJoin
@@ -113,7 +113,7 @@ addStmt stmt = case stmt of
     finishBlock $ Branch labelCond
 
     newBlock labelLoop
-    addStmt stm
+    addStmtIgnoreBlock stm
     finishBlock $ Branch labelCond
 
     newBlock labelCond
@@ -155,6 +155,16 @@ overwriteVar singT var val = case var of
   DS.Null {} -> throwTODOP (position var)
   DS.Self {} -> throwTODOP (position var)
 
+
+addStmtIgnoreBlock :: (MonadState LLVMState m, MonadError Error m)
+  => DS.Stmt -> m ()
+addStmtIgnoreBlock stmt = case stmt of
+  DS.BStmt _ (DS.Block _ stmts) -> do
+    incrScopeLevel
+    mapM_ addStmt stmts
+    decrScopeLevel
+
+  _ -> addStmt stmt
 
 -------------------------------------------------------------------------------
 addFnDef :: (MonadState LLVMState m, MonadError Error m) => DS.FnDef -> m ()
