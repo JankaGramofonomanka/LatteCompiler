@@ -253,3 +253,12 @@ internalMultipleBranchesError
 internalNoBranchError :: Error
 internalNoBranchError
   = SimpleError "INTERNAL ERROR (block without branch instruction)"
+
+internalPhiInEntryError :: Error
+internalPhiInEntryError
+  = SimpleError "INTERNAL ERROR (phi instruction in entry block)"
+
+internalNoInputsError :: Error
+internalNoInputsError
+  = SimpleError "INTERNAL ERROR (non-entry block without inputs)"
+

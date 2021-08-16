@@ -249,14 +249,10 @@ getIdentValue' x l = do
     Nothing   -> do
       (changes, reg) <- getInherited' l x
       return (changes, Var reg)
-    
+
 
 getIdentValue :: LLVMConverter m => TypedIdent t -> Label -> m (Value t)
-getIdentValue x l = do
-  m <- getLocalVarMap l
-  case DM.lookup x m of
-    Just val  -> return val
-    Nothing   -> Var <$> getInherited l x
+getIdentValue x l = snd <$> getIdentValue' x l
     
 
 {-
@@ -402,7 +398,12 @@ addPhi label x@(TypedIdent singT _) = do
   unless (D.Some x `elem` inheritedIds)
     $ throwError internalPhiNotPartOfInheritedError
 
-  PotBlock { inputs = ins, .. } <- getPotBlock label
+  block <- getPotBlock label
+  when (isEntry block) $ throwError internalPhiInEntryError
+
+  let ins = inputs block
+  when (null ins) $ throwError internalNoInputsError
+
   reg <- getInherited label x
   vals <- mapM (getIdentValue x) ins
   prependInstr label $ Ass reg $ Phi singT (zip ins vals)

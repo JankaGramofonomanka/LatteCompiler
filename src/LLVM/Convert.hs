@@ -204,6 +204,7 @@ declareParams l (reg :> regs) (DS.Param kw x :> params) = do
   let singT = DS.singFromKW kw
   let typedX = typedIdent singT x
   assignValue l typedX (Var reg)
+  declareParams l regs params
 
 
 -------------------------------------------------------------------------------
