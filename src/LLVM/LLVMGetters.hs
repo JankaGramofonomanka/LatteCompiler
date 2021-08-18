@@ -178,6 +178,7 @@ getExprValue expr = case expr of
       DS.And _ -> do
         newBlock labelIf
         val2 <- getExprValue e2
+        labelIfExit <- getCurrentBlockLabel
         branch' labelJoin
 
         newBlock labelElse
@@ -185,7 +186,7 @@ getExprValue expr = case expr of
 
         newBlock labelJoin
         reg <- getNewRegDefault
-        addInstr $ Ass reg $ Phi i1 [(labelIf, val2), (labelElse, false)]
+        addInstr $ Ass reg $ Phi i1 [(labelIfExit, val2), (labelElse, false)]
         return $ Var reg
 
         
@@ -195,11 +196,12 @@ getExprValue expr = case expr of
 
         newBlock labelElse
         val2 <- getExprValue e2
+        labelElseExit <- getCurrentBlockLabel
         branch' labelJoin
 
         newBlock labelJoin
         reg <- getNewRegDefault
-        addInstr $ Ass reg $ Phi i1 [(labelIf, true), (labelElse, val2)]
+        addInstr $ Ass reg $ Phi i1 [(labelIf, true), (labelElseExit, val2)]
         return $ Var reg
     
   ---------------------------------------------------------------------
