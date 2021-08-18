@@ -21,3 +21,4 @@ latc_llvm
 
 .toignore/
 .vscode/
+test_one
