@@ -1,0 +1,43 @@
+#!/bin/bash
+
+
+make
+
+echo ""
+echo "-- C O M P I L A T I O N -------------------------"
+
+
+dir="./lattests/mine"
+filename="core001"
+file="$dir/$filename.lat"
+llfile="$dir/$filename.ll"
+execfile="$dir/$filename.bc"
+input="$dir/$filename.input"
+
+echo ""
+echo "$filename.lat"
+./latc_llvm $file
+
+llvm-link -o "$execfile" "$llfile" runtime.ll
+
+
+
+echo ""
+echo "-- E X E C U T I O N -----------------------------"
+
+echo ""
+echo "$filename.lat"
+
+echo "-- OUTPUT ------------------------------------"
+if test -f $input
+then
+    cat $input | lli $execfile
+else
+    lli $execfile
+fi
+echo "-- EXPECTED ----------------------------------"
+cat $file.output
+
+
+make clean
+

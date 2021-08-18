@@ -9,9 +9,12 @@ echo "-- C O M P I L A T I O N -------------------------"
 for file in ./lattests/good/*.lat
 do
     echo ""
+    dir="$(dirname $file)"
     filename="$(basename $file .lat)" 
     echo "$filename.lat"
     ./latc_llvm $file
+    
+    llvm-link -o "$dir/$filename.bc" "$dir/$filename.ll" runtime.ll
 done
 
 
@@ -23,7 +26,7 @@ do
     echo ""
     dir="$(dirname $file)"
     filename="$(basename $file .lat)"
-    llfile="$dir/$filename.ll"
+    execfile="$dir/$filename.bc"
     input="$dir/$filename.input"
 
     echo "$filename.lat"
@@ -31,9 +34,9 @@ do
     echo "-- OUTPUT ------------------------------------"
     if test -f $input
     then
-        cat $input | lli $llfile
+        cat $input | lli $execfile
     else
-        lli $llfile
+        lli $execfile
     fi
     echo "-- EXPECTED ----------------------------------"
     cat $file.output
