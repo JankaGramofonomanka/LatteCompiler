@@ -76,7 +76,7 @@ instance ToBeDebloated BNFC.Stmt S.Stmt where
     BNFC.Decl t items _  -> S.Decl pos (debloat t) (map debloat items)
     BNFC.Ass var expr _  -> S.Ass pos (debloat var) (debloat expr)
     BNFC.Incr var _      -> S.Incr pos (debloat var)
-    BNFC.Decr var _      -> S.Incr pos (debloat var)
+    BNFC.Decr var _      -> S.Decr pos (debloat var)
     BNFC.Ret _ expr _    -> S.Ret pos (debloat expr)
     BNFC.VRet _ _        -> S.VRet pos
     BNFC.Cond _ expr st  -> S.Cond pos (debloat expr) (debloat st)
