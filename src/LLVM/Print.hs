@@ -19,6 +19,9 @@ import Dependent
 import Data.Data (mkConstr)
 
 
+tab :: Int -> String -> String
+tab n s = replicate n ' ' ++ s
+
 paste :: String -> [String] -> String
 paste _ [] = ""
 paste _ [x] = x
@@ -169,7 +172,7 @@ instance SimplePrint SimpleInstr where
   prt (VoidExpr expr) = prt expr
 
 prtSimpleInstr :: Int -> SimpleInstr -> String
-prtSimpleInstr n instr = replicate n ' ' ++ prt instr
+prtSimpleInstr n instr = tab n (prt instr)
 
 instance SimplePrint BranchInstr where
   prt (Branch l) = paste " " ["br label", prtVarLabel l]
@@ -185,23 +188,36 @@ instance SimplePrint BranchInstr where
   prt RetVoid = "ret void"
 
 prtBranchInstr :: Int -> BranchInstr -> String
-prtBranchInstr n instr = replicate n ' ' ++ prt instr
+prtBranchInstr n instr = tab n (prt instr)
 
+
+prtComSimpleInstr :: Int -> Int -> ComSimpleInstr -> String
+prtComSimpleInstr n m (Comment cmt) = tab n ("; " ++ cmt)
+prtComSimpleInstr n m (Instr instr Nothing) = tab n (prt instr)
+prtComSimpleInstr n m (Instr instr (Just cmt))
+  = tab n (prt instr ++ replicate mm ' ' ++ "; " ++ cmt) where
+      mm = (m - n) - length (prt instr)
+
+prtComBranchInstr :: Int -> Int -> ComBranchInstr -> String
+prtComBranchInstr n m (BrInstr instr Nothing) = prt instr
+prtComBranchInstr n m (BrInstr instr (Just cmt))
+  = prt instr ++ replicate m ' ' ++ "; " ++ cmt where
+      m = n - length (prt instr)
 
 
 -- Simple Block ---------------------------------------------------------------
-prtSimpleBlock :: Int -> SimpleBlock -> String
-prtSimpleBlock n (SimpleBlock label body lastInstr)
+prtSimpleBlock :: Int -> Int -> SimpleBlock -> String
+prtSimpleBlock n m (SimpleBlock label body lastInstr)
   = paste "\n"
     $ [prt label ++ ":"]
-      ++ map (prtSimpleInstr n) body
-      ++ [prtBranchInstr n lastInstr]
+      ++ map (prtComSimpleInstr n m) body
+      ++ [prtComBranchInstr n m lastInstr]
 
 
 
 -- Functions ------------------------------------------------------------------
-prtFunc :: Int -> Func t ts -> String
-prtFunc n (Func retT paramTs params funcId blocks)
+prtFunc :: Int -> Int -> Func t ts -> String
+prtFunc n m (Func retT paramTs params funcId blocks)
   = paste "\n" 
     $ [ paste " " [ "define"
                   , prt retT
@@ -209,7 +225,7 @@ prtFunc n (Func retT paramTs params funcId blocks)
                   , "{"
                   ]
       ]
-      ++ map (prtSimpleBlock n) blocks
+      ++ map (prtSimpleBlock n m) blocks
       ++ ["}"]
         
     where
@@ -223,15 +239,15 @@ prtFunc n (Func retT paramTs params funcId blocks)
 
 -- Program --------------------------------------------------------------------
 
-prtProg :: Int -> LLVMProg -> String
-prtProg n (LLVM mainFunc funcs externFuncs strLits)
+prtProg :: Int -> Int -> LLVMProg -> String
+prtProg n m (LLVM mainFunc funcs externFuncs strLits)
   = paste "\n\n" 
-    $ [prtExternFuncs externFuncs, prtStrLits strLits, prtFunc n mainFunc]
+    $ [prtExternFuncs externFuncs, prtStrLits strLits, prtFunc n m mainFunc]
     ++ map (prtSomeFunc n) funcs
 
     where
       prtSomeFunc :: Int -> SomeFunc -> String
-      prtSomeFunc n (_ :&&: func) = prtFunc n func
+      prtSomeFunc n (_ :&&: func) = prtFunc n m func
 
       prtExternFuncs :: [SomeFuncLabel] -> String
       prtExternFuncs funcs = paste "\n" (map prtExternFunc funcs)

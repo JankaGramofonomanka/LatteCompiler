@@ -36,7 +36,6 @@ import Position.Position
 import Position.SyntaxDepPosition
 
 import Dependent
-import qualified ScopedValueMap as SVM
   
   
 
@@ -51,14 +50,12 @@ type StrLitMap    = M.Map String SomeStrConst
 
 
 type InheritanceMap = DM.DMap TypedIdent Reg
-type ScopedInheritanceMap = SVM.ScopedValueMap TypedIdent Reg
-type GlobalInheritanceMap = M.Map Label ScopedInheritanceMap
 
 data PotentialBlock = PotBlock 
   { blockLabel  :: Label
   , inherited   :: InheritanceMap
-  , blockBody   :: [SimpleInstr]
-  , branchInstr :: Maybe BranchInstr
+  , blockBody   :: [ComSimpleInstr]
+  , branchInstr :: Maybe ComBranchInstr
   , inputs      :: [Label]
   , outputs     :: [Label]
   , isEntry     :: Bool
@@ -105,8 +102,6 @@ data LLVMState where
     , currentFunc       :: Maybe PotentialFunc
     , currentProg       :: PotentialProg
     , currentScopeLevel :: Int
-
-    , globalInheritanceMap :: GlobalInheritanceMap
     } -> LLVMState
 
 emptyState :: LLVMState
@@ -123,7 +118,6 @@ emptyState = LLVMState
   , currentProg       = PotProg { mainFunc = Nothing, funcs = [] }
   , currentScopeLevel = 0
   
-  , globalInheritanceMap = M.empty
   }
 
 type LLVMConverter m = (MonadState LLVMState m, MonadError Error m)
@@ -190,18 +184,7 @@ putBlockOrder newOrder = do
   PotFunc { blockOrder = order, .. } <- getCurrentFunc
   putCurrentFunc $ PotFunc { blockOrder = newOrder, .. }
 
-putGlobalnheritanceMap :: MonadState LLVMState m
-  => GlobalInheritanceMap -> m ()
-putGlobalnheritanceMap m = do
-  LLVMState { globalInheritanceMap = _, .. } <- get
-  put $ LLVMState { globalInheritanceMap = m, .. }
 
-
-putScopedInheritanceMap :: MonadState LLVMState m
-  => Label -> ScopedInheritanceMap -> m ()
-putScopedInheritanceMap l m = do
-  gm <- gets globalInheritanceMap
-  putGlobalnheritanceMap $ M.insert l m gm
 
 
 -- getters --------------------------------------------------------------------
@@ -276,14 +259,5 @@ getBlockOrder :: LLVMConverter m => m [Label]
 getBlockOrder = blockOrder <$> getCurrentFunc
 
 
-getScopedInheritanceMap :: LLVMConverter m => Label -> m ScopedInheritanceMap
-getScopedInheritanceMap l = do
-  gm <- gets globalInheritanceMap
-  case M.lookup l gm of
-    Nothing -> do
-      putScopedInheritanceMap l SVM.empty
-      return SVM.empty
-    
-    Just m -> return m
 
 

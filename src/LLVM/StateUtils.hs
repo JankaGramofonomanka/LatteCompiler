@@ -110,14 +110,14 @@ getStrLitConstPtr s = do
 addInstr :: LLVMConverter m => SimpleInstr -> m ()
 addInstr instr = do
   l <- getCurrentBlockLabel
-  appendInstr l instr
+  appendInstr l (Instr instr Nothing)
 
-appendInstr :: LLVMConverter m => Label -> SimpleInstr -> m ()
+appendInstr :: LLVMConverter m => Label -> ComSimpleInstr -> m ()
 appendInstr label instr = do
   PotBlock { blockBody = body, .. } <- getPotBlock label
   putPotBlock $ PotBlock { blockBody = body ++ [instr], .. }
 
-prependInstr :: LLVMConverter m => Label -> SimpleInstr -> m ()
+prependInstr :: LLVMConverter m => Label -> ComSimpleInstr -> m ()
 prependInstr label instr = do
   PotBlock { blockBody = body, .. } <- getPotBlock label
   putPotBlock $ PotBlock { blockBody = instr : body, .. }
@@ -148,11 +148,11 @@ addBranchInstr label instr preprocess = do
   case mbInstr of
     Nothing -> do
       preprocess
-      putPotBlock $ PotBlock { branchInstr = Just instr, .. }
+      putPotBlock $ PotBlock { branchInstr = Just (BrInstr instr Nothing), .. }
     
-    Just Ret {} -> return ()
-    Just RetVoid -> return ()
-    Just instr -> throwError internalMultipleBranchesError
+    Just (BrInstr Ret {} _) -> return ()
+    Just (BrInstr RetVoid _) -> return ()
+    Just (BrInstr instr _) -> throwError internalMultipleBranchesError
 
 
 branch :: LLVMConverter m => Label -> Label -> m ()

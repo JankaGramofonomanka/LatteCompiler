@@ -61,6 +61,6 @@ main = do
   llvm <- processFileContents fileCts
 
   let outputPath = addExtension (dropExtension filename) "ll"
-  writeFile outputPath $ prtProg 8 llvm
+  writeFile outputPath $ prtProg 8 80 llvm
 
 

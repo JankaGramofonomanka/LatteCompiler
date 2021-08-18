@@ -76,7 +76,9 @@ finishFunc p = do
           return SimpleBlock { label = l, body = body, lastInstr = instr }
         Nothing -> case retT of
           DS.STVoid ->
-            return SimpleBlock { label = l, body = body, lastInstr = RetVoid }
+            return SimpleBlock  { label = l
+                                , body = body
+                                , lastInstr = BrInstr RetVoid Nothing}
           
           _ -> throwError internalNoBranchError
           
@@ -147,7 +149,7 @@ addPhi label x@(TypedIdent singT _) = do
 
   reg <- getInherited label x
   vals <- mapM (getIdentValue x) ins
-  prependInstr label $ Ass reg $ Phi singT (zip ins vals)
+  prependInstr label $ Instr (Ass reg $ Phi singT (zip ins vals)) Nothing
 
 addPhis :: LLVMConverter m => Label -> m ()
 addPhis label = do

@@ -194,15 +194,20 @@ data BranchInstr where
   Ret :: Sing t -> Value t -> BranchInstr
   RetVoid :: BranchInstr
 
+data ComSimpleInstr = Comment String | Instr SimpleInstr (Maybe String)
+data ComBranchInstr = BrInstr BranchInstr (Maybe String)
+
 deriving instance Show SimpleInstr
 deriving instance Show BranchInstr
+deriving instance Show ComSimpleInstr
+deriving instance Show ComBranchInstr
 
 -- Simple Block ---------------------------------------------------------------
 data SimpleBlock
   = SimpleBlock 
     { label :: Label
-    , body :: [SimpleInstr]
-    , lastInstr :: BranchInstr
+    , body :: [ComSimpleInstr]
+    , lastInstr :: ComBranchInstr
     }
   
   deriving Show
