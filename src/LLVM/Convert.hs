@@ -68,11 +68,13 @@ addStmt stmt = case stmt of
     val <- getVarValue DS.STInt var
     reg <- getNewRegDefault
     addInstr $ Ass reg $ BinOperation i32 ADD val (ILit 1)
+    overwriteVar DS.STInt var (Var reg)
 
   DS.Decr     p var -> do
     val <- getVarValue DS.STInt var
     reg <- getNewRegDefault
     addInstr $ Ass reg $ BinOperation i32 SUB val (ILit 1)
+    overwriteVar DS.STInt var (Var reg)
 
   DS.Ret      p singT expr -> do
     v <- getExprValue expr
