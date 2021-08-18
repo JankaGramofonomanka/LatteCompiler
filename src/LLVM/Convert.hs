@@ -29,6 +29,7 @@ import LLVM.State
 import LLVM.StateUtils
 import LLVM.LLVMGetters
 import LLVM.TypeConversion
+import LLVM.Cleanup
 
 
 import qualified Syntax.SyntaxDep as DS
