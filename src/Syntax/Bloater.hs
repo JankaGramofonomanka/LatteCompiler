@@ -33,6 +33,9 @@ instance ToBeBloated a b => ToBeBloated (Maybe a) (Maybe b) where
 instance ToBeBloated (DS.Ident a) S.Ident where
   bloat (DS.Ident p id) = S.Ident p id
 
+instance ToBeBloated (DS.ScopedIdent a) S.Ident where
+  bloat (DS.Scoped _ id) = bloat id
+
 instance ToBeBloated (DS.FuncIdent t ts) S.Ident where
   bloat (DS.FuncIdent p id) = S.Ident p id
 

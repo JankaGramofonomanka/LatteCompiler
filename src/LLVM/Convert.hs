@@ -205,7 +205,7 @@ declareParams :: LLVMConverter m
 declareParams _ DNil DNil = return ()
 declareParams l (reg :> regs) (DS.Param kw x :> params) = do
   let singT = DS.singFromKW kw
-  let typedX = typedIdent singT x
+  let typedX = typedIdent singT (DS.Scoped 0 x)
   assignValue l typedX (Var reg)
   declareParams l regs params
 

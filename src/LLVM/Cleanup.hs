@@ -135,7 +135,7 @@ fillInheritanceMaps = do
       return $ accChanges || changesMade
 
 addPhi :: LLVMConverter m => Label -> TypedIdent t -> m ()
-addPhi label x@(TypedIdent singT _) = do
+addPhi label x@(TypedIdent singT _ lvl) = do
   m <- getInheritanceMap label
   let inheritedIds = DM.keys m
   unless (D.Some x `elem` inheritedIds)
@@ -149,7 +149,8 @@ addPhi label x@(TypedIdent singT _) = do
 
   reg <- getInherited label x
   vals <- mapM (getIdentValue x) ins
-  prependInstr label $ Instr (Ass reg $ Phi singT (zip ins vals)) Nothing
+  prependInstr label
+    $ Instr (Ass reg $ Phi singT (zip ins vals)) (Just $ show lvl)
 
 addPhis :: LLVMConverter m => Label -> m ()
 addPhis label = do

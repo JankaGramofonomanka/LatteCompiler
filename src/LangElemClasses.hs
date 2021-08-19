@@ -39,6 +39,10 @@ instance IsIdent S.Ident where
 instance IsIdent (DS.Ident a) where
   name (DS.Ident _ s) = s
 
+instance IsIdent (DS.ScopedIdent a) where
+  name (DS.Scoped _ x) = name x
+
+
 instance IsIdent (DS.FuncIdent t ts) where
   name (DS.FuncIdent _ s) = s
 
@@ -46,7 +50,7 @@ instance IsIdent (DS.ClassIdent cls) where
   name (DS.ClassIdent _ s) = singToString s
 
 instance IsIdent (LLVM.TypedIdent t) where
-  name (LLVM.TypedIdent t s) = s
+  name (LLVM.TypedIdent t s l) = s
 
 
 -- IsType ---------------------------------------------------------------------

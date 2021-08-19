@@ -45,7 +45,10 @@ type Any a = Sigma LatteType (TyCon1 a)
 
 
 type Ident :: LatteType -> Type
-data Ident a = Ident Pos String deriving (Ord, Show)
+data Ident t = Ident Pos String deriving (Ord, Show)
+
+type ScopedIdent :: LatteType -> Type
+data ScopedIdent t = Scoped Int (Ident t)
 
 type FuncIdent :: LatteType -> [LatteType] -> Type
 data FuncIdent t ts = FuncIdent Pos String deriving (Ord, Show)
@@ -54,7 +57,7 @@ type ClassIdent :: Str -> Type
 data ClassIdent cls = ClassIdent Pos (SStr cls) deriving (Ord, Show)
 
 
-instance Eq (Ident a) where
+instance Eq (Ident t) where
   Ident _ x == Ident _ y = x == y
 
 instance Eq (FuncIdent t ts) where
@@ -109,8 +112,8 @@ data Stmt where
 
 
 data Item t where
-  NoInit  :: Ident t -> Item t
-  Init    :: Ident t -> Expr t -> Item t
+  NoInit  :: ScopedIdent t -> Item t
+  Init    :: ScopedIdent t -> Expr t -> Item t
 
 
 type TypeKW :: LatteType -> Type
@@ -139,7 +142,7 @@ singFromKW kw = case kw of
 
 type Var :: LatteType -> Type
 data Var a where
-  Var     :: Pos -> Ident a -> Var a
+  Var     :: Pos -> ScopedIdent a -> Var a
   Attr    :: Pos -> Expr a -> Ident t -> Var t
   Elem    :: Pos -> Expr (Arr a) -> Expr TInt -> Var a
   Null    :: Pos -> Var TNull

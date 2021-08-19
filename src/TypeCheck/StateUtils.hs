@@ -76,7 +76,7 @@ getIdent ::
     IsIdent i,
     HasPosition i
   )
-  => SLatteType a -> i -> m (Ident a)
+  => SLatteType a -> i -> m (ScopedIdent a)
 getIdent expT id = do
   (VarInfo x actT _) <- getIdentInfo id
   let err = wrongIdentTypeError (position id) id expT actT 
@@ -234,10 +234,10 @@ updateVarScope f = do
   put $ TypeCheckState { varScope = f scope, .. }
 
 subVarScope :: MonadState TypeCheckState m => m ()
-subVarScope = updateVarScope Sc.subScope
+subVarScope = updateVarScope Sc.subScope >> incrScopeLevel
 
 dropVarScope :: MonadState TypeCheckState m => m ()
-dropVarScope = updateVarScope Sc.dropScope
+dropVarScope = updateVarScope Sc.dropScope >> decrScopeLevel
 
 updateFuncScope :: MonadState TypeCheckState m
   => (FuncScope -> FuncScope) -> m ()
@@ -273,4 +273,13 @@ dropSlefType = do
 
 
 
+incrScopeLevel :: MonadState TypeCheckState m => m ()
+incrScopeLevel = do
+  TypeCheckState { currentScopeLevel = n, .. } <- get
+  put $ TypeCheckState { currentScopeLevel = n + 1, .. }
+
+decrScopeLevel :: MonadState TypeCheckState m => m ()
+decrScopeLevel = do
+  TypeCheckState { currentScopeLevel = n, .. } <- get
+  put $ TypeCheckState { currentScopeLevel = n - 1, .. }
 

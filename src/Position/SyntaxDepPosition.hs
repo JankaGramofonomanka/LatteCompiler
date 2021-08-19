@@ -11,6 +11,9 @@ import Position.Position
 instance HasPosition (Ident t) where
   position (Ident p _) = p
 
+instance HasPosition (ScopedIdent t) where
+  position (Scoped _ x) = position x
+
 instance HasPosition (FuncIdent t ts) where
   position (FuncIdent p _) = p
 

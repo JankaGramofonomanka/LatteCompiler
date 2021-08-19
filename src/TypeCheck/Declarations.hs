@@ -33,15 +33,15 @@ import SingChar
 -------------------------------------------------------------------------------
 declareId ::
   (MonadState TypeCheckState m, MonadError Error m)
-  => Pos -> SLatteType t -> S.Ident -> m ()
-declareId declarationPos t id = case someType t of
+  => Pos -> Int -> SLatteType t -> S.Ident -> m ()
+declareId declarationPos scopeLevel t id = case someType t of
   Some tt -> do
     
     when (isVoid t) $ throwError $ voidDeclarationError declarationPos
 
     varScope <- gets varScope
     
-    let varInfo = VarInfo (debloat id) tt (position id)
+    let varInfo = VarInfo (debloatScopedId scopeLevel id) tt (position id)
     case Sc.insertNew (name id) varInfo varScope of
       Nothing -> do
         VarInfo { varId = declared, .. } <- getIdentInfo id
@@ -132,7 +132,7 @@ getAttrMap clsId (S.ClassBody _ memberDecls)
           
         Nothing -> case someType t of
           Some tt -> do
-            let info = VarInfo (debloat id) tt p
+            let info = VarInfo (debloatScopedId 0 id) tt p
             return $ M.insert (name id) info attrMap
 
 

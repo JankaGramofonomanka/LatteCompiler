@@ -43,7 +43,7 @@ type FuncScope = Sc.Scope String FuncInfo
 
 data VarInfo where
   VarInfo ::
-    { varId :: Ident t
+    { varId :: ScopedIdent t
     , varType :: SLatteType t
     , varDeclaredAt :: Pos
     } -> VarInfo
@@ -75,26 +75,26 @@ data ClassInfo where
     } -> ClassInfo
 
 data TypeCheckState = TypeCheckState 
-  { varScope      :: VarScope
-  , funcScope     :: FuncScope
-  , classMap      :: ClassMap
-  , returnType    :: Maybe (Some SLatteType)
-  , selfType      :: Maybe SomeCustomType
-  , currentPos    :: Pos
-  , classCounter  :: Natural
+  { varScope          :: VarScope
+  , funcScope         :: FuncScope
+  , classMap          :: ClassMap
+  , returnType        :: Maybe (Some SLatteType)
+  , selfType          :: Maybe SomeCustomType
+  , currentPos        :: Pos
+  , currentScopeLevel :: Int
   }
 
 type SomeCustomType = Sigma Str (TyCon1 (ExtractParam2 SLatteType Custom))
 
 emptyState :: TypeCheckState
 emptyState = TypeCheckState 
-  { varScope      = Sc.subScope Sc.EmptyScope
-  , funcScope     = Sc.subScope Sc.EmptyScope
-  , classMap      = M.empty
-  , returnType    = Nothing
-  , selfType      = Nothing
-  , currentPos    = (0, 0)
-  , classCounter  = Zero
+  { varScope          = Sc.subScope Sc.EmptyScope
+  , funcScope         = Sc.subScope Sc.EmptyScope
+  , classMap          = M.empty
+  , returnType        = Nothing
+  , selfType          = Nothing
+  , currentPos        = (0, 0)
+  , currentScopeLevel = 0
   }
 
 

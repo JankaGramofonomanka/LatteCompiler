@@ -217,14 +217,15 @@ instance ToBeDebloated BNFC.MemberDecl S.MemberDecl where
 instance ToBeDebloated S.Ident (DS.Ident a) where
   debloat (S.Ident pos x) = DS.Ident pos x
 
+debloatScopedId :: Int -> S.Ident -> DS.ScopedIdent t
+debloatScopedId lvl x = DS.Scoped lvl (debloat x)
+
 instance ToBeDebloated S.Ident (DS.FuncIdent t ts) where
   debloat (S.Ident pos x) = DS.FuncIdent pos x
 
---{-
 instance ToBeDebloated S.Ident (Some DS.ClassIdent) where
   debloat (S.Ident pos x) = case someFromString x of
     SomeSing s -> Some $ DS.ClassIdent pos s
--- -}
 
 
 

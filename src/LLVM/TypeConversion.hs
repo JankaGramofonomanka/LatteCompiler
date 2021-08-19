@@ -53,11 +53,10 @@ $(singletons[d|
 
 
 type TypedIdent :: PrimType -> Type
-data TypedIdent t where
-  TypedIdent :: Sing t -> String -> TypedIdent t
+data TypedIdent t = TypedIdent (Sing t) String Int
 
-typedIdent :: SLatteType t -> Ident t -> TypedIdent (GetPrimType t)
-typedIdent t (Ident _ s) = TypedIdent (sGetPrimType t) s
+typedIdent :: SLatteType t -> ScopedIdent t -> TypedIdent (GetPrimType t)
+typedIdent t (Scoped lvl (Ident _ s)) = TypedIdent (sGetPrimType t) s lvl
 
 
 -- GEq ------------------------------------------------------------------------
@@ -108,9 +107,9 @@ instance GEq SPrimType where
   geq _ _ = Nothing    
 
 instance GEq TypedIdent where
-  geq (TypedIdent t1 s1) (TypedIdent t2 s2) = case geq t1 t2 of
+  geq (TypedIdent t1 s1 l1) (TypedIdent t2 s2 l2) = case geq t1 t2 of
     Nothing -> Nothing
-    Just prf -> if s1 == s2 then Just prf else Nothing
+    Just prf -> if s1 == s2 && l1 == l2 then Just prf else Nothing
 
 
 -- GCompare -------------------------------------------------------------------
@@ -164,16 +163,26 @@ instance GCompare SPrimType where
 
 
 instance GCompare TypedIdent where  
-  gcompare (TypedIdent t1 s1) (TypedIdent t2 s2)
+  gcompare (TypedIdent t1 s1 l1) (TypedIdent t2 s2 l2)
     = case gcompare t1 t2 of      
       GEQ -> case compare s1 s2 of
         LT -> GLT
-        EQ -> GEQ
+        
+        EQ -> case compare l1 l2 of
+          LT -> GLT
+          EQ -> GEQ
+          GT -> GGT
+
         GT -> GGT
 
       c   -> case compare s1 s2 of
         LT -> GLT
-        EQ -> c
+        
+        EQ -> case compare l1 l2 of
+          LT -> GLT
+          EQ -> c
+          GT -> GGT
+
         GT -> GGT
 
 

@@ -23,7 +23,7 @@ import TypeCheck.StateUtils
 import TypeCheck.LatteGetters
 import TypeCheck.Declarations
 import Errors
-import Syntax.Debloater ( ToBeDebloated(debloat), bloatId )
+import Syntax.Debloater ( ToBeDebloated(debloat), bloatId, debloatScopedId )
 import Syntax.Bloater
 import Position.Position
 import LangElemClasses
@@ -110,7 +110,7 @@ instance ToBeTypeChecked S.TopDef FnDef where
       declParam :: (MonadState TypeCheckState m, MonadError Error m)
         => m () -> S.Param -> m ()
       declParam acc (S.Param t id) = case someType t of
-        Some tt -> acc >> declareId (position t) tt id
+        Some tt -> acc >> declareId (position t) 0 tt id
         
 
   typeCheck (S.ClassDef p _ _ _)
@@ -161,7 +161,7 @@ instance ToBeTypeChecked S.TopDef ClassDef where
             declAttr :: (MonadState TypeCheckState m, MonadError Error m)
               => m () -> (String, VarInfo) -> m ()
             declAttr acc (_, VarInfo id t p)
-              = acc >> declareId p t (bloat id)
+              = acc >> declareId p 0 t (bloat id)
 
             declMethod :: (MonadState TypeCheckState m, MonadError Error m)
               => m () -> (String, FuncInfo) -> m ()
@@ -217,15 +217,17 @@ instance ToBeTypeChecked S.Stmt Stmt where
         declItem :: (MonadState TypeCheckState m, MonadError Error m)
           => SLatteType a -> m [Item a] -> S.Item -> m [Item a]
         declItem tt acc (S.NoInit id) = do
-          l <- acc          
-          declareId (position t) tt id
-          return $ l ++ [NoInit (debloat id)]
+          l <- acc 
+          lvl <- gets currentScopeLevel
+          declareId (position t) lvl tt id
+          return $ l ++ [NoInit (debloatScopedId lvl id)]
 
         declItem tt acc (S.Init id expr) = do
             l <- acc
-            declareId (position t) tt id
+            lvl <- gets currentScopeLevel
+            declareId (position t) lvl tt id
             okExpr <- getExpr tt expr
-            return $ l ++ [Init (debloat id) okExpr]
+            return $ l ++ [Init (debloatScopedId lvl id) okExpr]
           
 
 
@@ -282,7 +284,8 @@ instance ToBeTypeChecked S.Stmt Stmt where
 
         subVarScope
 
-        declareId p tt id
+        lvl <- gets currentScopeLevel
+        declareId p lvl tt id
         okArr <- getVar (SArr tt) arr
         okLoopBody <- typeCheck loopBody
 
