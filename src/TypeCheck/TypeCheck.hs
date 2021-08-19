@@ -225,8 +225,8 @@ instance ToBeTypeChecked S.Stmt Stmt where
         declItem tt acc (S.Init id expr) = do
             l <- acc
             lvl <- gets currentScopeLevel
-            declareId (position t) lvl tt id
             okExpr <- getExpr tt expr
+            declareId (position t) lvl tt id
             return $ l ++ [Init (debloatScopedId lvl id) okExpr]
           
 
