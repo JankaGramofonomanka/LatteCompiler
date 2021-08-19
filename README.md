@@ -27,8 +27,7 @@ found here: https://www.mimuw.edu.pl/~ben/Zajecia/Mrj2020/Latte/
 
 
 
-- (NOT IMPLEMENTED YET)
-  You can compile your code to llvm by running
+- You can compile your code to llvm by running
   ```
   ./latc_llvm [FILE].lat
   ```
