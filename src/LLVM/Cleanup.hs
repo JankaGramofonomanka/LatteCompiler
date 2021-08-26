@@ -26,7 +26,9 @@ import Data.Singletons.Sigma
 import Data.Singletons.Prelude hiding ( Error )
 import Data.Kind ( Type )
 import qualified Data.Dependent.Map as DM
-import qualified Data.Some as D
+import qualified Data.Some as Sm
+import Data.GADT.Compare
+
 
 import LLVM.LLVM
 import LLVM.State
@@ -37,6 +39,7 @@ import LangElemClasses
 import Errors
 import Position.Position
 import Position.SyntaxDepPosition
+import LLVM.Overwrite
 
 import Dependent
 
@@ -45,6 +48,7 @@ import Dependent
 finishFunc :: LLVMConverter m => Pos -> m ()
 finishFunc p = do
   dropZombieBlocks
+  --dropAllRedundantInheritances
   fillInheritanceMaps
   addAllPhis
   
@@ -127,8 +131,8 @@ fillInheritanceMaps = do
       return $ accChanges || changesMade
       
     propagInheritance :: LLVMConverter m
-      => Label -> m Bool -> D.Some TypedIdent -> m Bool
-    propagInheritance label acc (D.Some x) = do
+      => Label -> m Bool -> Sm.Some TypedIdent -> m Bool
+    propagInheritance label acc (Sm.Some x) = do
       accChanges <- acc
       PotBlock { inputs = ins, .. } <- getPotBlock label
       changesMade <- any fst <$> mapM (getIdentValue' x) ins
@@ -138,7 +142,7 @@ addPhi :: LLVMConverter m => Label -> TypedIdent t -> m ()
 addPhi label x@(TypedIdent singT _ lvl) = do
   m <- getInheritanceMap label
   let inheritedIds = DM.keys m
-  unless (D.Some x `elem` inheritedIds)
+  unless (Sm.Some x `elem` inheritedIds)
     $ throwError internalPhiNotPartOfInheritedError
 
   block <- getPotBlock label
@@ -159,7 +163,7 @@ addPhis label = do
   mapM_ (addPhi' label) inheritedIds
 
   where
-    addPhi' l (D.Some x) = addPhi l x
+    addPhi' l (Sm.Some x) = addPhi l x
 
 
 addAllPhis :: LLVMConverter m => m ()
@@ -214,10 +218,75 @@ dropZombieBlocks = do
 
 -------------------------------------------------------------------------------
 
+-- TODO - does not work
+dropAllRedundantInheritances :: LLVMConverter m => m ()
+dropAllRedundantInheritances = do
+  labels <- getBlockOrder
+  mapM_ dropRedundantInheritances labels
+
+dropRedundantInheritances :: LLVMConverter m => Label -> m ()
+dropRedundantInheritances label = do
+  PotBlock { inputs = ins, inherited = m, .. } <- getPotBlock label
+  case ins of
+    [] -> return ()
+    (_ : _ : _) -> return ()
+    [input] -> do
+      let inheritedVars = DM.keys m
+      mapM_ (dropRedundantInheritance input label) inheritedVars
+    
+
+  where
+    dropRedundantInheritance input label (Sm.Some x@(TypedIdent singT _ _)) = do
+      PotBlock { inherited = m, .. } <- getPotBlock label
+      let currentReg = fromJust $ DM.lookup x m
+      newVal <- getIdentValue x input
+
+      overwriteReg singT currentReg newVal label
+      putPotBlock $ PotBlock { inherited = DM.delete x m, .. }
 
 
+overwriteReg :: LLVMConverter m => Sing t -> Reg t -> Value t -> Label -> m ()
+overwriteReg singT reg val label = do
+  PotBlock 
+    { outputs = outs
+    , blockBody = instrs
+    , branchInstr = brInstr
+    , .. } <- getPotBlock label
+
+  putPotBlock
+    $ PotBlock 
+      { outputs = outs
+      , blockBody = map (overwrite singT reg val) instrs
+      , branchInstr = overwrite singT reg val <$> brInstr
+      , .. }
+  
+  
+    
+  mapM_ (overwriteReg singT reg val) outs
+
+  where
+
+    overwriteVarMap :: LLVMConverter m
+      => Sing t
+      -> Reg t
+      -> Value t
+      -> Label
+      -> m ()
+
+    overwriteVarMap singT reg val label = do
+      m <- getLocalVarMap label
+      let inheritedVars = DM.keys m
+      mapM_ (overwriteValue singT reg val label) inheritedVars
 
 
+    overwriteValue :: LLVMConverter m
+      => Sing t -> Reg t -> Value t -> Label -> Sm.Some TypedIdent -> m ()
+    overwriteValue singT reg val label (Sm.Some x@(TypedIdent t _ _))
+      = case gcompare singT t of
+        GEQ -> do
+          v <- getIdentValue x label
+          let v' = if v == Var reg then val else v
+          assignValue label x v'
 
-
-
+        _ -> return ()
+      

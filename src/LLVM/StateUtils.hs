@@ -25,7 +25,6 @@ import Data.List
 import Data.Singletons.Sigma
 import Data.Kind ( Type )
 import qualified Data.Dependent.Map as DM
-import qualified Data.Some as D
 
 import LLVM.LLVM
 import LLVM.State
