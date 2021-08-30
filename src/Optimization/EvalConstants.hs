@@ -207,14 +207,18 @@ instance MayHaveConstants Stmt where
       Just (BConst True) -> stmIf
       Just (BConst False) -> stmElse
 
-    While p cond loopBody -> 
-      While p (evalConstants cond) (evalConstants loopBody)
+    While p cond loopBody -> case evalConstExpr cond of
+      Just (BConst True)  -> Forever p (evalConstants loopBody)
+      Just (BConst False) -> Empty p
+      _ -> While p (evalConstants cond) (evalConstants loopBody)
 
     SExp p t expr -> SExp p t (evalConstants expr)
 
     -- TODO `arr` may have be turned into an expression and need evaluation
     For p t id arr loopBody -> 
       For p t id arr (evalConstants loopBody)
+    
+    Forever p stmt -> Forever p (evalConstants stmt)
 
 
 instance MayHaveConstants Program where

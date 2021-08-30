@@ -109,6 +109,9 @@ data Stmt where
   SExp      :: Pos -> Sing t -> Expr t -> Stmt
   For       :: Pos -> TypeKW t -> Ident t -> Var (Arr t) -> Stmt -> Stmt
 
+  -- a statement to convert `while true` loops to
+  Forever   :: Pos -> Stmt -> Stmt
+
 
 
 data Item t where

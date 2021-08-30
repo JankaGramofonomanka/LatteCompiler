@@ -131,6 +131,17 @@ addStmt stmt = case stmt of
 
   DS.For p t i var stm -> throwTODOP p
 
+  DS.Forever p stm -> do
+    (labelCond, labelLoop, labelJoin) <- getWhileLabels
+    
+    branch' labelLoop
+
+    newBlock labelLoop
+    addStmtIgnoreBlock stm
+    branch' labelLoop
+
+
+
 
 declareItem :: LLVMConverter m => DS.TypeKW t -> DS.Item t -> m ()
 declareItem kw it = case it of

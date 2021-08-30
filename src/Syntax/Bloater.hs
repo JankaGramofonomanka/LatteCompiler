@@ -79,20 +79,20 @@ instance ToBeBloated DS.Block S.Block where
 
 instance ToBeBloated DS.Stmt S.Stmt where
   bloat stmt = case stmt of
-    DS.Empty p                       -> S.Empty p
-    DS.BStmt p block                 -> S.BStmt p (bloat block)
-    DS.Decl p t items                -> S.Decl p (bloat t) (map bloat items)
-    DS.Ass p _ var expr              -> S.Ass p (bloat var) (bloat expr)
-    DS.Incr p var                    -> S.Incr p (bloat var)
-    DS.Decr p var                    -> S.Decr p (bloat var)
-    DS.Ret p _ expr                  -> S.Ret p (bloat expr)
-    DS.VRet p                        -> S.VRet p
-    DS.Cond p cond stm               -> S.Cond p (bloat cond) (bloat stm)
-    DS.CondElse p cond stmIf stmElse -> S.CondElse p (bloat cond) (bloat stmIf) (bloat stmElse)
-    DS.While p cond loopBody         -> S.While p (bloat cond) (bloat loopBody)
-    DS.SExp p _ expr                 -> S.SExp p (bloat expr)
-    DS.For p t id arr loopBody       -> S.For p (bloat t) (bloat id) (bloat arr) (bloat loopBody)
-    
+    DS.Empty p                        -> S.Empty p
+    DS.BStmt p block                  -> S.BStmt p (bloat block)
+    DS.Decl p t items                 -> S.Decl p (bloat t) (map bloat items)
+    DS.Ass p _ var expr               -> S.Ass p (bloat var) (bloat expr)
+    DS.Incr p var                     -> S.Incr p (bloat var)
+    DS.Decr p var                     -> S.Decr p (bloat var)
+    DS.Ret p _ expr                   -> S.Ret p (bloat expr)
+    DS.VRet p                         -> S.VRet p
+    DS.Cond p cond stm                -> S.Cond p (bloat cond) (bloat stm)
+    DS.CondElse p cond stmIf stmElse  -> S.CondElse p (bloat cond) (bloat stmIf) (bloat stmElse)
+    DS.While p cond loopBody          -> S.While p (bloat cond) (bloat loopBody)
+    DS.SExp p _ expr                  -> S.SExp p (bloat expr)
+    DS.For p t id arr loopBody        -> S.For p (bloat t) (bloat id) (bloat arr) (bloat loopBody)
+    DS.Forever p stmt                 -> S.While p (S.ELitBool p True) (bloat stmt)
 
 
 instance ToBeBloated (DS.Item a) S.Item where

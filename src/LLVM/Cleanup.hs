@@ -69,6 +69,7 @@ finishFunc p = do
         { blockLabel  = l
         , blockBody   = body
         , branchInstr = mbInstr
+        , inputs = ins
         , .. } <- getPotBlock label
           
       case mbInstr of
@@ -80,7 +81,8 @@ finishFunc p = do
                                 , body = body
                                 , lastInstr = BrInstr RetVoid Nothing}
           
-          _ -> throwError internalNoBranchError
+          --_ -> throwError internalNoBranchError
+          _ -> throwError $ SimpleError (show l ++ " ins: " ++ show ins)
           
           
 
