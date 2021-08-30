@@ -1,0 +1,53 @@
+#!/bin/bash
+
+
+make
+
+echo ""
+echo "-- C O M P I L A T I O N -------------------------"
+
+for file in ./mrjp-tests/good/basic/*.lat
+do
+    dir="$(dirname $file)"
+    filename="$(basename $file .lat)" 
+    echo "$filename.lat"
+    ./latc_llvm $file
+    
+    llvm-link -o "$dir/$filename.bc" "$dir/$filename.ll" runtime.ll
+done
+
+
+echo ""
+echo "-- E X E C U T I O N -----------------------------"
+
+for file in ./mrjp-tests/good/basic/*.lat
+do 
+    echo ""
+    dir="$(dirname $file)"
+    filename="$(basename $file .lat)"
+    execfile="$dir/$filename.bc"
+    input="$dir/$filename.input"
+    expected_output="$dir/$filename.output"
+    output_dir="$dir/$filename.out"
+
+    echo "$filename.lat"
+    
+    if test -f $output_dir
+    then
+        rm $output_dir
+    fi
+    
+    if test -f $input
+    then
+        (cat $input | lli $execfile) >> $output_dir
+    else
+        lli $execfile >> $output_dir
+    fi
+    python3 scripts/compare.py $output_dir $expected_output
+
+done
+
+
+
+make clean
+
