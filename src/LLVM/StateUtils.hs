@@ -23,6 +23,7 @@ import Control.Monad.Except
 import Data.List
 
 import Data.Singletons.Sigma
+import Data.Singletons.Prelude hiding ( Error )
 import Data.Kind ( Type )
 import qualified Data.Dependent.Map as DM
 import qualified Data.Some as D
@@ -42,8 +43,17 @@ import Dependent
 strLitPrefix :: [Char]
 strLitPrefix = "str"
 
-mkStrConst :: String -> String
-mkStrConst s = s ++ "\00"
+
+strConstLen :: String -> Some SNatural
+strConstLen s = case toSing $ len s of
+  SomeSing n -> Some $ SSucc n 
+  
+  where
+    len :: String -> Natural
+    len ""              = Zero
+    len ('\\' : _ : s)  = Succ $ len s
+    len (_ : s)         = Succ $ len s
+
 
 
 -- getters --------------------------------------------------------------------
@@ -93,7 +103,7 @@ getStrLitConst s = do
   strMap <- gets strLitMap
   case M.lookup s strMap of
     Just cst  -> return cst
-    Nothing   -> case sListLength $ mkStrConst s of
+    Nothing   -> case strConstLen s of
       
       Some n -> do
         cst <- getNewConst strLitPrefix

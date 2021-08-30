@@ -81,8 +81,8 @@ finishFunc p = do
                                 , body = body
                                 , lastInstr = BrInstr RetVoid Nothing}
           
-          --_ -> throwError internalNoBranchError
-          _ -> throwError $ SimpleError (show l ++ " ins: " ++ show ins)
+          _ -> throwError internalNoBranchError
+          
           
           
 

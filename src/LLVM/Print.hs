@@ -264,8 +264,34 @@ prtProg n m (LLVM mainFunc funcs externFuncs strLits)
       prtStrLit (s, n :&: const)
         = paste " " [ prt const
                     , "= internal constant"
-                    , prt (SArray i8 n), "c\"" ++ s ++ "\\00\""
+                    , prt (SArray i8 n)
+                    , prtStr s
                     ]
+      
+      prtStr s = "c\"" ++ prtS s ++ "\\00\""
+      prtS ""              = ""
+      prtS ('\\' : c : s) = "\\" ++ charCode ++ prtS s where
+        charCode = case c of
+          
+          -- based on this
+          -- https://en.wikipedia.org/wiki/Escape_sequences_in_C
+          'a'   -> "07"
+          'b'   -> "08"
+          'e'   -> "1B"
+          'f'   -> "0C"
+          'n'   -> "0A"
+          'r'   -> "0D"
+          't'   -> "09"
+          'v'   -> "0B"
+          '\\'  -> "5C"
+          '\''  -> "27"
+          '"'   -> "22"
+          '?'   -> "3F"
+          
+          _ -> error "unexpected character after '\\'"
+
+      prtS (c : s)         = c : prtS s
+
 
 
 

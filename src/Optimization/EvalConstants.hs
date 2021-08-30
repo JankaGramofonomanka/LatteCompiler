@@ -210,6 +210,7 @@ instance MayHaveConstants Stmt where
     While p cond loopBody -> case evalConstExpr cond of
       Just (BConst True)  -> Forever p (evalConstants loopBody)
       Just (BConst False) -> Empty p
+      
       _ -> While p (evalConstants cond) (evalConstants loopBody)
 
     SExp p t expr -> SExp p t (evalConstants expr)
