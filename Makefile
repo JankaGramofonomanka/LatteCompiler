@@ -5,4 +5,4 @@ clean:
 	rm ./latc
 	rm ./latc_llvm
 
-	#./cleanup_tests
+	#./scripts/cleanup_tests
