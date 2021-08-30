@@ -3,18 +3,23 @@ restart_bnfc
 
 lattests/good/*.ll
 lattests/good/*.bc
+lattests/good/*.out
 
 lattests/extensions/arrays1/*.ll
 lattests/extensions/arrays1/*.bc
+lattests/extensions/arrays1/*.out
 
 lattests/extensions/objects1/*.ll
 lattests/extensions/objects1/*.bc
+lattests/extensions/objects1/*.out
 
 lattests/extensions/objects2/*.ll
 lattests/extensions/objects2/*.bc
+lattests/extensions/objects2/*.out
 
 lattests/extensions/struct/*.ll
 lattests/extensions/struct/*.bc
+lattests/extensions/struct/*.out
 
 latc
 latc_llvm

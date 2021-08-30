@@ -8,7 +8,6 @@ echo "-- C O M P I L A T I O N -------------------------"
 
 for file in ./lattests/good/*.lat
 do
-    echo ""
     dir="$(dirname $file)"
     filename="$(basename $file .lat)" 
     echo "$filename.lat"
@@ -28,20 +27,22 @@ do
     filename="$(basename $file .lat)"
     execfile="$dir/$filename.bc"
     input="$dir/$filename.input"
-    output="$dir/$filename.output"
+    expected_output="$dir/$filename.output"
+    output_dir="$dir/$filename.out"
 
     echo "$filename.lat"
     
-    echo "-- OUTPUT ------------------------------------"
+    rm $output_dir
     if test -f $input
     then
-        cat $input | lli $execfile
+        (cat $input | lli $execfile) >> $output_dir
     else
-        lli $execfile
+        lli $execfile >> $output_dir
     fi
-    echo "-- EXPECTED ----------------------------------"
-    cat $output
+    python3 scripts/compare.py $output_dir $expected_output
+
 done
+
 
 
 make clean
