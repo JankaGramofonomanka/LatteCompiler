@@ -120,7 +120,10 @@ getStrLitConstPtr s = do
 addInstr :: LLVMConverter m => SimpleInstr -> m ()
 addInstr instr = do
   l <- getCurrentBlockLabel
-  appendInstr l (Instr instr Nothing)
+  PotBlock { branchInstr = mbInstr, .. } <- getPotBlock l
+
+  -- ignore the instruction if it is after a branch instruction
+  when (isNothing mbInstr) $ appendInstr l (Instr instr Nothing)
 
 appendInstr :: LLVMConverter m => Label -> ComSimpleInstr -> m ()
 appendInstr label instr = do
