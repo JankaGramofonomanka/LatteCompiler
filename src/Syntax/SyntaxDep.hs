@@ -9,6 +9,8 @@
   , TypeFamilies
   , TypeOperators
   , StandaloneDeriving
+
+  , FlexibleInstances
 #-}
 
 module Syntax.SyntaxDep where
@@ -39,8 +41,6 @@ data LatteType
 
 genSingletons [''LatteType]
 
-deriving instance Show (SLatteType t)
-
 type Any a = Sigma LatteType (TyCon1 a)
 
 
@@ -48,7 +48,7 @@ type Ident :: LatteType -> Type
 data Ident t = Ident Pos String deriving (Ord, Show)
 
 type ScopedIdent :: LatteType -> Type
-data ScopedIdent t = Scoped Int (Ident t)
+data ScopedIdent t = Scoped Int (Ident t) deriving (Ord, Show)
 
 type FuncIdent :: LatteType -> [LatteType] -> Type
 data FuncIdent t ts = FuncIdent Pos String deriving (Ord, Show)
@@ -60,6 +60,9 @@ data ClassIdent cls = ClassIdent Pos (SStr cls) deriving (Ord, Show)
 instance Eq (Ident t) where
   Ident _ x == Ident _ y = x == y
 
+instance Eq (ScopedIdent t) where
+  Scoped i x == Scoped j y = i == j && x == y
+
 instance Eq (FuncIdent t ts) where
   FuncIdent _ x == FuncIdent _ y = x == y
 
@@ -68,8 +71,7 @@ instance Eq (ClassIdent t) where
 
 
 
-data Program where
-  Program :: Pos -> [Either ClassDef FnDef] -> Program
+data Program = Program Pos [Either ClassDef FnDef] deriving Show
 
 data FnDef where
   FnDef :: Pos
@@ -86,13 +88,13 @@ data ClassDef where
             -> ClassBody
             -> ClassDef
 
-data Param t = Param (TypeKW t) (Ident t)
+data Param t = Param (TypeKW t) (Ident t) deriving Show
 type ParamList ts = DList Param ts
 type SomeClassIdent = Sigma Str (TyCon1 ClassIdent)
   
 
 
-data Block = Block Pos [Stmt]
+data Block = Block Pos [Stmt] deriving Show
 
 data Stmt where
   Empty     :: Pos -> Stmt
@@ -204,7 +206,7 @@ data BoolOp = And Pos | Or Pos
 
 
 
-data ClassBody = ClassBody Pos [MemberDecl]
+data ClassBody = ClassBody Pos [MemberDecl] deriving Show
 
 
 data MemberDecl where
@@ -217,12 +219,20 @@ data MemberDecl where
 
 
 
+deriving instance Show (SLatteType t)
+deriving instance Show FnDef
+deriving instance Show ClassDef
+deriving instance Show Stmt
+deriving instance Show (Item t)
+deriving instance Show (TypeKW t)
+deriving instance Show (Var t)
+deriving instance Show (Callable t ts)
+deriving instance Show (Expr t)
+deriving instance Show (RelOp t)
+deriving instance Show MemberDecl
 
-
-
-
-
-
+deriving instance Show (DList Param ts)
+deriving instance Show (DList Expr ts)
 
 
 
