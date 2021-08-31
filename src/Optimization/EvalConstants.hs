@@ -98,7 +98,7 @@ getBinOp (Plus  _) = (+)
 getBinOp (Minus _) = (-)
 getBinOp (Times _) = (*)
 getBinOp (Div   _) = div
-getBinOp (Mod   _) = mod
+getBinOp (Mod   _) = rem
 
 getRelOp :: RelOp a -> (Const a -> Const a -> Bool)
 getRelOp op = case op of

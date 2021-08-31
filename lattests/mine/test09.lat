@@ -1,0 +1,7 @@
+
+int main() {
+    int x = readInt();
+    printInt(x % 3);
+    printInt(-x % 3); // -2 - sic!
+    return 0;
+}

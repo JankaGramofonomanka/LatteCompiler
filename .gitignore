@@ -1,6 +1,10 @@
 .stack-work/
 restart_bnfc
 
+lattests/mine/*.ll
+lattests/mine/*.bc
+lattests/mine/*.out
+
 lattests/good/*.ll
 lattests/good/*.bc
 lattests/good/*.out
