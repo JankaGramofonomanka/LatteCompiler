@@ -199,10 +199,10 @@ prtComSimpleInstr n m (Instr instr (Just cmt))
       mm = (m - n) - length (prt instr)
 
 prtComBranchInstr :: Int -> Int -> ComBranchInstr -> String
-prtComBranchInstr n m (BrInstr instr Nothing) = prt instr
+prtComBranchInstr n m (BrInstr instr Nothing) = tab n (prt instr)
 prtComBranchInstr n m (BrInstr instr (Just cmt))
-  = prt instr ++ replicate m ' ' ++ "; " ++ cmt where
-      m = n - length (prt instr)
+  = tab n (prt instr ++ replicate mm ' ' ++ "; " ++ cmt) where
+      mm = (m - n) - length (prt instr)
 
 
 -- Simple Block ---------------------------------------------------------------
