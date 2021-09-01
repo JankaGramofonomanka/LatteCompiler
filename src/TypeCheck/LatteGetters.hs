@@ -99,8 +99,10 @@ getAnyVar var = case var of
       SCustom cls -> do
         info <- getClassInfo $ mkClsId (position owner) cls
         case M.lookup (name id) (attributes info) of
+          
           Nothing -> throwError $ noAttributeError memberPos ownerType id
-          Just (VarInfo _ t _) -> return $ t :&: Attr p owner (debloat id)
+          Just (VarInfo _ t _)
+            -> return $ t :&: Attr p ownerType owner (debloat id)
       
       _ -> throwError $ noAttributeError memberPos ownerType id
 

@@ -196,9 +196,9 @@ internalNoReturnTypeError :: Pos -> Error
 internalNoReturnTypeError p
   = OnePosError p "INTERNAL ERROR (no return type in state)"
 
-internalNoClassError :: Pos -> Error
-internalNoClassError p
-  = OnePosError p "INTERNAL ERROR (no class with given id)"
+internalNoClassError :: Error
+internalNoClassError
+  = SimpleError "INTERNAL ERROR (no class with given id)"
 
 internallNullKWError :: Pos -> Error
 internallNullKWError p = OnePosError p "INTERNAL ERROR (Null keyword)"
@@ -262,3 +262,6 @@ internalNoInputsError :: Error
 internalNoInputsError
   = SimpleError "INTERNAL ERROR (non-entry block without inputs)"
 
+internalNoAttrError :: Error
+internalNoAttrError
+  = SimpleError "INTERNAL EROR (attribute not defined)"

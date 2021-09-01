@@ -53,7 +53,7 @@ instance SimplePrint (SPrimType t) where
   prt SVoid         = "void"
   prt (SPtr t)      = prt t ++ "*"
   prt (SArray t n)  = "[" ++ printSNatural n ++ " x " ++ prt t ++ "]"
-  prt (SCustom s)   = "%" ++ singToString s
+  prt (SStruct s)   = "%" ++ singToString s
 
 -- Simple Values --------------------------------------------------------------
 instance SimplePrint (Reg t) where
@@ -159,6 +159,9 @@ instance SimplePrint (Expr t) where
       prtValTuple (label, val)
         = "[" ++ prt val ++ ", " ++ prtVarLabel label ++ "]"
 
+  prt (Load singT ptr)
+    = paste " " ["load", prt singT ++ ",", prt (SPtr singT), prt ptr]
+
 prtGetElemPtr
   :: Sing t -> Value (Ptr t) -> DList SPrimType ts -> DList Value ts -> String
 prtGetElemPtr contT container indexTypes indices = paste " "
@@ -181,6 +184,8 @@ prtGetElemPtr contT container indexTypes indices = paste " "
 instance SimplePrint SimpleInstr where
   prt (Ass reg expr) = paste " " [prt reg, "=", prt expr]
   prt (VoidExpr expr) = prt expr
+  prt (Store singT val ptr) = paste " " 
+    ["store", prt singT, prt val ++ ",", prt (SPtr singT), prt ptr]
 
 prtSimpleInstr :: Int -> SimpleInstr -> String
 prtSimpleInstr n instr = tab n (prt instr)

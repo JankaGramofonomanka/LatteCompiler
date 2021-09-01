@@ -49,6 +49,7 @@ instance HasPosition Stmt where
     While     p _ _     -> p
     SExp      p _ _     -> p
     For       p _ _ _ _ -> p
+    Forever   p _       -> p
 
 
 
@@ -69,11 +70,12 @@ instance HasPosition (TypeKW t) where
 
 instance HasPosition (Var t) where
   position var = case var of
-    Var   p _   -> p
-    Attr  p _ _ -> p
-    Elem  p _ _ -> p
-    Null  p     -> p
-    Self  p     -> p
+    Var   p _     -> p
+    Attr  p _ _ _ -> p
+    Length p _    -> p
+    Elem  p _ _   -> p
+    Null  p       -> p
+    Self  p       -> p
   
 
 

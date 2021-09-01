@@ -56,7 +56,22 @@ getVarValue singT var = case var of
     l <- getCurrentBlockLabel
     getIdentValue (typedIdent singT x) l
 
-  DS.Attr   {} -> throwTODOP (position var)
+  DS.Attr p cls e attrId -> do
+    let SPtr clsT = sGetPrimType cls
+    let attrT = sGetPrimType singT
+
+    i <- getAttrNumber clsT attrId
+    eVal <- getExprValue e
+    attrPtr <- getNewRegDefault
+    attr <- getNewRegDefault
+    
+    addInstr (Ass attrPtr $ GetAttrPtr clsT i32 i32 eVal (ILit 0) (ILit i))
+    addInstr (Ass attr $ Load attrT (Var attrPtr))
+
+    return (Var attr)
+
+
+
   DS.Length {} -> throwTODOP (position var)
   DS.Elem   {} -> throwTODOP (position var)
   DS.Null   {} -> throwTODOP (position var)

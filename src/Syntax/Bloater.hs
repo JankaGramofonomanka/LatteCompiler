@@ -134,12 +134,12 @@ instance ToBeBloated (DS.SLatteType t) S.Type where
 
 instance ToBeBloated (DS.Var a) S.Var where
   bloat var = case var of
-    DS.Var    p id    -> S.Var    p (bloat id)
-    DS.Attr   p e id  -> S.Member p (bloat e) (bloat id)
-    DS.Length p e     -> S.Member p (bloat e) (S.Ident p lengthAttr)
-    DS.Elem   p e1 e2 -> S.Elem   p (bloat e1) (bloat e2)
-    DS.Null   p       -> S.Null   p
-    DS.Self   p       -> S.Self   p
+    DS.Var    p id      -> S.Var    p (bloat id)
+    DS.Attr   p _ e id  -> S.Member p (bloat e) (bloat id)
+    DS.Length p e       -> S.Member p (bloat e) (S.Ident p lengthAttr)
+    DS.Elem   p e1 e2   -> S.Elem   p (bloat e1) (bloat e2)
+    DS.Null   p         -> S.Null   p
+    DS.Self   p         -> S.Self   p
 
 instance ToBeBloated (DS.Callable t ts) S.Var where
   bloat var = case var of

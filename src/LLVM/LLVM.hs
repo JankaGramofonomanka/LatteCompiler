@@ -39,7 +39,7 @@ data PrimType
     create a list length of type `SNat`
   -}
 
-  | Custom Str
+  | Struct Str
 
 type SPrimType :: PrimType -> Type
 data SPrimType t where
@@ -47,7 +47,7 @@ data SPrimType t where
   SVoid   :: SPrimType 'Void
   SPtr    :: SPrimType t -> SPrimType (Ptr t)
   SArray  :: SPrimType t -> SNatural n -> SPrimType (Array t n)
-  SCustom :: SStr s -> SPrimType (Custom s)
+  SStruct :: SStr s -> SPrimType (Struct s)
 
 genDefunSymbols [''PrimType]
 
@@ -178,9 +178,9 @@ data Expr t where
                               -> Value (I m)
                               -> Expr (Ptr t)
 
-  GetAttrPtr    :: Sing (Custom s)
+  GetAttrPtr    :: Sing (Struct s)
                 -> Sing (I n)
-                -> Sing (I m) -> Value (Ptr (Custom s))
+                -> Sing (I m) -> Value (Ptr (Struct s))
                               -> Value (I n)
                               -> Value (I m)
                               -> Expr (Ptr t)
@@ -192,12 +192,15 @@ data Expr t where
 
   Phi           :: Sing t -> [(Label, Value t)] -> Expr t
 
+  Load :: Sing t -> Value (Ptr t) -> Expr t
+  
 deriving instance Show (Expr t)
 
 -- Instructions ---------------------------------------------------------------
 data SimpleInstr where
   Ass :: Reg t -> Expr t -> SimpleInstr
   VoidExpr :: Expr 'Void -> SimpleInstr
+  Store :: Sing t -> Value t -> Value (Ptr t) -> SimpleInstr
 
 data BranchInstr where
   Branch :: Label -> BranchInstr

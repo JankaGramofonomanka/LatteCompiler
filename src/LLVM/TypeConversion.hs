@@ -19,7 +19,7 @@
 module LLVM.TypeConversion where
 
 
-
+import Unsafe.Coerce ( unsafeCoerce )
 
 import Data.Singletons.Prelude
 import Data.Singletons.TH hiding ( Void )
@@ -33,7 +33,7 @@ import Syntax.SyntaxDep
 import Data.Singletons.TypeLits (SNat)
 
 import Dependent
-import Unsafe.Coerce ( unsafeCoerce )
+import SingChar
 
 
 $(singletons[d|
@@ -44,6 +44,7 @@ $(singletons[d|
     TStr     -> Ptr (I 8)
     TVoid    -> Void
     (Arr t)  -> Ptr (getPrimType t)
+    Custom s -> Ptr (Struct s)
 
   getPrimTypes :: [LatteType] -> [PrimType]
   getPrimTypes [] = []
@@ -150,16 +151,25 @@ instance GCompare SPrimType where
       GLT -> GLT
       GGT -> GGT
       GEQ -> GEQ
+  
+  gcompare (SStruct cls1) (SStruct cls2) = case gcompare cls1 cls2 of
+    GLT -> GLT
+    GEQ -> GEQ
+    GGT -> GGT
     
   gcompare SI {} _ = GLT
   
   gcompare SVoid SI {} = GGT
   gcompare SVoid _ = GLT
 
-  gcompare SPtr  {} SArray {} = GLT
-  gcompare SPtr  {} _ = GGT
+  gcompare SPtr {} SI {} = GGT
+  gcompare SPtr {} SVoid = GGT
+  gcompare SPtr {} _ = GLT
   
-  gcompare SArray  {} _ = GGT
+  gcompare SArray {} SStruct {} = GLT
+  gcompare SArray {} _ = GGT
+
+  gcompare SStruct {} _ = GGT
 
 
 instance GCompare TypedIdent where  

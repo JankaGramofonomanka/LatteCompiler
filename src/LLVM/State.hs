@@ -36,7 +36,7 @@ import Position.Position
 import Position.SyntaxDepPosition
 
 import Dependent
-  
+import SingChar
   
 
 type RegCountMap = M.Map String Int
@@ -47,9 +47,14 @@ type LabelCountMap = M.Map String Int
 type VarMap       = M.Map Label LocalVarMap
 type LocalVarMap  = DM.DMap TypedIdent Value
 type StrLitMap    = M.Map String SomeStrConst
-
+type ClassMap     = M.Map Str ClassInfo
 
 type InheritanceMap = DM.DMap TypedIdent Reg
+data ClassInfo where
+  ClassInfo :: DList DS.Ident ts
+            -> DList SPrimType (GetPrimTypes ts)
+            -> ClassInfo
+
 
 data PotentialBlock = PotBlock 
   { blockLabel  :: Label
@@ -97,6 +102,7 @@ data LLVMState where
 
     , varMap        :: VarMap
     , strLitMap     :: StrLitMap
+    , classMap      :: ClassMap
 
     , currentBlockLabel :: Maybe Label
     , currentFunc       :: Maybe PotentialFunc
@@ -112,6 +118,7 @@ emptyState = LLVMState
 
   , varMap        = M.empty
   , strLitMap     = M.empty
+  , classMap      = M.empty
 
   , currentBlockLabel = Nothing
   , currentFunc       = Nothing
@@ -168,6 +175,11 @@ dropCurrentBlockBlock = do
   LLVMState { currentBlockLabel = _, .. } <- get
   put $ LLVMState { currentBlockLabel = Nothing, .. }
 
+putClassMap :: LLVMConverter m => ClassMap -> m ()
+putClassMap m = do
+  LLVMState { classMap = _, .. } <- get
+  put $ LLVMState { classMap = m, .. }
+
 putLocalVarMap :: MonadState LLVMState m => Label -> LocalVarMap -> m ()
 putLocalVarMap l localM = do
   m <- gets varMap
@@ -184,6 +196,17 @@ putBlockOrder newOrder = do
   PotFunc { blockOrder = order, .. } <- getCurrentFunc
   putCurrentFunc $ PotFunc { blockOrder = newOrder, .. }
 
+putAttr :: LLVMConverter m
+  => SPrimType (Struct cls) -> Sing (GetPrimType t) -> DS.Ident t -> m ()
+putAttr (SStruct cls) t attrId = do
+  let clsName = fromSing cls
+  m <- gets classMap
+  case M.lookup clsName m of
+    Nothing -> throwError internalNoClassError
+    Just (ClassInfo attrs ts) -> do
+      let newClsInfo = ClassInfo (attrId :> attrs) (t :> ts)
+      let newClsMap = M.insert clsName newClsInfo m
+      putClassMap newClsMap
 
 
 
@@ -259,5 +282,19 @@ getBlockOrder :: LLVMConverter m => m [Label]
 getBlockOrder = blockOrder <$> getCurrentFunc
 
 
-
+getAttrNumber :: LLVMConverter m
+  => SPrimType (Struct cls) -> DS.Ident t -> m Int
+getAttrNumber (SStruct cls) attrId = do
+  let clsName = fromSing cls
+  m <- gets classMap
+  case M.lookup clsName m of
+    Nothing -> throwError internalNoClassError
+    Just (ClassInfo attrs ts) -> findAttr attrId attrs
+    
+  where
+    findAttr :: LLVMConverter m => DS.Ident t -> DList DS.Ident ts -> m Int
+    findAttr x DNil = throwError internalNoAttrError
+    findAttr x (attr :> attrs)
+      = if name attr == name x then return 0 else (1 +) <$> findAttr x attrs
+        
 
