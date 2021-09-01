@@ -56,10 +56,11 @@ getVarValue singT var = case var of
     l <- getCurrentBlockLabel
     getIdentValue (typedIdent singT x) l
 
-  DS.Attr {} -> throwTODOP (position var)
-  DS.Elem {} -> throwTODOP (position var)
-  DS.Null {} -> throwTODOP (position var)
-  DS.Self {} -> throwTODOP (position var)
+  DS.Attr   {} -> throwTODOP (position var)
+  DS.Length {} -> throwTODOP (position var)
+  DS.Elem   {} -> throwTODOP (position var)
+  DS.Null   {} -> throwTODOP (position var)
+  DS.Self   {} -> throwTODOP (position var)
 
 
 

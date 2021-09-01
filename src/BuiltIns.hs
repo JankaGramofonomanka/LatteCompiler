@@ -32,11 +32,11 @@ declareBuiltIn :: (MonadState TypeCheckState m, MonadError Error m)
   => m ()
 
 declareBuiltIn = do
-  declareFunc (ident "printInt") STVoid (SCons STInt SNil)
-  declareFunc (ident "printString") STVoid (SCons STStr SNil)
-  declareFunc (ident "error") STVoid SNil
-  declareFunc (ident "readInt") STInt SNil
-  declareFunc (ident "readString") STStr SNil
+  declareFunc (ident "printInt")    STVoid  (SCons STInt SNil)
+  declareFunc (ident "printString") STVoid  (SCons STStr SNil)
+  declareFunc (ident "error")       STVoid  SNil
+  declareFunc (ident "readInt")     STInt   SNil
+  declareFunc (ident "readString")  STStr   SNil
   subFuncScope
 
 

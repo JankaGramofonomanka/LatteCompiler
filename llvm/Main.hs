@@ -28,7 +28,6 @@ import LLVM.State ( emptyState )
 import LLVM.Print
 
 import Errors
-import BuiltIns ( initTypeCheckState )
 
 
 

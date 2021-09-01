@@ -163,10 +163,11 @@ overwriteVar singT var val = case var of
     l <- getCurrentBlockLabel
     assignValue l (typedIdent singT x) val
 
-  DS.Attr {} -> throwTODOP (position var)
-  DS.Elem {} -> throwTODOP (position var)
-  DS.Null {} -> throwTODOP (position var)
-  DS.Self {} -> throwTODOP (position var)
+  DS.Attr   {} -> throwTODOP (position var)
+  DS.Length {} -> throwTODOP (position var)
+  DS.Elem   {} -> throwTODOP (position var)
+  DS.Null   {} -> throwTODOP (position var)
+  DS.Self   {} -> throwTODOP (position var)
 
 
 addStmtIgnoreBlock :: LLVMConverter m => DS.Stmt -> m ()

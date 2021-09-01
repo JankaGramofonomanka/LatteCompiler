@@ -24,6 +24,7 @@ import qualified Scope as Sc
 import TypeCheck.State
 import TypeCheck.StateUtils
 
+import Constants
 import Dependent
 
 
@@ -93,7 +94,7 @@ getAnyVar var = case var of
       SArr t -> do
         unless (name id == lengthAttr)
           $ throwError $ noArrAttrError memberPos id
-        return $ STInt :&: Attr p owner (debloat id)
+        return $ STInt :&: Length p owner
 
       SCustom cls -> do
         info <- getClassInfo $ mkClsId (position owner) cls

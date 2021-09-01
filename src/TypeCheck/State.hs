@@ -30,8 +30,6 @@ import SingChar
 
 
 
-lengthAttr :: String
-lengthAttr = "length"
 
 
 type VarMap = M.Map String VarInfo
