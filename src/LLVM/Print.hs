@@ -16,7 +16,7 @@ import Data.Singletons.Prelude hiding ( SGT, SLT )
 
 import LLVM.LLVM
 import Dependent
-import Data.Data (mkConstr)
+import SingChar
 
 
 tab :: Int -> String -> String
@@ -53,7 +53,7 @@ instance SimplePrint (SPrimType t) where
   prt SVoid         = "void"
   prt (SPtr t)      = prt t ++ "*"
   prt (SArray t n)  = "[" ++ printSNatural n ++ " x " ++ prt t ++ "]"
-
+  prt (SCustom s)   = "%" ++ singToString s
 
 -- Simple Values --------------------------------------------------------------
 instance SimplePrint (Reg t) where
@@ -134,26 +134,21 @@ instance SimplePrint (Expr t) where
       prtArgs (SCons t ts) (arg :> args)
         = paste " " [prt t, prt arg] ++ ", " ++ prtArgs ts args
       
-  prt (GetElemPtr contT indexT container index) = paste " " 
-    [ "getelementptr"
-    , prt contT ++ ","
-    , prt (SPtr contT)
-    , prt container ++ ","
-    , prt indexT
-    , prt index
-    ]
-  
-  prt (GetArrElemPtr contT indexT1 indexT2 container index1 index2) = paste " " 
-    [ "getelementptr"
-    , prt contT ++ ","
-    , prt (SPtr contT)
-    , prt container ++ ","
-    , prt indexT1
-    , prt index1 ++ ","
-    , prt indexT2
-    , prt index2
-    ]
+  prt (GetElemPtr contT indexT container index)
+    = prtGetElemPtr contT container indexTypes indices where
+      indexTypes = indexT :> DNil
+      indices = index :> DNil
+    
+  prt (GetArrElemPtr contT indexT1 indexT2 container index1 index2)
+    = prtGetElemPtr contT container indexTypes indices where
+      indexTypes = indexT1 :> indexT2 :> DNil
+      indices = index1 :> index2 :> DNil
 
+  prt (GetAttrPtr ownerT indexT1 indexT2 owner index1 index2)
+    = prtGetElemPtr ownerT owner indexTypes indices where
+      indexTypes = indexT1 :> indexT2 :> DNil
+      indices = index1 :> index2 :> DNil
+    
   prt (ICMP t kind lhs rhs)
     = paste " " ["icmp", prt kind, prt t, prt lhs ++ ",", prt rhs]
 
@@ -163,6 +158,22 @@ instance SimplePrint (Expr t) where
     where
       prtValTuple (label, val)
         = "[" ++ prt val ++ ", " ++ prtVarLabel label ++ "]"
+
+prtGetElemPtr
+  :: Sing t -> Value (Ptr t) -> DList SPrimType ts -> DList Value ts -> String
+prtGetElemPtr contT container indexTypes indices = paste " "
+  $ [ "getelementptr"
+    , prt contT ++ ","
+    , prt (SPtr contT)
+    , prt container ++ ","
+    ]
+  ++ indiceKws indexTypes indices
+    
+    where
+      indiceKws :: DList SPrimType ts -> DList Value ts -> [String]
+      indiceKws DNil DNil = []
+      indiceKws (t :> DNil) (i :> DNil) = [prt t, prt i]
+      indiceKws (t :> ts) (i :> is) = [prt t, prt i ++ ","] ++ indiceKws ts is
 
 
 -- Instructions ---------------------------------------------------------------

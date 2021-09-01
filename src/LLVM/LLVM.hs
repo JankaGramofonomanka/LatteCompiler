@@ -22,21 +22,24 @@ import Data.Singletons.Prelude
 import Data.Singletons.Sigma
 
 import Dependent
+import SingChar
 
 deriving instance Eq (SNat n)
 deriving instance Ord (SNat n)
 
 
 -- Primitive Types ------------------------------------------------------------
-data PrimType where
-  I     :: Nat -> PrimType
-  Void  :: PrimType
-  Ptr   :: PrimType -> PrimType
-  Array :: PrimType -> Natural -> PrimType
+data PrimType
+  = I Nat
+  | Void
+  | Ptr PrimType
+  | Array PrimType Natural
   {-
     I'm using `Natural` instead of Nat because I can't figure out how to 
     create a list length of type `SNat`
   -}
+
+  | Custom Str
 
 type SPrimType :: PrimType -> Type
 data SPrimType t where
@@ -44,6 +47,7 @@ data SPrimType t where
   SVoid   :: SPrimType 'Void
   SPtr    :: SPrimType t -> SPrimType (Ptr t)
   SArray  :: SPrimType t -> SNatural n -> SPrimType (Array t n)
+  SCustom :: SStr s -> SPrimType (Custom s)
 
 genDefunSymbols [''PrimType]
 
@@ -170,6 +174,13 @@ data Expr t where
   GetArrElemPtr :: Sing (Array t k)
                 -> Sing (I n)
                 -> Sing (I m) -> Value (Ptr (Array t k))
+                              -> Value (I n)
+                              -> Value (I m)
+                              -> Expr (Ptr t)
+
+  GetAttrPtr    :: Sing (Custom s)
+                -> Sing (I n)
+                -> Sing (I m) -> Value (Ptr (Custom s))
                               -> Value (I n)
                               -> Value (I m)
                               -> Expr (Ptr t)
