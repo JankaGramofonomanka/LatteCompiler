@@ -15,6 +15,7 @@ import Data.Singletons.TypeLits
 import Data.Singletons.Prelude hiding ( SGT, SLT )
 
 import LLVM.LLVM
+import Constants
 import Dependent
 import SingChar
 
@@ -46,7 +47,9 @@ fromSNatural :: SNatural z -> Integer
 fromSNatural SZero = 0
 fromSNatural (SSucc n) = fromSNatural n + 1
 
+printSNatural :: SNatural z -> String
 printSNatural n = show (fromSNatural n)
+
 
 instance SimplePrint (SPrimType t) where
   prt (SI n)        = "i" ++ printSNat n
@@ -54,6 +57,22 @@ instance SimplePrint (SPrimType t) where
   prt (SPtr t)      = prt t ++ "*"
   prt (SArray t n)  = "[" ++ printSNatural n ++ " x " ++ prt t ++ "]"
   prt (SStruct s)   = "%" ++ singToString s
+  prt (SArrStruct t) = "%" ++ mkArrStructName t
+
+mkArrStructName :: SPrimType t -> String
+mkArrStructName t = arrStructPrefix ++ "." ++ prt' t ++ show (dim t) where
+  
+  prt' :: SPrimType t -> String
+  prt' t = case t of
+    SArray tt _ -> prt' tt
+    SStruct s   -> singToString s
+    _           -> prt t
+  
+  dim :: SPrimType t -> Int
+  dim t = case t of
+    SArray tt _ -> 1 + dim tt
+    _           -> 0
+
 
 -- Simple Values --------------------------------------------------------------
 instance SimplePrint (Reg t) where

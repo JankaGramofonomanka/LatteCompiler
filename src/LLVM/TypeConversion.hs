@@ -39,12 +39,12 @@ import SingChar
 $(singletons[d|
   getPrimType :: LatteType -> PrimType
   getPrimType t = case t of
-    TInt     -> I 32
-    TBool    -> I 1
-    TStr     -> Ptr (I 8)
-    TVoid    -> Void
-    (Arr t)  -> Ptr (getPrimType t)
-    Custom s -> Ptr (Struct s)
+    TInt      -> I 32
+    TBool     -> I 1
+    TStr      -> Ptr (I 8)
+    TVoid     -> Void
+    Arr t     -> ArrStruct (getPrimType t)
+    Custom s  -> Ptr (Struct s)
 
   getPrimTypes :: [LatteType] -> [PrimType]
   getPrimTypes [] = []
@@ -104,7 +104,16 @@ instance GEq SPrimType where
       (Refl, Refl) -> Just Refl
     
     _ -> Nothing
-    
+  
+  geq (SStruct s1) (SStruct s2) = case geq s1 s2 of
+    Just Refl -> Just Refl
+    Nothing -> Nothing
+  
+  geq (SArrStruct t1) (SArrStruct t2) = case geq t1 t2 of
+
+    Just Refl -> Just Refl
+    Nothing -> Nothing
+
   geq _ _ = Nothing    
 
 instance GEq TypedIdent where
@@ -156,6 +165,11 @@ instance GCompare SPrimType where
     GLT -> GLT
     GEQ -> GEQ
     GGT -> GGT
+  
+  gcompare (SArrStruct s1) (SArrStruct s2) = case gcompare s1 s2 of
+    GLT -> GLT
+    GEQ -> GEQ
+    GGT -> GGT
     
   gcompare SI {} _ = GLT
   
@@ -167,9 +181,13 @@ instance GCompare SPrimType where
   gcompare SPtr {} _ = GLT
   
   gcompare SArray {} SStruct {} = GLT
+  gcompare SArray {} SArrStruct {} = GLT
   gcompare SArray {} _ = GGT
 
+  gcompare SStruct {} SArrStruct {} = GLT
   gcompare SStruct {} _ = GGT
+
+  gcompare SArrStruct {} _ = GGT
 
 
 instance GCompare TypedIdent where  

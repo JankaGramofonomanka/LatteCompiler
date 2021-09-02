@@ -36,12 +36,10 @@ import LangElemClasses
 import Errors
 import Position.Position
 import Position.SyntaxDepPosition
+import Constants
 
 import Dependent
 
-
-strLitPrefix :: [Char]
-strLitPrefix = "str"
 
 
 strConstLen :: String -> Some SNatural

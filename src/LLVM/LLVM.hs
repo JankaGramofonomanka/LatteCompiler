@@ -29,6 +29,7 @@ deriving instance Ord (SNat n)
 
 
 -- Primitive Types ------------------------------------------------------------
+
 data PrimType
   = I Nat
   | Void
@@ -40,14 +41,17 @@ data PrimType
   -}
 
   | Struct Str
+  | ArrStruct PrimType
 
 type SPrimType :: PrimType -> Type
 data SPrimType t where
-  SI      :: SNat n -> SPrimType (I n)
-  SVoid   :: SPrimType 'Void
-  SPtr    :: SPrimType t -> SPrimType (Ptr t)
-  SArray  :: SPrimType t -> SNatural n -> SPrimType (Array t n)
-  SStruct :: SStr s -> SPrimType (Struct s)
+  SI          :: SNat n -> SPrimType (I n)
+  SVoid       :: SPrimType 'Void
+  SPtr        :: SPrimType t -> SPrimType (Ptr t)
+  SArray      :: SPrimType t -> SNatural n -> SPrimType (Array t n)
+  SStruct     :: SStr s -> SPrimType (Struct s)
+  SArrStruct  :: SPrimType t -> SPrimType (ArrStruct t)
+
 
 genDefunSymbols [''PrimType]
 
