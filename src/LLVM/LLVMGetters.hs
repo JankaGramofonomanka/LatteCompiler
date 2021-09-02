@@ -41,17 +41,61 @@ import BuiltIns
 
 
 
-
--------------------------------------------------------------------------------
 true, false :: Value ('I 1)
 true = BoolLit True
 false = BoolLit False
 
+-------------------------------------------------------------------------------
+getAttrPtr :: LLVMConverter m
+  => Sing (GetPrimType t)
+  -> Sing (Struct s)
+  -> Value (Ptr (Struct s))
+  -> DS.Ident t
+  -> m (Reg (Ptr (GetPrimType t)))
+getAttrPtr attrT clsT clsV attrId = do
+
+  i <- getAttrNumber clsT attrId
+
+  attrPtr <- getNewReg $ name attrId ++ C.ptrPostfix
+  addInstr $ Ass attrPtr $ GetAttrPtr clsT i32 i32 clsV (ILit 0) (ILit i)
+
+  return attrPtr
 
 
+getArrPtr :: LLVMConverter m
+  => Sing t -> Value (Ptr (ArrStruct t)) -> m (Reg (Ptr (Ptr t)))
+getArrPtr elemT arrV = do
+  let arrT = SArrStruct elemT
 
+  arrPtr <- getNewReg C.regArrPtr
+  addInstr $ Ass arrPtr $ GetArrAttrPtr arrT i32 i32 arrV (ILit 0) (ILit 0)
+  
+  return arrPtr
+
+getElemPtr :: LLVMConverter m
+  => Sing t -> Value (Ptr (ArrStruct t)) -> Value (I 32) -> m (Reg (Ptr t))
+getElemPtr elemT arrV index = do
+  arrPtr <- getArrPtr elemT arrV
+  arr <- getNewReg C.regArr
+  addInstr $ Ass arr $ Load (SPtr elemT) (Var arrPtr)
+
+  elemPtr <- getNewReg C.regElemPtr
+  addInstr $ Ass elemPtr $ GetElemPtr elemT i32 (Var arr) index
+
+  return elemPtr
+
+getArrLengthPtr :: LLVMConverter m
+  => Sing (ArrStruct t) -> Value (Ptr (ArrStruct t)) -> m (Reg (Ptr ('I 32)))
+getArrLengthPtr arrT arrV = do
+  lengthPtr <- getNewReg C.lengthAttrPtr
+
+  addInstr $ Ass lengthPtr $ GetArrAttrPtr arrT i32 i32 arrV (ILit 0) (ILit 1)
+
+  return lengthPtr
+
+-------------------------------------------------------------------------------
 getVarValue :: LLVMConverter m
-  => DS.SLatteType t -> DS.Var t -> m (Value (GetPrimType t))
+  => Sing t -> DS.Var t -> m (Value (GetPrimType t))
 getVarValue singT var = case var of
   DS.Var p x -> do
     l <- getCurrentBlockLabel
@@ -61,43 +105,30 @@ getVarValue singT var = case var of
     let SPtr clsT = sGetPrimType cls
     let attrT = sGetPrimType singT
 
-    i <- getAttrNumber clsT attrId
     eVal <- getExprValue e
-    attrPtr <- getNewReg $ name attrId ++ C.ptrPostfix
+    attrPtr <- getAttrPtr attrT clsT eVal attrId
     attr <- getNewReg $ name attrId
-    
-    addInstr $ Ass attrPtr $ GetAttrPtr clsT i32 i32 eVal (ILit 0) (ILit i)
     addInstr $ Ass attr $ Load attrT (Var attrPtr)
 
     return (Var attr)
 
   DS.Length p t e -> do
     let SPtr arrT = sGetPrimType t
-
     eVal <- getExprValue e
-    lengthPtr <- getNewReg C.lengthAttrPtr
+    
+    lengthPtr <- getArrLengthPtr arrT eVal
     length <- getNewReg C.lengthAttr
-
-    addInstr $ Ass lengthPtr $ GetArrAttrPtr arrT i32 i32 eVal (ILit 0) (ILit 1)
     addInstr $ Ass length $ Load i32 (Var lengthPtr)
     
     return (Var length)
 
   DS.Elem p e i -> do
-
     let elemT = sGetPrimType singT
-    let arrT = SArrStruct elemT
-
     eVal <- getExprValue e
     iVal <- getExprValue i
-    arrPtr <- getNewReg C.regArrPtr
-    arr <- getNewReg C.regArr
-    elemPtr <- getNewReg C.regElemPtr
+    
+    elemPtr <- getElemPtr elemT eVal iVal
     elem <- getNewReg C.regElem
-
-    addInstr $ Ass arrPtr $ GetArrAttrPtr arrT i32 i32 eVal (ILit 0) (ILit 0)
-    addInstr $ Ass arr $ Load (SPtr elemT) (Var arrPtr)
-    addInstr $ Ass elemPtr $ GetElemPtr elemT i32 (Var arr) iVal
     addInstr $ Ass elem $ Load elemT (Var elemPtr)
     
     return (Var elem)
@@ -107,7 +138,7 @@ getVarValue singT var = case var of
   DS.Self   {} -> throwTODOP (position var)
 
 
-
+-------------------------------------------------------------------------------
 getExprValue :: LLVMConverter m => DS.Expr t -> m (Value (GetPrimType t))
 getExprValue expr = case expr of
   DS.EVar p singT v -> getVarValue singT v
@@ -250,7 +281,13 @@ getExprValue expr = case expr of
         return $ Var reg
     
   ---------------------------------------------------------------------
-  DS.NewArr   p t e        -> throwTODOP p
+  DS.NewArr p t e -> do
+    --let elemT = sGetPrimType (DS.singFromKW t)
+    --eVal <- getExprValue e
+    --arrPtr <- getArrPtr elemT eVal
+
+    throwTODOP p
+
   DS.NewObj   p t          -> throwTODOP p
   DS.Cast     p t e        -> throwTODOP p
   DS.Concat   p e1 e2      -> do

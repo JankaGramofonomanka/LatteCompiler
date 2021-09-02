@@ -163,9 +163,30 @@ overwriteVar singT var val = case var of
     l <- getCurrentBlockLabel
     assignValue l (typedIdent singT x) val
 
-  DS.Attr   {} -> throwTODOP (position var)
-  DS.Length {} -> throwTODOP (position var)
-  DS.Elem   {} -> throwTODOP (position var)
+  DS.Attr p cls e attrId -> do
+    let SPtr clsT = sGetPrimType cls
+    let attrT = sGetPrimType singT
+
+    eVal <- getExprValue e
+    attrPtr <- getAttrPtr attrT clsT eVal attrId
+    addInstr $ Store attrT val (Var attrPtr)
+
+
+  DS.Length p t e -> do
+    let SPtr arrT = sGetPrimType t
+    eVal <- getExprValue e
+    
+    lengthPtr <- getArrLengthPtr arrT eVal
+    addInstr $ Store i32 val (Var lengthPtr)
+
+  DS.Elem p e i -> do
+    let elemT = sGetPrimType singT
+    eVal <- getExprValue e
+    iVal <- getExprValue i
+    
+    elemPtr <- getElemPtr elemT eVal iVal
+    addInstr $ Store elemT val (Var elemPtr)
+
   DS.Null   {} -> throwTODOP (position var)
   DS.Self   {} -> throwTODOP (position var)
 
