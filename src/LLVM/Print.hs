@@ -15,7 +15,7 @@ import Data.Singletons.TypeLits
 import Data.Singletons.Prelude hiding ( SGT, SLT )
 
 import LLVM.LLVM
-import Constants
+import qualified Constants as C
 import Dependent
 import SingChar
 
@@ -60,7 +60,7 @@ instance SimplePrint (SPrimType t) where
   prt (SArrStruct t) = "%" ++ mkArrStructName t
 
 mkArrStructName :: SPrimType t -> String
-mkArrStructName t = arrStructPrefix ++ "." ++ prt' t ++ show (dim t) where
+mkArrStructName t = C.arrStructPrefix ++ "." ++ prt' t ++ show (dim t) where
   
   prt' :: SPrimType t -> String
   prt' t = case t of
@@ -165,6 +165,11 @@ instance SimplePrint (Expr t) where
 
   prt (GetAttrPtr ownerT indexT1 indexT2 owner index1 index2)
     = prtGetElemPtr ownerT owner indexTypes indices where
+      indexTypes = indexT1 :> indexT2 :> DNil
+      indices = index1 :> index2 :> DNil
+
+  prt (GetArrAttrPtr arrT indexT1 indexT2 arr index1 index2)
+    = prtGetElemPtr arrT arr indexTypes indices where
       indexTypes = indexT1 :> indexT2 :> DNil
       indices = index1 :> index2 :> DNil
     

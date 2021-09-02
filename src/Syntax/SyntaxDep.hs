@@ -147,10 +147,10 @@ singFromKW kw = case kw of
 
 type Var :: LatteType -> Type
 data Var a where
-  Var     :: Pos -> ScopedIdent a -> Var a
+  Var     :: Pos -> ScopedIdent t -> Var t
   Attr    :: Pos -> Sing (Custom cls) -> Expr (Custom cls) -> Ident t -> Var t
-  Length  :: Pos -> Expr (Arr a) -> Var TInt
-  Elem    :: Pos -> Expr (Arr a) -> Expr TInt -> Var a
+  Length  :: Pos -> Sing (Arr t) -> Expr (Arr t) -> Var TInt
+  Elem    :: Pos -> Expr (Arr t) -> Expr TInt -> Var t
   Null    :: Pos -> Var TNull
   Self    :: Pos -> Var (Custom cls)
 

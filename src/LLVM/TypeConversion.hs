@@ -43,7 +43,7 @@ $(singletons[d|
     TBool     -> I 1
     TStr      -> Ptr (I 8)
     TVoid     -> Void
-    Arr t     -> ArrStruct (getPrimType t)
+    Arr t     -> Ptr (ArrStruct (getPrimType t))
     Custom s  -> Ptr (Struct s)
 
   getPrimTypes :: [LatteType] -> [PrimType]

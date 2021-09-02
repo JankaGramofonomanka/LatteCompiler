@@ -189,6 +189,13 @@ data Expr t where
                               -> Value (I m)
                               -> Expr (Ptr t)
 
+  GetArrAttrPtr :: Sing (ArrStruct s)
+                -> Sing (I n)
+                -> Sing (I m) -> Value (Ptr (ArrStruct s))
+                              -> Value (I n)
+                              -> Value (I m)
+                              -> Expr (Ptr t)
+
   ICMP          :: Sing (I n) -> CMPKind
                               -> Value (I n)
                               -> Value (I n)

@@ -36,7 +36,7 @@ import LangElemClasses
 import Errors
 import Position.Position
 import Position.SyntaxDepPosition
-import Constants
+import qualified Constants as C
 
 import Dependent
 
@@ -104,7 +104,7 @@ getStrLitConst s = do
     Nothing   -> case strConstLen s of
       
       Some n -> do
-        cst <- getNewConst strLitPrefix
+        cst <- getNewConst C.strLitPrefix
         putStrLitMap $ M.insert s (n :&: cst) strMap
         return $ n :&: cst
 

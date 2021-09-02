@@ -34,6 +34,7 @@ import LangElemClasses
 import Errors
 import Position.Position
 import Position.SyntaxDepPosition
+import qualified Constants as C
 
 import Dependent
 import BuiltIns
@@ -62,18 +63,46 @@ getVarValue singT var = case var of
 
     i <- getAttrNumber clsT attrId
     eVal <- getExprValue e
-    attrPtr <- getNewRegDefault
-    attr <- getNewRegDefault
+    attrPtr <- getNewReg $ name attrId ++ C.ptrPostfix
+    attr <- getNewReg $ name attrId
     
-    addInstr (Ass attrPtr $ GetAttrPtr clsT i32 i32 eVal (ILit 0) (ILit i))
-    addInstr (Ass attr $ Load attrT (Var attrPtr))
+    addInstr $ Ass attrPtr $ GetAttrPtr clsT i32 i32 eVal (ILit 0) (ILit i)
+    addInstr $ Ass attr $ Load attrT (Var attrPtr)
 
     return (Var attr)
 
+  DS.Length p t e -> do
+    let SPtr arrT = sGetPrimType t
+
+    eVal <- getExprValue e
+    lengthPtr <- getNewReg C.lengthAttrPtr
+    length <- getNewReg C.lengthAttr
+
+    addInstr $ Ass lengthPtr $ GetArrAttrPtr arrT i32 i32 eVal (ILit 0) (ILit 1)
+    addInstr $ Ass length $ Load i32 (Var lengthPtr)
+    
+    return (Var length)
+
+  DS.Elem p e i -> do
+
+    let elemT = sGetPrimType singT
+    let arrT = SArrStruct elemT
+
+    eVal <- getExprValue e
+    iVal <- getExprValue i
+    arrPtr <- getNewReg C.regArrPtr
+    arr <- getNewReg C.regArr
+    elemPtr <- getNewReg C.regElemPtr
+    elem <- getNewReg C.regElem
+
+    addInstr $ Ass arrPtr $ GetArrAttrPtr arrT i32 i32 eVal (ILit 0) (ILit 0)
+    addInstr $ Ass arr $ Load (SPtr elemT) (Var arrPtr)
+    addInstr $ Ass elemPtr $ GetElemPtr elemT i32 (Var arr) iVal
+    addInstr $ Ass elem $ Load elemT (Var elemPtr)
+    
+    return (Var elem)
 
 
-  DS.Length {} -> throwTODOP (position var)
-  DS.Elem   {} -> throwTODOP (position var)
   DS.Null   {} -> throwTODOP (position var)
   DS.Self   {} -> throwTODOP (position var)
 
