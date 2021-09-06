@@ -1,45 +1,25 @@
 #!/bin/bash
 
 
-make
-
-echo ""
-echo "-- C O M P I L A T I O N -------------------------"
-
-for file in ./mrjp-tests/good/basic/*.lat
-do
-    dir="$(dirname $file)"
-    filename="$(basename $file .lat)" 
+compile () {
     
-    if [ "$filename" == "negation" ]
-    then
-        continue
-    fi
+    dir="$(dirname $1)"
+    filename="$(basename $1 .lat)" 
 
     echo "$filename.lat"
-    ./latc_llvm $file
+    ./latc_llvm $1
     
     llvm-link -o "$dir/$filename.bc" "$dir/$filename.ll" runtime.ll
-done
+}
 
+execute () {
 
-echo ""
-echo "-- E X E C U T I O N -----------------------------"
-
-for file in ./mrjp-tests/good/basic/*.lat
-do 
-    
-    dir="$(dirname $file)"
-    filename="$(basename $file .lat)"
+    dir="$(dirname $1)"
+    filename="$(basename $1 .lat)"
     execfile="$dir/$filename.bc"
     input="$dir/$filename.input"
     expected_output="$dir/$filename.output"
     output_dir="$dir/$filename.out"
-
-    if [ "$filename" == "negation" ]
-    then
-        continue
-    fi
 
     echo ""
     echo "$filename.lat"
@@ -56,10 +36,60 @@ do
         lli $execfile >> $output_dir
     fi
     python3 scripts/compare.py $output_dir $expected_output
+}
+
+make
+
+echo ""
+echo "-- C O M P I L A T I O N -------------------------"
+
+echo ""
+echo "-- BASIC -----------------------------------------"
+for file in ./mrjp-tests/good/basic/*.lat
+do
+    filename="$(basename $file .lat)" 
+    
+    if [ "$filename" == "negation" ]
+    then
+        continue
+    fi
+
+    compile $file
 
 done
 
+echo ""
+echo "-- ARRAYS ----------------------------------------"
+for file in ./mrjp-tests/good/arrays/*.lat
+do 
+    compile $file
+done
 
+echo ""
+echo "-- E X E C U T I O N -----------------------------"
+
+echo ""
+echo "-- BASIC -----------------------------------------"
+for file in ./mrjp-tests/good/basic/*.lat
+do 
+    
+    filename="$(basename $file .lat)"
+    
+    if [ "$filename" == "negation" ]
+    then
+        continue
+    fi
+    
+    execute $file
+
+done
+
+echo ""
+echo "-- ARRAYS ----------------------------------------"
+for file in ./mrjp-tests/good/arrays/*.lat
+do 
+    execute $file
+done
 
 make clean
 
