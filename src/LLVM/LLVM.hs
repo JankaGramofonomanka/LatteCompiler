@@ -262,10 +262,13 @@ data StrLitData n = StrLitData (Constant (Array (I 8) n)) String
 
 data LLVMProg
   = LLVM 
-    { mainFunc :: Func (I 32) '[]
-    , funcs :: [SomeFunc]
+    { mainFunc    :: Func (I 32) '[]
+    , funcs       :: [SomeFunc]
     , externFuncs :: [SomeFuncLabel]
-    , strLits :: [(String, SomeStrConst)]
+    , strLits     :: [(String, SomeStrConst)]
+    
+    , mallocTs :: [Some SPrimType]
+    , arrTs    :: [Some SPrimType]
     }
 
 -- Dependent Pairs ------------------------------------------------------------

@@ -280,14 +280,32 @@ prtFunc n m (Func retT paramTs params funcId blocks)
 -- Program --------------------------------------------------------------------
 
 prtProg :: Int -> Int -> LLVMProg -> String
-prtProg n m (LLVM mainFunc funcs externFuncs strLits)
+prtProg n m LLVM  { mainFunc    = mainFunc
+                  , funcs       = funcs
+                  , externFuncs = externFuncs
+                  , strLits     = strLits
+                  
+                  , mallocTs    = mallocTs
+                  , arrTs       = arrTs
+                  }
   = paste "\n\n" 
     $ [prtExternFuncs externFuncs, prtStrLits strLits, prtFunc n m mainFunc]
+    ++ ["; -- malloc functions -----------------------------------------------"]
+    ++ map (prtSomeMallocFunc n) mallocTs
+    ++ ["; -- newArr functions -----------------------------------------------"]
+    ++ map (prtSomeNewArrFunc n) arrTs
+    ++ ["; -- user defined functions -----------------------------------------"]
     ++ map (prtSomeFunc n) funcs
 
     where
       prtSomeFunc :: Int -> SomeFunc -> String
       prtSomeFunc n (_ :&&: func) = prtFunc n m func
+
+      prtSomeMallocFunc :: Int -> Some SPrimType -> String
+      prtSomeMallocFunc n (Some t) = prtMallocFunc n t
+
+      prtSomeNewArrFunc :: Int -> Some SPrimType -> String
+      prtSomeNewArrFunc n (Some t) = prtNewArrFunc n t
 
       prtExternFuncs :: [SomeFuncLabel] -> String
       prtExternFuncs funcs = paste "\n" (map prtExternFunc funcs)
@@ -338,4 +356,59 @@ prtProg n m (LLVM mainFunc funcs externFuncs strLits)
 
 
 
+
+-------------------------------------------------------------------------------
+mallocFuncName :: SPrimType t -> String
+mallocFuncName t = ".malloc." ++ s where
+  s = case t of
+    SStruct ss    -> singToString ss
+    SArrStruct t  -> mkArrStructName t
+    SArray {}     -> error "INTERNAL ERROR (malloc returning [_ x _]*)"
+    _             -> prt t
+
+newArrFuncName :: SPrimType t -> String
+newArrFuncName t = ".new" ++ mkArrStructName t
+
+prtMallocFunc :: Int -> SPrimType t -> String
+prtMallocFunc n t = paste "\n"
+  $ [ "define " ++ prt t ++ "* @" ++ mallocFuncName t ++ "(i32 %n) {"
+    , "entry:"
+    ]
+  ++ map (tab n)
+    [ "%size = getelementptr " ++ prt t ++ ", " ++ prt t ++ "* nl, i32 1\n"
+    , "%sizeI = ptrtoint " ++ prt t ++ "* %size to i32"
+    , "%arrSize = mul i32 %sizeI, %n"
+    , ""
+    , "%ptr = call i1* @malloc(i32 %arrSize)"
+    , "%res = bitcast i1* %ptr to " ++ prt t ++ "*"
+    , ""
+    , "ret " ++ prt t ++ "* %res"
+    ]
+  ++ [ "}" ]
+
+
+prtNewArrFunc :: Int -> SPrimType t -> String
+prtNewArrFunc n t = paste "\n"
+  $ [ "define " ++ arrT ++ "* @" ++ newArrFuncName t ++ "(i32 %n) {"
+    , "entry:"
+    ] 
+  ++ map (tab n)
+    [ "%size = getelementptr " ++ arrT ++ ", " ++ arrT ++ "* null, i32 1"
+    , "%sizeI = ptrtoint " ++ arrT ++ "* %size to i32"
+    , "%structPtr = call i1* @malloc(i32 %sizeI)"
+    , "%res = bitcast i1* %ptr to " ++ arrT ++ "*"
+    , ""
+    , "%arrPtr = getelementptr " ++ arrT ++ ", " ++ arrT ++ "* i32 0, i32 0"
+    , "%lenPtr = getelementptr " ++ arrT ++ ", " ++ arrT ++ "* i32 0, i32 1"
+    , ""
+    , "%newArr = call " ++ prt t ++ "* @" ++ mallocFuncName t ++ "(i32 %n)"
+    , "store " ++ prt t ++ "* %newArr, " ++ prt t ++ "** arrPtr"
+    , "store i32 %n, i32* lenPtr"
+    , ""
+    , "ret " ++ arrT ++ "* %res"
+    ]
+  ++ [ "}" ]
+
+  where
+    arrT = prt (SArrStruct t)
 

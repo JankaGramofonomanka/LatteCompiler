@@ -259,10 +259,16 @@ extractLLVM = do
 
       strConstnts <- gets $ M.toList . strLitMap
 
-      let prog = LLVM { mainFunc = main
-                      , funcs = funcs
+      mallocTs <- gets mallocTypes
+      arrTs <- gets arrTypes
+
+      let prog = LLVM { mainFunc    = main
+                      , funcs       = funcs
                       , externFuncs = externFuncLabels
-                      , strLits = strConstnts
+                      , strLits     = strConstnts
+
+                      , mallocTs  = mallocTs
+                      , arrTs     = arrTs
                       }
 
       return prog

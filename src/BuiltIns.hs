@@ -2,6 +2,7 @@
     FlexibleContexts
   , DataKinds
   , TypeApplications
+  , GADTs
 #-}
 
 module BuiltIns where
@@ -23,6 +24,8 @@ import LLVM.LLVM
 import Errors
 import LangElemClasses
 import Dependent
+import LLVM.Print
+import SingChar
 
 
 ident :: String -> S.Ident
@@ -65,4 +68,12 @@ externFuncLabels
 
 strConcatLabel :: FuncLabel (Ptr (I 8)) '[Ptr (I 8), Ptr (I 8)]
 strConcatLabel = FuncLabel ".strconcat"
+
+
+mallocLabel :: Sing t -> FuncLabel (Ptr t) '[I 32]
+mallocLabel t = FuncLabel $ mallocFuncName t
+
+newArrLabel :: Sing t -> FuncLabel (Ptr (ArrStruct t)) '[I 32]
+newArrLabel t = FuncLabel $ newArrFuncName t
+
 

@@ -282,13 +282,27 @@ getExprValue expr = case expr of
     
   ---------------------------------------------------------------------
   DS.NewArr p t e -> do
-    --let elemT = sGetPrimType (DS.singFromKW t)
-    --eVal <- getExprValue e
-    --arrPtr <- getArrPtr elemT eVal
+    let elemT = sGetPrimType (DS.singFromKW t)
+    eVal <- getExprValue e
+    arr <- getNewReg C.regArrStruct
 
-    throwTODOP p
+    let retT = SPtr (SArrStruct elemT)
+    let argTs = SCons i32 SNil
+    let args = eVal :> DNil
+    addInstr $ Ass arr $ Call retT (newArrLabel elemT) argTs args
 
-  DS.NewObj   p t          -> throwTODOP p
+    return (Var arr)
+
+  DS.NewObj p t -> do
+    let SPtr singT = sGetPrimType (DS.singFromKW t)
+    reg <- getNewReg C.regObj
+
+    let argTs = SCons i32 SNil
+    let args = ILit 1 :> DNil
+    addInstr $ Ass reg $ Call (SPtr singT) (mallocLabel singT) argTs args
+
+    return (Var reg)
+
   DS.Cast     p t e        -> throwTODOP p
   DS.Concat   p e1 e2      -> do
     v1 <- getExprValue e1

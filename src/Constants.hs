@@ -15,6 +15,8 @@ lengthAttrPtr = lengthAttr ++ ptrPostfix
 arrStructPrefix :: String
 arrStructPrefix = ".arr"
 
+regArrStruct :: String
+regArrStruct = "arrStruct"
 
 regArr :: String
 regArr = "arr"
@@ -27,3 +29,9 @@ regElemPtr = regElem ++ ptrPostfix
 
 regElem :: String
 regElem = "elem"
+
+regObj :: String
+regObj = "obj"
+
+entryLabel :: String
+entryLabel = "entry"

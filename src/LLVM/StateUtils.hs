@@ -180,7 +180,7 @@ condBranch label cond labelIf labelElse = do
 ret :: LLVMConverter m => Label -> Sing t -> Value t -> m ()
 ret label singT value = addBranchInstr label (Ret singT value) $ return ()
   
-retVoid :: LLVMConverter m => Label-> m ()
+retVoid :: LLVMConverter m => Label -> m ()
 retVoid label = addBranchInstr label RetVoid $ return ()
 
 branch' :: LLVMConverter m => Label -> m ()
@@ -306,5 +306,15 @@ getDefaultValue kw = case kw of
 
 
 
+-------------------------------------------------------------------------------
+addMallocType :: LLVMConverter m => SPrimType t -> m ()
+addMallocType t = do
+  ts <- gets mallocTypes
+  unless (Some t `elem` ts) $ putMallocTypes $ ts ++ [Some t]
 
+addArrType :: LLVMConverter m => SPrimType t -> m ()
+addArrType elemT = do
+  ts <- gets arrTypes
+  unless (Some elemT `elem` ts) $ putArrTypes $ ts ++ [Some elemT]
+  addMallocType elemT
 

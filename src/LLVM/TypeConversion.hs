@@ -214,3 +214,9 @@ instance GCompare TypedIdent where
         GT -> GGT
 
 
+-------------------------------------------------------------------------------
+instance GEq a => Eq (Some a) where
+  (Some x) == (Some y) = case geq x y of
+    Just _ -> True 
+    Nothing -> False
+  

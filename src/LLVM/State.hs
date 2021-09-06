@@ -108,6 +108,9 @@ data LLVMState where
     , currentFunc       :: Maybe PotentialFunc
     , currentProg       :: PotentialProg
     , currentScopeLevel :: Int
+
+    , mallocTypes :: [Some SPrimType]
+    , arrTypes    :: [Some SPrimType]   -- list of types of array elements
     } -> LLVMState
 
 emptyState :: LLVMState
@@ -125,6 +128,8 @@ emptyState = LLVMState
   , currentProg       = PotProg { mainFunc = Nothing, funcs = [] }
   , currentScopeLevel = 0
   
+  , mallocTypes = []
+  , arrTypes    = []
   }
 
 type LLVMConverter m = (MonadState LLVMState m, MonadError Error m)
@@ -180,6 +185,16 @@ putClassMap m = do
   LLVMState { classMap = _, .. } <- get
   put $ LLVMState { classMap = m, .. }
 
+putMallocTypes :: LLVMConverter m => [Some SPrimType] -> m ()
+putMallocTypes ts = do
+  LLVMState { mallocTypes = _, .. } <- get
+  put $ LLVMState { mallocTypes = ts, .. }
+
+putArrTypes :: LLVMConverter m => [Some SPrimType] -> m ()
+putArrTypes ts = do
+  LLVMState { arrTypes = _, .. } <- get
+  put $ LLVMState { arrTypes = ts, .. }
+
 putLocalVarMap :: MonadState LLVMState m => Label -> LocalVarMap -> m ()
 putLocalVarMap l localM = do
   m <- gets varMap
@@ -207,6 +222,7 @@ putAttr (SStruct cls) t attrId = do
       let newClsInfo = ClassInfo (attrId :> attrs) (t :> ts)
       let newClsMap = M.insert clsName newClsInfo m
       putClassMap newClsMap
+
 
 
 
