@@ -1,38 +1,34 @@
 #!/bin/bash
 
 
-make
+compile () {
+    
+    dir="$(dirname $1)"
+    filename="$(basename $1 .lat)" 
 
-echo ""
-echo "-- C O M P I L A T I O N -------------------------"
-
-for file in ./lattests/extensions/arrays1/*.lat
-do
-    dir="$(dirname $file)"
-    filename="$(basename $file .lat)" 
     echo "$filename.lat"
-    ./latc_llvm $file
+    ./latc_llvm $1
     
     llvm-link -o "$dir/$filename.bc" "$dir/$filename.ll" runtime.ll
-done
+}
 
+execute () {
 
-echo ""
-echo "-- E X E C U T I O N -----------------------------"
-
-for file in ./lattests/extensions/arrays1/*.lat
-do 
-    echo ""
-    dir="$(dirname $file)"
-    filename="$(basename $file .lat)"
+    dir="$(dirname $1)"
+    filename="$(basename $1 .lat)"
     execfile="$dir/$filename.bc"
     input="$dir/$filename.input"
     expected_output="$dir/$filename.output"
     output_dir="$dir/$filename.out"
 
+    echo ""
     echo "$filename.lat"
     
-    rm $output_dir
+    if test -f $output_dir
+    then
+        rm $output_dir
+    fi
+    
     if test -f $input
     then
         (cat $input | lli $execfile) >> $output_dir
@@ -40,6 +36,39 @@ do
         lli $execfile >> $output_dir
     fi
     python3 scripts/compare.py $output_dir $expected_output
+}
+
+make
+
+echo ""
+echo "-- C O M P I L A T I O N -------------------------"
+
+
+echo ""
+echo "-- ARRAYS ----------------------------------------"
+for file in ./lattests/extensions/arrays1/*.lat
+do
+    compile $file
+done
+
+echo ""
+echo "-- STRUCTS ---------------------------------------"
+for file in ./lattests/extensions/struct/*.lat
+do
+    compile $file
+done
+
+
+echo ""
+echo "-- E X E C U T I O N -----------------------------"
+
+
+
+echo ""
+echo "-- ARRAYS ----------------------------------------"
+for file in ./lattests/extensions/arrays1/*.lat
+do 
+    execute $file
 
 done
 
