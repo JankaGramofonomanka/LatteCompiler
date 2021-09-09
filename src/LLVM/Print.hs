@@ -6,6 +6,7 @@
   , PolyKinds
   , RankNTypes
   , TypeApplications
+  , RecordWildCards
 #-}
 
 module LLVM.Print where
@@ -298,6 +299,7 @@ prtProg n m LLVM  { mainFunc    = mainFunc
     ++ ["; -- array structs --------------------------------------------------"]
     ++ map prtSomeArrStructDef arrTs
     ++ ["; -- custom types ---------------------------------------------------"]
+    ++ map prtSomeStructDef customTs
     ++ ["; -- malloc functions -----------------------------------------------"]
     ++ map (prtSomeMallocFunc n) mallocTs
     ++ ["; -- newArr functions -----------------------------------------------"]
@@ -318,6 +320,9 @@ prtProg n m LLVM  { mainFunc    = mainFunc
 
       prtSomeArrStructDef :: Some SPrimType -> String
       prtSomeArrStructDef (Some t) = prtArrStructDef t
+
+      prtSomeStructDef :: Some StructDef -> String
+      prtSomeStructDef (Some def) = prt def
 
       prtExternFuncs :: [SomeFuncLabel] -> String
       prtExternFuncs funcs = paste "\n" (map prtExternFunc funcs)
@@ -433,3 +438,22 @@ prtArrStructDef elemT = paste " "
   , "= type"
   , paste " " ["{", prt (SPtr elemT) ++ ",", prt (sing @(I 32)), "}"]
   ]
+
+--------------------------------------------------------------------------------
+instance SimplePrint (StructDef t) where
+  prt StructDef { structName = name, attributes = attrs, .. }
+    = paste " "
+      [ prt (SStruct name)
+      , "= type"
+      , "{"
+      , paste ", " (map prtSomeType $ toList attrs)
+      , "}"
+      ]
+
+      where
+        prtSomeType :: Some SPrimType -> String
+        prtSomeType (Some x) = prt x
+
+        toList :: DList a ts -> [Some a]
+        toList DNil = []
+        toList (x :> xs) = Some x : toList xs

@@ -260,6 +260,13 @@ deriving instance Show (Func t ts)
 type StrLitData :: Natural -> Type
 data StrLitData n = StrLitData (Constant (Array (I 8) n)) String
 
+type StructDef :: Str -> Type
+data StructDef t where
+  StructDef ::
+    { structName  :: SStr t
+    , attributes  :: DList SPrimType ts
+    } -> StructDef t
+
 data LLVMProg
   = LLVM 
     { mainFunc    :: Func (I 32) '[]
@@ -267,7 +274,7 @@ data LLVMProg
     , externFuncs :: [SomeFuncLabel]
     , strLits     :: [(String, SomeStrConst)]
     
-    , customTs :: [(Some SStr, [Some SPrimType])]
+    , customTs :: [Some StructDef]
     , mallocTs :: [Some SPrimType]
     , arrTs    :: [Some SPrimType]
     }

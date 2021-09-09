@@ -40,6 +40,7 @@ import Errors
 import Dependent
 import BuiltIns
 import qualified Constants as C
+import SingChar
 
 
 addStmt :: LLVMConverter m => DS.Stmt -> m ()
@@ -292,7 +293,7 @@ extractLLVM = do
     Just main -> do
 
       strConstnts <- gets $ M.toList . strLitMap
-
+      customTs <- gets $ map mkStructDef . M.toList . classMap
       
       mallocTs <- gets mallocTypes
       arrTs <- gets arrTypes
@@ -302,13 +303,16 @@ extractLLVM = do
                       , externFuncs = externFuncLabels
                       , strLits     = strConstnts
                       
-                      -- TODO
-                      , customTs  = []
+                      , customTs  = customTs
                       , mallocTs  = mallocTs
                       , arrTs     = arrTs
                       }
 
       return prog
 
+  where
+    mkStructDef :: (Str, ClassInfo) -> Some StructDef
+    mkStructDef (name, ClassInfo _ ts) = case toSing name of
+      SomeSing s -> Some $ StructDef s ts
 
 
