@@ -305,8 +305,7 @@ getDefaultValue kw = case kw of
 
 
 
-
--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
 addMallocType :: LLVMConverter m => SPrimType t -> m ()
 addMallocType t = do
   ts <- gets mallocTypes
@@ -317,4 +316,3 @@ addArrType elemT = do
   ts <- gets arrTypes
   unless (Some elemT `elem` ts) $ putArrTypes $ ts ++ [Some elemT]
   addMallocType elemT
-

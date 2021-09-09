@@ -293,6 +293,13 @@ decrScopeLevel = do
   when (l <= 0) $ throwError internalScopeLevelBelowZeroError
   put $ LLVMState { currentScopeLevel = l - 1, .. }
 
+subScope :: LLVMConverter m => m a -> m a
+subScope action = do
+  incrScopeLevel
+  result <- action
+  decrScopeLevel
+  return result
+
 
 getBlockOrder :: LLVMConverter m => m [Label]
 getBlockOrder = blockOrder <$> getCurrentFunc

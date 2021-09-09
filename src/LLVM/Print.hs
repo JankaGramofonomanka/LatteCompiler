@@ -5,6 +5,7 @@
   , KindSignatures
   , PolyKinds
   , RankNTypes
+  , TypeApplications
 #-}
 
 module LLVM.Print where
@@ -18,6 +19,7 @@ import LLVM.LLVM
 import qualified Constants as C
 import Dependent
 import SingChar
+import GHC.Base (eqString)
 
 
 tab :: Int -> String -> String
@@ -60,18 +62,20 @@ instance SimplePrint (SPrimType t) where
   prt (SArrStruct t) = "%" ++ mkArrStructName t
 
 mkArrStructName :: SPrimType t -> String
-mkArrStructName t = C.arrStructPrefix ++ "." ++ prt' t ++ show (dim t) where
+mkArrStructName t
+  = C.arrStructPrefix ++ "." ++ prt' t ++ "." ++ show (dim t) where
   
-  prt' :: SPrimType t -> String
-  prt' t = case t of
-    SArray tt _ -> prt' tt
-    SStruct s   -> singToString s
-    _           -> prt t
-  
-  dim :: SPrimType t -> Int
-  dim t = case t of
-    SArray tt _ -> 1 + dim tt
-    _           -> 0
+    prt' :: SPrimType t -> String
+    prt' t = case t of
+      SArray tt _ -> prt' tt
+      SStruct s   -> singToString s
+      SPtr tt     -> prt' tt ++ "ptr"
+      _           -> prt t
+    
+    dim :: SPrimType t -> Int
+    dim t = case t of
+      SArray tt _ -> 1 + dim tt
+      _           -> 0
 
 
 -- Simple Values --------------------------------------------------------------
@@ -285,16 +289,21 @@ prtProg n m LLVM  { mainFunc    = mainFunc
                   , externFuncs = externFuncs
                   , strLits     = strLits
                   
+                  , customTs    = customTs
                   , mallocTs    = mallocTs
                   , arrTs       = arrTs
                   }
   = paste "\n\n" 
-    $ [prtExternFuncs externFuncs, prtStrLits strLits, prtFunc n m mainFunc]
+    $ [prtExternFuncs externFuncs, prtStrLits strLits]
+    ++ ["; -- array structs --------------------------------------------------"]
+    ++ map prtSomeArrStructDef arrTs
+    ++ ["; -- custom types ---------------------------------------------------"]
     ++ ["; -- malloc functions -----------------------------------------------"]
     ++ map (prtSomeMallocFunc n) mallocTs
     ++ ["; -- newArr functions -----------------------------------------------"]
     ++ map (prtSomeNewArrFunc n) arrTs
     ++ ["; -- user defined functions -----------------------------------------"]
+    ++ [prtFunc n m mainFunc]
     ++ map (prtSomeFunc n) funcs
 
     where
@@ -306,6 +315,9 @@ prtProg n m LLVM  { mainFunc    = mainFunc
 
       prtSomeNewArrFunc :: Int -> Some SPrimType -> String
       prtSomeNewArrFunc n (Some t) = prtNewArrFunc n t
+
+      prtSomeArrStructDef :: Some SPrimType -> String
+      prtSomeArrStructDef (Some t) = prtArrStructDef t
 
       prtExternFuncs :: [SomeFuncLabel] -> String
       prtExternFuncs funcs = paste "\n" (map prtExternFunc funcs)
@@ -359,11 +371,13 @@ prtProg n m LLVM  { mainFunc    = mainFunc
 
 -------------------------------------------------------------------------------
 mallocFuncName :: SPrimType t -> String
-mallocFuncName t = ".malloc." ++ s where
-  s = case t of
+mallocFuncName t = ".malloc." ++ prt' t where
+  prt' :: SPrimType t -> String
+  prt' t = case t of
     SStruct ss    -> singToString ss
-    SArrStruct t  -> mkArrStructName t
+    SArrStruct tt -> mkArrStructName tt
     SArray {}     -> error "INTERNAL ERROR (malloc returning [_ x _]*)"
+    SPtr tt       -> prt' tt ++ "ptr"
     _             -> prt t
 
 newArrFuncName :: SPrimType t -> String
@@ -375,7 +389,7 @@ prtMallocFunc n t = paste "\n"
     , "entry:"
     ]
   ++ map (tab n)
-    [ "%size = getelementptr " ++ prt t ++ ", " ++ prt t ++ "* nl, i32 1\n"
+    [ "%size = getelementptr " ++ prt t ++ ", " ++ prt t ++ "* null, i32 1\n"
     , "%sizeI = ptrtoint " ++ prt t ++ "* %size to i32"
     , "%arrSize = mul i32 %sizeI, %n"
     , ""
@@ -395,15 +409,15 @@ prtNewArrFunc n t = paste "\n"
   ++ map (tab n)
     [ "%size = getelementptr " ++ arrT ++ ", " ++ arrT ++ "* null, i32 1"
     , "%sizeI = ptrtoint " ++ arrT ++ "* %size to i32"
-    , "%structPtr = call i1* @malloc(i32 %sizeI)"
+    , "%ptr = call i1* @malloc(i32 %sizeI)"
     , "%res = bitcast i1* %ptr to " ++ arrT ++ "*"
     , ""
-    , "%arrPtr = getelementptr " ++ arrT ++ ", " ++ arrT ++ "* i32 0, i32 0"
-    , "%lenPtr = getelementptr " ++ arrT ++ ", " ++ arrT ++ "* i32 0, i32 1"
+    , "%arrPtr = getelementptr " ++ arrT ++ ", " ++ arrT ++ "* %res, i32 0, i32 0"
+    , "%lenPtr = getelementptr " ++ arrT ++ ", " ++ arrT ++ "* %res, i32 0, i32 1"
     , ""
     , "%newArr = call " ++ prt t ++ "* @" ++ mallocFuncName t ++ "(i32 %n)"
-    , "store " ++ prt t ++ "* %newArr, " ++ prt t ++ "** arrPtr"
-    , "store i32 %n, i32* lenPtr"
+    , "store " ++ prt t ++ "* %newArr, " ++ prt t ++ "** %arrPtr"
+    , "store i32 %n, i32* %lenPtr"
     , ""
     , "ret " ++ arrT ++ "* %res"
     ]
@@ -412,3 +426,10 @@ prtNewArrFunc n t = paste "\n"
   where
     arrT = prt (SArrStruct t)
 
+--------------------------------------------------------------------------------
+prtArrStructDef :: SPrimType t -> String
+prtArrStructDef elemT = paste " " 
+  [ prt (SArrStruct elemT)
+  , "= type"
+  , paste " " ["{", prt (SPtr elemT) ++ ",", prt (sing @(I 32)), "}"]
+  ]

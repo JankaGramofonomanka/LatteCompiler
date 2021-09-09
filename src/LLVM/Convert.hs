@@ -16,13 +16,14 @@ module LLVM.Convert where
 
 import qualified Data.Map as M
 
-import Data.Singletons.Sigma
-import Data.Singletons.Prelude hiding ( Error )
-
 import Control.Monad.State
 import Control.Monad.Except
 
+
+import Data.Singletons.Sigma
+import Data.Singletons.Prelude hiding ( Error, SLT )
 import Data.Singletons
+
 
 import LLVM.LLVM
 import LLVM.State
@@ -38,6 +39,7 @@ import LangElemClasses
 import Errors
 import Dependent
 import BuiltIns
+import qualified Constants as C
 
 
 addStmt :: LLVMConverter m => DS.Stmt -> m ()
@@ -49,13 +51,11 @@ addStmt stmt = case stmt of
     exit <- getNewLabel "ExitSubScope"
     
     branch' enter
-    incrScopeLevel
-    newBlock enter
+    subScope $ do
+      newBlock enter
+      mapM_ addStmt stmts
+      branch' exit
 
-    mapM_ addStmt stmts
-
-    branch' exit
-    decrScopeLevel 
     newBlock exit    
 
   DS.Decl     p t items -> do
@@ -113,12 +113,15 @@ addStmt stmt = case stmt of
   DS.While p expr stm -> do
     (labelCond, labelLoop, labelJoin) <- getWhileLabels
     
+    -- jimp to cond
     branch' labelCond
 
+    -- loop
     newBlock labelLoop
     addStmtIgnoreBlock stm
     branch' labelCond
 
+    -- cond
     newBlock labelCond
     cond <- getExprValue expr
     condBranch' cond labelLoop labelJoin
@@ -129,7 +132,43 @@ addStmt stmt = case stmt of
     _ <- getExprValue expr
     return ()
 
-  DS.For p t i var stm -> throwTODOP p
+  DS.For p t i var stm -> subScope $ do
+    let singT = DS.singFromKW t
+    let elemT = sGetPrimType singT
+    arr <- getVarValue (DS.SArr singT) var
+    declareItem t (DS.NoInit i)
+
+    iter0 <- getNewReg C.regIter
+    iter1 <- getNewReg C.regIter
+
+    -- jump to cond
+    labelInit <- getCurrentBlockLabel
+    (labelCond, labelLoop, labelJoin) <- getWhileLabels
+    branch' labelCond
+
+    -- loop
+    newBlock labelLoop
+    elem <- getElem elemT arr (Var iter0)
+    overwriteVar singT (DS.Var (position i) i) elem
+
+    addStmtIgnoreBlock stm
+    addInstr $ Ass iter1 $ BinOperation i32 ADD (Var iter0) (ILit 1)
+
+    labelLoopExit <- getCurrentBlockLabel
+    branch' labelCond
+
+    -- cond
+    newBlock labelCond
+    
+    addInstr $ Ass iter0
+      $ Phi i32 [(labelInit, ILit 0), (labelLoopExit, Var iter1)]
+    len <- getArrLength (SArrStruct elemT) arr
+    cond <- getNewReg C.regCond
+    addInstr $ Ass cond $ ICMP i32 SLT (Var iter0) len
+    condBranch' (Var cond) labelLoop labelJoin
+
+    newBlock labelJoin
+
 
   DS.Forever p stm -> do
     (labelCond, labelLoop, labelJoin) <- getWhileLabels
@@ -193,17 +232,13 @@ overwriteVar singT var val = case var of
 
 addStmtIgnoreBlock :: LLVMConverter m => DS.Stmt -> m ()
 addStmtIgnoreBlock stmt = case stmt of
-  DS.BStmt _ (DS.Block _ stmts) -> do
-    incrScopeLevel
-    mapM_ addStmt stmts
-    decrScopeLevel
+  DS.BStmt _ (DS.Block _ stmts) -> subScope $ mapM_ addStmt stmts
 
   _ -> addStmt stmt
 
 -------------------------------------------------------------------------------
 addFnDef :: LLVMConverter m => DS.FnDef -> m ()
-addFnDef (DS.FnDef p t funcId params (DS.Block _ stmts)) = do
-  incrScopeLevel
+addFnDef (DS.FnDef p t funcId params (DS.Block _ stmts)) = subScope $ do
 
   (primTs, primArgs) <- getParams params
   let currentFunc = PotFunc { label       = FuncLabel (name funcId)
@@ -223,7 +258,6 @@ addFnDef (DS.FnDef p t funcId params (DS.Block _ stmts)) = do
   mapM_ addStmt stmts
   finishFunc p
 
-  decrScopeLevel
 
 getParams :: LLVMConverter m
  => DS.ParamList ts -> m (SList (GetPrimTypes ts), ParamList (GetPrimTypes ts))
@@ -259,6 +293,7 @@ extractLLVM = do
 
       strConstnts <- gets $ M.toList . strLitMap
 
+      
       mallocTs <- gets mallocTypes
       arrTs <- gets arrTypes
 
@@ -266,7 +301,9 @@ extractLLVM = do
                       , funcs       = funcs
                       , externFuncs = externFuncLabels
                       , strLits     = strConstnts
-
+                      
+                      -- TODO
+                      , customTs  = []
                       , mallocTs  = mallocTs
                       , arrTs     = arrTs
                       }

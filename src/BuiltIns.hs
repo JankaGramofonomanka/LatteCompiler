@@ -63,6 +63,7 @@ externFuncLabels
     , (sing @(Ptr (I 8)), sing @'[])          :&&: FuncLabel "readString"
     
     , (sing @(Ptr (I 8)), sing @'[Ptr (I 8), Ptr (I 8)]) :&&: strConcatLabel
+    , (sing @(Ptr (I 1)), sing @'[I 32])      :&&: FuncLabel "malloc"
     ]
 
 

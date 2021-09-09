@@ -93,6 +93,24 @@ getArrLengthPtr arrT arrV = do
 
   return lengthPtr
 
+getElem :: LLVMConverter m
+  => Sing t -> Value (Ptr (ArrStruct t)) -> Value (I 32) -> m (Value t)
+getElem elemT arrV index = do
+  elemPtr <- getElemPtr elemT arrV index
+  elem <- getNewReg C.regElem
+  addInstr $ Ass elem $ Load elemT (Var elemPtr)
+  return (Var elem)
+
+getArrLength :: LLVMConverter m
+  => Sing (ArrStruct t) -> Value (Ptr (ArrStruct t)) -> m (Value ('I 32))
+getArrLength arrT arrV = do
+  lengthPtr <- getArrLengthPtr arrT arrV
+  length <- getNewReg C.lengthAttr
+  addInstr $ Ass length $ Load i32 (Var lengthPtr)
+
+  return (Var length)
+
+
 -------------------------------------------------------------------------------
 getVarValue :: LLVMConverter m
   => Sing t -> DS.Var t -> m (Value (GetPrimType t))
@@ -116,22 +134,15 @@ getVarValue singT var = case var of
     let SPtr arrT = sGetPrimType t
     eVal <- getExprValue e
     
-    lengthPtr <- getArrLengthPtr arrT eVal
-    length <- getNewReg C.lengthAttr
-    addInstr $ Ass length $ Load i32 (Var lengthPtr)
-    
-    return (Var length)
+    getArrLength arrT eVal
 
   DS.Elem p e i -> do
     let elemT = sGetPrimType singT
     eVal <- getExprValue e
     iVal <- getExprValue i
     
-    elemPtr <- getElemPtr elemT eVal iVal
-    elem <- getNewReg C.regElem
-    addInstr $ Ass elem $ Load elemT (Var elemPtr)
+    getElem elemT eVal iVal
     
-    return (Var elem)
 
 
   DS.Null   {} -> throwTODOP (position var)
@@ -291,6 +302,8 @@ getExprValue expr = case expr of
     let args = eVal :> DNil
     addInstr $ Ass arr $ Call retT (newArrLabel elemT) argTs args
 
+    addArrType elemT
+
     return (Var arr)
 
   DS.NewObj p t -> do
@@ -300,6 +313,8 @@ getExprValue expr = case expr of
     let argTs = SCons i32 SNil
     let args = ILit 1 :> DNil
     addInstr $ Ass reg $ Call (SPtr singT) (mallocLabel singT) argTs args
+
+    addMallocType singT
 
     return (Var reg)
 

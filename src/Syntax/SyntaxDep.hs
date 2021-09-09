@@ -109,7 +109,7 @@ data Stmt where
   CondElse  :: Pos -> Expr TBool -> Stmt -> Stmt -> Stmt
   While     :: Pos -> Expr TBool -> Stmt -> Stmt
   SExp      :: Pos -> Sing t -> Expr t -> Stmt
-  For       :: Pos -> TypeKW t -> Ident t -> Var (Arr t) -> Stmt -> Stmt
+  For       :: Pos -> TypeKW t -> ScopedIdent t -> Var (Arr t) -> Stmt -> Stmt
 
   -- a statement to convert `while true` loops to
   Forever   :: Pos -> Stmt -> Stmt

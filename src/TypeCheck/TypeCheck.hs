@@ -291,5 +291,6 @@ instance ToBeTypeChecked S.Stmt Stmt where
 
         dropVarScope
       
-        return $ For p kwT (debloat id) okArr okLoopBody
+        let iter = Scoped lvl (debloat id)
+        return $ For p kwT iter okArr okLoopBody
 

@@ -267,6 +267,7 @@ data LLVMProg
     , externFuncs :: [SomeFuncLabel]
     , strLits     :: [(String, SomeStrConst)]
     
+    , customTs :: [(Some SStr, [Some SPrimType])]
     , mallocTs :: [Some SPrimType]
     , arrTs    :: [Some SPrimType]
     }

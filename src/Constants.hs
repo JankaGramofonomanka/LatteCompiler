@@ -35,3 +35,9 @@ regObj = "obj"
 
 entryLabel :: String
 entryLabel = "entry"
+
+regIter :: String
+regIter = ".iter"
+
+regCond :: String
+regCond = ".cond"
