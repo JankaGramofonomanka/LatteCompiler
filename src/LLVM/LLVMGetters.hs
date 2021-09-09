@@ -226,18 +226,14 @@ getExprValue expr = case expr of
 
   DS.ERel p t op e1 e2 -> case t of
       DS.STInt -> getOpDefault t op e1 e2
-      
       DS.STBool -> getOpDefault t op e1 e2
-        
-
+      DS.SCustom s -> getOpDefault t op e1 e2
+      
       -- TODO implement relations between other types
       _ -> throwError $ relationNotSupportedError p op t
 
       where
-        getOpDefault :: 
-          ( LLVMConverter m
-          , GetPrimType t ~ I n
-          )
+        getOpDefault :: LLVMConverter m
           => Sing t
           -> DS.RelOp t
           -> DS.Expr t

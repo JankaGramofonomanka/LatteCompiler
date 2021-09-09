@@ -196,9 +196,9 @@ data Expr t where
                               -> Value (I m)
                               -> Expr (Ptr t)
 
-  ICMP          :: Sing (I n) -> CMPKind
-                              -> Value (I n)
-                              -> Value (I n)
+  ICMP          :: Sing t     -> CMPKind
+                              -> Value t
+                              -> Value t
                               -> Expr (I 1)
 
   Phi           :: Sing t -> [(Label, Value t)] -> Expr t
