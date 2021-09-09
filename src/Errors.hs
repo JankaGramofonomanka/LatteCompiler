@@ -265,3 +265,7 @@ internalNoInputsError
 internalNoAttrError :: Error
 internalNoAttrError
   = SimpleError "INTERNAL EROR (attribute not defined)"
+
+internalClassAlredyDeclaredError :: Error
+internalClassAlredyDeclaredError
+  = SimpleError "INTERNAL ERROR (class declared multiple times)"

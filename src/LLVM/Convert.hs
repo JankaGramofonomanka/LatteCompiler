@@ -279,9 +279,29 @@ declareParams l (reg :> regs) (DS.Param kw x :> params) = do
 
 
 -------------------------------------------------------------------------------
+addClassDef :: LLVMConverter m => DS.ClassDef -> m ()
+addClassDef (DS.ClassDef p clsId mbParent (DS.ClassBody _ memberDecls)) = do
+  addCustomType clsId
+  declareParentMembers mbParent
+  mapM_ declareAttr memberDecls
+  
+  where
+    declareParentMembers :: LLVMConverter m => Maybe DS.SomeClassIdent -> m ()
+    declareParentMembers Nothing = return ()
+    declareParentMembers (Just (_ :&: parent)) = do
+      info <- getClassInfo parent
+      putClassInfo clsId info
+
+    declareAttr :: LLVMConverter m => DS.MemberDecl -> m ()
+    declareAttr (DS.AttrDecl p t x)
+      = addAttr clsId (sGetPrimType $ DS.singFromKW t) x
+      
+    declareAttr (DS.MethodDecl def) = throwTODOP (position def)
+
+-------------------------------------------------------------------------------
 addProg :: LLVMConverter m => DS.Program -> m ()
 addProg (DS.Program _ defs) = mapM_ addFnDef' defs where
-  addFnDef' (Left def) = throwTODOP (position def)
+  addFnDef' (Left def) = addClassDef def
   addFnDef' (Right def) = addFnDef def
 
 

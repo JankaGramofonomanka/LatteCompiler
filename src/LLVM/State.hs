@@ -211,17 +211,38 @@ putBlockOrder newOrder = do
   PotFunc { blockOrder = order, .. } <- getCurrentFunc
   putCurrentFunc $ PotFunc { blockOrder = newOrder, .. }
 
-putAttr :: LLVMConverter m
-  => SPrimType (Struct cls) -> Sing (GetPrimType t) -> DS.Ident t -> m ()
-putAttr (SStruct cls) t attrId = do
+addCustomType :: LLVMConverter m => DS.ClassIdent cls -> m ()
+addCustomType (DS.ClassIdent _ cls) = do
   let clsName = fromSing cls
   m <- gets classMap
-  case M.lookup clsName m of
-    Nothing -> throwError internalNoClassError
-    Just (ClassInfo attrs ts) -> do
-      let newClsInfo = ClassInfo (attrId :> attrs) (t :> ts)
-      let newClsMap = M.insert clsName newClsInfo m
-      putClassMap newClsMap
+  
+  let mbClsInfo = M.lookup clsName m
+  unless (isNothing mbClsInfo) $ throwError internalClassAlredyDeclaredError
+
+  let clsInfo = ClassInfo DNil DNil
+  let newClsMap = M.insert clsName clsInfo m
+  putClassMap newClsMap
+
+putClassInfo :: LLVMConverter m
+  => DS.ClassIdent cls -> ClassInfo -> m ()
+putClassInfo (DS.ClassIdent _ cls) info = do
+  let clsName = fromSing cls
+  m <- gets classMap
+  let newClsMap = M.insert clsName info m
+  putClassMap newClsMap
+
+addAttr :: LLVMConverter m
+  => DS.ClassIdent cls -> Sing (GetPrimType t) -> DS.Ident t -> m ()
+addAttr (DS.ClassIdent _ cls) t attrId = do
+  let clsName = fromSing cls
+  m <- gets classMap
+  
+  newClsInfo <- case M.lookup clsName m of
+    Nothing                   -> pure $ ClassInfo (attrId :> DNil) (t :> DNil)
+    Just (ClassInfo attrs ts) -> pure $ ClassInfo (attrId :> attrs) (t :> ts)
+
+  let newClsMap = M.insert clsName newClsInfo m
+  putClassMap newClsMap
 
 
 
@@ -321,3 +342,11 @@ getAttrNumber (SStruct cls) attrId = do
       = if name attr == name x then return 0 else (1 +) <$> findAttr x attrs
         
 
+getClassInfo :: LLVMConverter m
+  => DS.ClassIdent cls -> m ClassInfo
+getClassInfo (DS.ClassIdent _ cls) = do
+  let clsName = fromSing cls
+  m <- gets classMap
+  case M.lookup clsName m of
+    Nothing -> throwError internalNoClassError
+    Just info -> return info
