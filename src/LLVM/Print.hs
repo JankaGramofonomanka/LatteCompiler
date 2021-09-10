@@ -92,6 +92,7 @@ instance SimplePrint (Value t) where
   prt (BoolLit True) = "true"
   prt (BoolLit False) = "false"
   prt (ConstPtr cst) = prt cst
+  prt Null = "null"
 
 
 -- Labels ---------------------------------------------------------------------

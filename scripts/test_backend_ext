@@ -72,6 +72,13 @@ do
 
 done
 
+echo ""
+echo "-- STRUCTS ---------------------------------------"
+for file in ./lattests/extensions/struct/*.lat
+do
+    execute $file
+done
+
 
 
 make clean

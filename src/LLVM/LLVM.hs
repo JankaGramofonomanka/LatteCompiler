@@ -101,6 +101,7 @@ data Value t where
   ILit      :: Int -> Value (I n)
   BoolLit   :: Bool -> Value (I 1)
   ConstPtr  :: Constant t -> Value (Ptr t)
+  Null      :: Value (Ptr t)
 
 
 deriving instance Show (Reg t)

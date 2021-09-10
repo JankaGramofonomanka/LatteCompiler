@@ -314,8 +314,11 @@ getExprValue expr = case expr of
 
     return (Var reg)
 
-  DS.Cast     p t e        -> throwTODOP p
-  DS.Concat   p e1 e2      -> do
+  DS.Cast     p (DS.KWCustom cls) (DS.EVar _ _ (DS.Null _)) -> return Null
+
+  DS.Cast     p t e -> throwTODOP p
+  
+  DS.Concat   p e1 e2 -> do
     v1 <- getExprValue e1
     v2 <- getExprValue e2
     reg <- getNewRegDefault
