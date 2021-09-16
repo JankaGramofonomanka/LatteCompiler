@@ -58,6 +58,20 @@ do
     compile $file
 done
 
+echo ""
+echo "-- OBJECTS1 --------------------------------------"
+for file in ./lattests/extensions/objects1/*.lat
+do
+    compile $file
+done
+
+echo ""
+echo "-- OBJECTS2 --------------------------------------"
+for file in ./lattests/extensions/objects2/*.lat
+do
+    compile $file
+done
+
 
 echo ""
 echo "-- E X E C U T I O N -----------------------------"
@@ -76,6 +90,15 @@ echo ""
 echo "-- STRUCTS ---------------------------------------"
 for file in ./lattests/extensions/struct/*.lat
 do
+    execute $file
+done
+
+echo ""
+echo "-- OBJECTS1 --------------------------------------"
+for file in ./lattests/extensions/objects1/*.lat
+do
+    filename="$(basename $file .lat)" 
+
     execute $file
 done
 

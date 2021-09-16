@@ -54,13 +54,16 @@ finishFunc p = do
     , argTypes    = argTs
     , args        = args
     , blockOrder  = order
+    , owner       = owner
     , .. } <- getCurrentFunc
   
 
   funcBody <- mapM (getBlock retT) order
   let func = Func (sGetPrimType retT) argTs args l funcBody
   
-  addFunc p retT argTs func
+  case owner of
+    Nothing -> addFunc p retT argTs func
+    Just cls -> addMethod cls (sGetPrimType retT) argTs func
 
   where
     getBlock retT label = do

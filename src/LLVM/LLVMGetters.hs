@@ -38,6 +38,7 @@ import qualified Constants as C
 
 import Dependent
 import BuiltIns
+import SingChar
 
 
 
@@ -146,7 +147,21 @@ getVarValue singT var = case var of
 
 
   DS.Null   {} -> throwTODOP (position var)
-  DS.Self   {} -> throwTODOP (position var)
+
+  DS.Self p -> return $ Var (Reg C.selfParam 0)
+    {-
+    let SPtr (SStruct s1) = sGetPrimType singT
+    mbSelfInfo <- gets selfInfo
+    when (isNothing mbSelfInfo) $ throwError $ selfOutsideClassError p
+    case fromJust mbSelfInfo of
+      s2 :&: selfPtr -> do
+        let err = internalSelfTypeMismatchError
+        okSelfPtr <- filterStr err s1 s2 selfPtr
+        return $ insertParam3 okSelfPtr
+
+    -- -}
+
+
 
 
 -------------------------------------------------------------------------------
@@ -169,23 +184,43 @@ getExprValue expr = case expr of
   DS.EApp p t f argTs args -> case f of
     DS.Func _ funcId -> do
       let funcLabel = FuncLabel (name funcId)
+
       (argTypes, argList) <- getArgs argTs args
-      reg <- getNewRegDefault
+      getAppValue t funcLabel argTypes argList
 
-      let singT = sGetPrimType t
-      case singT of
-        SVoid -> do
-          addInstr $ VoidExpr $ Call singT funcLabel argTypes argList
-          return $ Var reg
+    DS.Method _ cls@(DS.SCustom clsName) e methodId -> do
+      eVal <- getExprValue e
 
-        _ -> do
-          addInstr $ Ass reg $ Call singT funcLabel argTypes argList
-          return $ Var reg
+      let methodName = C.mkMethodName (singToString clsName) (name methodId)      
+      let methodLabel = FuncLabel methodName
       
+      (argTypes, argList) <- getArgs argTs args
+      let argTypes' = SCons (sGetPrimType cls) argTypes
+      let argList' = eVal :> argList
+      getAppValue t methodLabel argTypes' argList'
+
+    where
+
+      getAppValue :: LLVMConverter m
+        => DS.SLatteType t
+        -> FuncLabel (GetPrimType t) ts
+        -> SList ts
+        -> ArgList ts
+        -> m (Value (GetPrimType t))
+      getAppValue t funcLabel argTypes argList = do
+        reg <- getNewRegDefault
+
+        let singT = sGetPrimType t
+        case singT of
+          SVoid -> do
+            addInstr $ VoidExpr $ Call SVoid funcLabel argTypes argList
+            return $ Var reg
+
+          _ -> do
+            addInstr $ Ass reg $ Call singT funcLabel argTypes argList
+            return $ Var reg
+
       
-
-
-    DS.Method {} -> throwTODOP p
 
   
   ---------------------------------------------------------------------
@@ -303,12 +338,17 @@ getExprValue expr = case expr of
     return (Var arr)
 
   DS.NewObj p t -> do
-    let SPtr singT = sGetPrimType (DS.singFromKW t)
+    let SPtr singT@(SStruct s) = sGetPrimType (DS.singFromKW t)
     reg <- getNewReg C.regObj
 
     let argTs = SCons i32 SNil
     let args = ILit 1 :> DNil
     addInstr $ Ass reg $ Call (SPtr singT) (mallocLabel singT) argTs args
+
+    let constructor = FuncLabel $ C.mkConstrLabel (singToString s)
+    let argTs = SCons (SPtr singT) SNil
+    let args = Var reg :> DNil
+    addInstr $ VoidExpr $ Call SVoid constructor argTs args
 
     addMallocType singT
 
@@ -316,7 +356,15 @@ getExprValue expr = case expr of
 
   DS.Cast     p (DS.KWCustom cls) (DS.EVar _ _ (DS.Null _)) -> return Null
 
-  DS.Cast     p t e -> throwTODOP p
+  DS.Cast     p t e -> do
+    let eType = sGetPrimType $ DS.exprType e
+    let singT = sGetPrimType $ DS.singFromKW t
+
+    eVal <- getExprValue e
+    reg <- getNewRegDefault
+    addInstr $ Ass reg $ BitCast eType eVal singT
+    
+    return $ Var reg
   
   DS.Concat   p e1 e2 -> do
     v1 <- getExprValue e1

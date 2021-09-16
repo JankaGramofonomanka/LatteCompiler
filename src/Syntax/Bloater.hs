@@ -36,6 +36,7 @@ instance ToBeBloated (DS.Ident a) S.Ident where
 
 instance ToBeBloated (DS.ScopedIdent a) S.Ident where
   bloat (DS.Scoped _ id) = bloat id
+  bloat (DS.SelfAttr id) = bloat id
 
 instance ToBeBloated (DS.FuncIdent t ts) S.Ident where
   bloat (DS.FuncIdent p id) = S.Ident p id
@@ -143,8 +144,8 @@ instance ToBeBloated (DS.Var a) S.Var where
 
 instance ToBeBloated (DS.Callable t ts) S.Var where
   bloat var = case var of
-    DS.Func     p id    -> S.Var    p (bloat id)
-    DS.Method   p e id  -> S.Member p (bloat e) (bloat id)
+    DS.Func     p id      -> S.Var    p (bloat id)
+    DS.Method   p _ e id  -> S.Member p (bloat e) (bloat id)
 
 
 instance ToBeBloated (DS.Expr a) S.Expr where

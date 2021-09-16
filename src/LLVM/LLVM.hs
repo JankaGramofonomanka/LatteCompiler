@@ -205,6 +205,8 @@ data Expr t where
   Phi           :: Sing t -> [(Label, Value t)] -> Expr t
 
   Load :: Sing t -> Value (Ptr t) -> Expr t
+
+  BitCast :: Sing t1 -> Value t1 -> Sing t2 -> Expr t2
   
 deriving instance Show (Expr t)
 
@@ -266,7 +268,9 @@ data StructDef t where
   StructDef ::
     { structName  :: SStr t
     , attributes  :: DList SPrimType ts
+    , methods     :: [Sigma2 PrimType [PrimType] (TyCon2 Func)]
     } -> StructDef t
+
 
 data LLVMProg
   = LLVM 

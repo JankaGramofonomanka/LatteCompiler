@@ -300,8 +300,8 @@ getDefaultValue kw = case kw of
   DS.KWBool _ -> return $ BoolLit False
   DS.KWVoid _ -> throwError $ voidDeclarationError (position kw)
   
-  DS.KWArr t -> Var <$> getNewRegDefault
-  DS.KWCustom clsId -> Var <$> getNewRegDefault
+  DS.KWArr t -> return Null
+  DS.KWCustom clsId -> return Null
 
 
 

@@ -58,6 +58,7 @@ library
       Syntax.Debloater
       Syntax.Syntax
       Syntax.SyntaxDep
+      TypeCheck.Castable
       TypeCheck.Declarations
       TypeCheck.LatteGetters
       TypeCheck.State

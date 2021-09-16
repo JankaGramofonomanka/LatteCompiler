@@ -48,7 +48,11 @@ type Ident :: LatteType -> Type
 data Ident t = Ident Pos String deriving (Ord, Show)
 
 type ScopedIdent :: LatteType -> Type
-data ScopedIdent t = Scoped Int (Ident t) deriving (Ord, Show)
+data ScopedIdent t
+  = Scoped Int (Ident t)
+  | SelfAttr (Ident t)
+
+  deriving (Ord, Show)
 
 type FuncIdent :: LatteType -> [LatteType] -> Type
 data FuncIdent t ts = FuncIdent Pos String deriving (Ord, Show)
@@ -62,6 +66,8 @@ instance Eq (Ident t) where
 
 instance Eq (ScopedIdent t) where
   Scoped i x == Scoped j y = i == j && x == y
+  SelfAttr x == SelfAttr y = x == y
+  _ == _ = False
 
 instance Eq (FuncIdent t ts) where
   FuncIdent _ x == FuncIdent _ y = x == y
@@ -144,6 +150,19 @@ singFromKW kw = case kw of
 
   KWCustom (ClassIdent _ cls) -> SCustom cls
 
+kwFromSing :: Pos -> Sing t -> TypeKW t
+kwFromSing p t = case t of
+  STInt   -> KWInt p
+  STStr   -> KWStr p
+  STBool  -> KWBool p
+  STVoid  -> KWVoid p
+  
+  SArr tt -> KWArr (kwFromSing p tt)
+
+  SCustom cls -> KWCustom (ClassIdent p cls)
+
+  STNull -> error "INTERNAL ERROR: keyword made from null"
+
 
 type Var :: LatteType -> Type
 data Var a where
@@ -158,7 +177,11 @@ data Var a where
 type Callable :: LatteType -> [LatteType] -> Type
 data Callable t ts where
   Func    :: Pos -> FuncIdent t ts -> Callable t ts
-  Method  :: Pos -> Expr (Custom n) -> FuncIdent t ts -> Callable t ts
+  Method  :: Pos
+          -> Sing (Custom cls)
+          -> Expr (Custom cls)
+          -> FuncIdent t ts
+          -> Callable t ts
 
 
 
@@ -187,6 +210,24 @@ data Expr a where
   Concat    :: Pos -> Expr TStr -> Expr TStr -> Expr TStr
 
 type ExprList ts = DList Expr ts
+
+exprType :: Expr t -> Sing t
+exprType expr = case expr of
+  EVar      _ t _       -> t
+  ELitInt   {}          -> STInt
+  ELitBool  {}          -> STBool
+  EApp      _ t _ _ _   -> t
+            
+  EString   {}          -> STStr
+  Neg       {}          -> STInt
+  Not       {}          -> STBool
+  EOp       {}          -> STInt
+  ERel      {}          -> STBool
+  EBool     {}          -> STBool
+  NewArr    _ typeKW _  -> SArr (singFromKW typeKW)
+  NewObj    _ typeKW    -> singFromKW typeKW
+  Cast      _ typeKW _  -> singFromKW typeKW
+  Concat    {}          -> STStr
 
 
 data BinOp = Plus Pos | Minus Pos | Times Pos | Div Pos | Mod Pos

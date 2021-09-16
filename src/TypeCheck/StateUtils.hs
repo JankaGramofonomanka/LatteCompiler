@@ -18,6 +18,7 @@ import Unsafe.Coerce
 
 import Data.Singletons
 import Data.Singletons.Sigma
+import Data.GADT.Compare
 
 import qualified Syntax.Syntax as S
 import Syntax.SyntaxDep
@@ -27,6 +28,7 @@ import LangElemClasses
 import Syntax.Debloater
 import qualified Scope as Sc
 import TypeCheck.State
+import TypeCheck.Castable
 
 import Dependent
 import SingChar
@@ -48,14 +50,35 @@ filterT p err (SArr t1) (SArr t2) x = do
 
 filterT p err (SCustom cls1) (SCustom cls2) x = do
   
-  assertSubClass err (mkClsId p cls1) (mkClsId p cls2)
-  return $ unsafeCoerce x
+  xx <- filterStr err cls1 cls2 (extractParam2 x)
+  return $ insertParam2 xx
+
+  --assertSubClass err (mkClsId p cls1) (mkClsId p cls2)
+  --return $ unsafeCoerce x
 
 
 filterT p err expected actual x = throwError err
 
 
+filterNCastT :: (MonadState TypeCheckState m, MonadError Error m, Castable e)
+  => Pos -> Error -> SLatteType a -> SLatteType b -> e b -> m (e a)
+filterNCastT _ _ STInt   STInt   x = return x
+filterNCastT _ _ STStr   STStr   x = return x
+filterNCastT _ _ STBool  STBool  x = return x
+filterNCastT p err (SArr t1) (SArr t2) x = do
+  xx <- filterNCastT p err t1 t2 (extractParam2 x)
+  
+  return $ insertParam2 xx
 
+filterNCastT p err (SCustom cls1) (SCustom cls2) x = do
+  
+  assertSubClass err (mkClsId p cls1) (mkClsId p cls2)
+  case gcompare cls1 cls2 of
+    GEQ -> return x
+    _   -> return $ cast (SCustom cls1) x
+
+
+filterNCastT p err expected actual x = throwError err
 
 getIdentInfo :: 
   ( MonadState TypeCheckState m,

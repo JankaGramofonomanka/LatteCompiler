@@ -41,3 +41,16 @@ regIter = ".iter"
 
 regCond :: String
 regCond = ".cond"
+
+selfParam :: String
+selfParam = ".self"
+
+mkMethodName :: String -> String -> String
+mkMethodName cls method = cls ++ "." ++ method
+
+constrLabel :: String
+constrLabel = "new"
+
+mkConstrLabel :: String -> String
+mkConstrLabel cls = mkMethodName cls constrLabel
+

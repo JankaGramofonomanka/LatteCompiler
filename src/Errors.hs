@@ -269,3 +269,8 @@ internalNoAttrError
 internalClassAlredyDeclaredError :: Error
 internalClassAlredyDeclaredError
   = SimpleError "INTERNAL ERROR (class declared multiple times)"
+
+internalSelfTypeMismatchError :: Error
+internalSelfTypeMismatchError
+  = SimpleError 
+  $ "INTERNAL ERROR (type of `self` does not equal the type of current class)"

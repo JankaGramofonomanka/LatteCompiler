@@ -33,15 +33,17 @@ import SingChar
 -------------------------------------------------------------------------------
 declareId ::
   (MonadState TypeCheckState m, MonadError Error m)
-  => Pos -> Int -> SLatteType t -> S.Ident -> m ()
-declareId declarationPos scopeLevel t id = case someType t of
+  => Pos -> Maybe Int -> SLatteType t -> S.Ident -> m ()
+{-  when `mbScopeLevel` is equal to `Nothing`,
+    that means the identifier is an atrubute of `self` -}
+declareId declarationPos mbScopeLevel t id = case someType t of
   Some tt -> do
     
     when (isVoid t) $ throwError $ voidDeclarationError declarationPos
 
     varScope <- gets varScope
     
-    let varInfo = VarInfo (debloatScopedId scopeLevel id) tt (position id)
+    let varInfo = VarInfo scopedId tt (position id)
     case Sc.insertNew (name id) varInfo varScope of
       Nothing -> do
         VarInfo { varId = declared, .. } <- getIdentInfo id
@@ -50,6 +52,10 @@ declareId declarationPos scopeLevel t id = case someType t of
       
       Just newScope -> putVarScope newScope
 
+  where
+    scopedId = case mbScopeLevel of
+      Nothing -> SelfAttr (debloat id)
+      Just lvl -> debloatScopedId lvl id
 
 declareFunc :: (MonadState TypeCheckState m, MonadError Error m)
   => S.Ident -> SLatteType t -> SList (ts :: [LatteType]) -> m ()

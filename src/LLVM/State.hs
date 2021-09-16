@@ -51,9 +51,12 @@ type ClassMap     = M.Map Str ClassInfo
 
 type InheritanceMap = DM.DMap TypedIdent Reg
 data ClassInfo where
-  ClassInfo :: DList DS.Ident ts
-            -> DList SPrimType (GetPrimTypes ts)
-            -> ClassInfo
+  ClassInfo ::
+    { attrs :: DList DS.Ident ts
+    --, attrTypes :: DList SPrimType (GetPrimTypes ts)
+    , attrTypes :: DList DS.SLatteType ts
+    , methods :: [Sigma2 PrimType [PrimType] (TyCon2 Func)]
+    } -> ClassInfo
 
 
 data PotentialBlock = PotBlock 
@@ -85,6 +88,8 @@ data PotentialFunc where
     , args        :: ParamList ts
     , body        :: M.Map Label PotentialBlock
     , blockOrder  :: [Label]
+
+    , owner       :: Maybe (DS.ClassIdent cls)
     } -> PotentialFunc
 
 data PotentialProg where
@@ -111,6 +116,8 @@ data LLVMState where
 
     , mallocTypes :: [Some SPrimType]
     , arrTypes    :: [Some SPrimType]   -- list of types of array elements
+
+    --, selfInfo :: Maybe (Sigma Str (TyCon1 (ExtractParam3 Value Ptr Struct)))
     } -> LLVMState
 
 emptyState :: LLVMState
@@ -119,9 +126,9 @@ emptyState = LLVMState
   , constCounter = M.empty
   , labelCounter = M.empty
 
-  , varMap        = M.empty
-  , strLitMap     = M.empty
-  , classMap      = M.empty
+  , varMap    = M.empty
+  , strLitMap = M.empty
+  , classMap  = M.empty
 
   , currentBlockLabel = Nothing
   , currentFunc       = Nothing
@@ -130,6 +137,8 @@ emptyState = LLVMState
   
   , mallocTypes = []
   , arrTypes    = []
+
+  --, selfInfo = Nothing
   }
 
 type LLVMConverter m = (MonadState LLVMState m, MonadError Error m)
@@ -219,7 +228,7 @@ addCustomType (DS.ClassIdent _ cls) = do
   let mbClsInfo = M.lookup clsName m
   unless (isNothing mbClsInfo) $ throwError internalClassAlredyDeclaredError
 
-  let clsInfo = ClassInfo DNil DNil
+  let clsInfo = ClassInfo DNil DNil []
   let newClsMap = M.insert clsName clsInfo m
   putClassMap newClsMap
 
@@ -232,18 +241,27 @@ putClassInfo (DS.ClassIdent _ cls) info = do
   putClassMap newClsMap
 
 addAttr :: LLVMConverter m
-  => DS.ClassIdent cls -> Sing (GetPrimType t) -> DS.Ident t -> m ()
+  -- => DS.ClassIdent cls -> Sing (GetPrimType t) -> DS.Ident t -> m ()
+  => DS.ClassIdent cls -> Sing t -> DS.Ident t -> m ()
 addAttr (DS.ClassIdent _ cls) t attrId = do
   let clsName = fromSing cls
   m <- gets classMap
   
   newClsInfo <- case M.lookup clsName m of
-    Nothing                   -> pure $ ClassInfo (attrId :> DNil) (t :> DNil)
-    Just (ClassInfo attrs ts) -> pure $ ClassInfo (attrId :> attrs) (t :> ts)
+    Nothing -> pure $ ClassInfo (attrId :> DNil) (t :> DNil) []
+
+    Just ClassInfo { attrs = attrs, attrTypes = ts, .. } -> 
+      pure $ ClassInfo { attrs = attrId :> attrs, attrTypes = t :> ts, .. }
 
   let newClsMap = M.insert clsName newClsInfo m
   putClassMap newClsMap
 
+addMethod :: LLVMConverter m
+  => DS.ClassIdent cls -> Sing t -> Sing ts -> Func t ts -> m ()
+addMethod cls retT argTs func = do
+  ClassInfo { methods = methods, .. } <- getClassInfo cls
+  putClassInfo cls
+    $ ClassInfo { methods =  methods ++ [(retT, argTs) :&&: func], .. }
 
 
 
@@ -333,7 +351,8 @@ getAttrNumber (SStruct cls) attrId = do
   m <- gets classMap
   case M.lookup clsName m of
     Nothing -> throwError internalNoClassError
-    Just (ClassInfo attrs ts) -> findAttr attrId attrs
+    Just ClassInfo { attrs = attrs, attrTypes = ts, .. } ->
+      findAttr attrId attrs
     
   where
     findAttr :: LLVMConverter m => DS.Ident t -> DList DS.Ident ts -> m Int
@@ -350,3 +369,6 @@ getClassInfo (DS.ClassIdent _ cls) = do
   case M.lookup clsName m of
     Nothing -> throwError internalNoClassError
     Just info -> return info
+
+
+

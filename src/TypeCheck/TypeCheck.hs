@@ -110,7 +110,7 @@ instance ToBeTypeChecked S.TopDef FnDef where
       declParam :: (MonadState TypeCheckState m, MonadError Error m)
         => m () -> S.Param -> m ()
       declParam acc (S.Param t id) = case someType t of
-        Some tt -> acc >> declareId (position t) 0 tt id
+        Some tt -> acc >> declareId (position t) (Just 0) tt id
         
 
   typeCheck (S.ClassDef p _ _ _)
@@ -161,7 +161,7 @@ instance ToBeTypeChecked S.TopDef ClassDef where
             declAttr :: (MonadState TypeCheckState m, MonadError Error m)
               => m () -> (String, VarInfo) -> m ()
             declAttr acc (_, VarInfo id t p)
-              = acc >> declareId p 0 t (bloat id)
+              = acc >> declareId p Nothing t (bloat id)
 
             declMethod :: (MonadState TypeCheckState m, MonadError Error m)
               => m () -> (String, FuncInfo) -> m ()
@@ -219,14 +219,14 @@ instance ToBeTypeChecked S.Stmt Stmt where
         declItem tt acc (S.NoInit id) = do
           l <- acc 
           lvl <- gets currentScopeLevel
-          declareId (position t) lvl tt id
+          declareId (position t) (Just lvl) tt id
           return $ l ++ [NoInit (debloatScopedId lvl id)]
 
         declItem tt acc (S.Init id expr) = do
             l <- acc
             lvl <- gets currentScopeLevel
             okExpr <- getExpr tt expr
-            declareId (position t) lvl tt id
+            declareId (position t) (Just lvl) tt id
             return $ l ++ [Init (debloatScopedId lvl id) okExpr]
           
 
@@ -285,7 +285,7 @@ instance ToBeTypeChecked S.Stmt Stmt where
         subVarScope
 
         lvl <- gets currentScopeLevel
-        declareId p lvl tt id
+        declareId p (Just lvl) tt id
         okArr <- getVar (SArr tt) arr
         okLoopBody <- typeCheck loopBody
 

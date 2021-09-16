@@ -239,7 +239,15 @@ addStmtIgnoreBlock stmt = case stmt of
 
 -------------------------------------------------------------------------------
 addFnDef :: LLVMConverter m => DS.FnDef -> m ()
-addFnDef (DS.FnDef p t funcId params (DS.Block _ stmts)) = subScope $ do
+addFnDef = addCallableDef Nothing
+
+addMethodDef :: LLVMConverter m => DS.ClassIdent cls -> DS.FnDef -> m ()
+addMethodDef cls = addCallableDef (Just cls)
+
+addCallableDef :: LLVMConverter m
+  => Maybe (DS.ClassIdent cls) ->  DS.FnDef -> m ()
+addCallableDef mbOwner (DS.FnDef p t funcId params (DS.Block _ stmts))
+  = subScope $ do
 
   (primTs, primArgs) <- getParams params
   let currentFunc = PotFunc { label       = FuncLabel (name funcId)
@@ -248,6 +256,8 @@ addFnDef (DS.FnDef p t funcId params (DS.Block _ stmts)) = subScope $ do
                             , args        = primArgs
                             , body        = M.empty
                             , blockOrder  = []
+
+                            , owner       = mbOwner
                             }
 
   putCurrentFunc currentFunc
@@ -284,19 +294,72 @@ addClassDef (DS.ClassDef p clsId mbParent (DS.ClassBody _ memberDecls)) = do
   addCustomType clsId
   declareParentMembers mbParent
   mapM_ declareAttr memberDecls
+  addConstructor clsId
   
   where
     declareParentMembers :: LLVMConverter m => Maybe DS.SomeClassIdent -> m ()
     declareParentMembers Nothing = return ()
     declareParentMembers (Just (_ :&: parent)) = do
-      info <- getClassInfo parent
-      putClassInfo clsId info
+      
+      ClassInfo
+        { attrs = attrs
+        , attrTypes = attrTypes
+        , .. } <- getClassInfo parent
+
+      putClassInfo clsId
+        $ ClassInfo { attrs = attrs , attrTypes = attrTypes, methods = [] }
 
     declareAttr :: LLVMConverter m => DS.MemberDecl -> m ()
     declareAttr (DS.AttrDecl p t x)
-      = addAttr clsId (sGetPrimType $ DS.singFromKW t) x
+      -- = addAttr clsId (sGetPrimType $ DS.singFromKW t) x
+      = addAttr clsId (DS.singFromKW t) x
       
-    declareAttr (DS.MethodDecl def) = throwTODOP (position def)
+    declareAttr (DS.MethodDecl def) = addMethodDef clsId def
+
+
+addConstructor :: LLVMConverter m => DS.ClassIdent cls -> m ()
+addConstructor clsId@(DS.ClassIdent _ cls) = subScope $ do
+  ClassInfo
+    { attrs = attrs
+    , attrTypes = attrTypes
+    , .. } <- getClassInfo clsId
+
+  let currentFunc = PotFunc { label       = FuncLabel C.constrLabel
+                            , retType     = DS.STVoid
+                            , argTypes    = SNil
+                            , args        = DNil
+                            , body        = M.empty
+                            , blockOrder  = []
+
+                            , owner       = Just clsId
+                            }
+
+  putCurrentFunc currentFunc
+
+  l <- getNewLabel C.entryLabel
+  newEntryBlock l
+  
+
+  initAttrs attrTypes attrs
+  finishFunc fakePos
+
+  where
+    initAttrs :: LLVMConverter m => DList DS.SLatteType ts -> DList DS.Ident ts -> m ()
+    initAttrs DNil DNil = return ()
+    initAttrs (t :> ts) (attr :> attrs) = initAttr t attr
+
+    initAttr :: LLVMConverter m => Sing t -> DS.Ident t -> m ()
+    initAttr t attr = do
+      val <- getDefaultValue $ DS.kwFromSing p t
+      let var = DS.Attr p singCls (DS.EVar p singCls $ DS.Self p) attr
+
+      overwriteVar t var val
+
+      where
+        p = position attr
+    
+    singCls = DS.SCustom cls
+      
 
 -------------------------------------------------------------------------------
 addProg :: LLVMConverter m => DS.Program -> m ()
@@ -332,7 +395,13 @@ extractLLVM = do
 
   where
     mkStructDef :: (Str, ClassInfo) -> Some StructDef
-    mkStructDef (name, ClassInfo _ ts) = case toSing name of
-      SomeSing s -> Some $ StructDef s ts
+    mkStructDef (name, ClassInfo { attrTypes = ts, methods = methods, .. })
+      = case toSing name of
+        SomeSing s -> Some $ StructDef s (dGetPrimTypes ts) methods
 
+      where
+        dGetPrimTypes ::
+          DList DS.SLatteType ts -> DList SPrimType (GetPrimTypes ts)
+        dGetPrimTypes DNil = DNil
+        dGetPrimTypes (x :> xs) = sGetPrimType x :> dGetPrimTypes xs
 

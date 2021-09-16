@@ -64,16 +64,30 @@ sListLength [] = Some SZero
 sListLength (c : cs) = case sListLength cs of
   Some n -> Some $ SSucc n
 
+fromSList :: SList ts -> DList Sing ts
+fromSList SNil = DNil
+fromSList (SCons x xs) = x :> fromSList xs
+
+
+
 
 newtype ExtractParam1 (a :: k1 -> *) b = ExtractParam1 (a b)
-newtype ExtractParam2 (a :: k2 -> *) (b :: k1 -> k2) c
+newtype ExtractParam2 (a :: k1 -> *) (b :: k2 -> k1) c
   = ExtractParam2 (a (b c))
+newtype ExtractParam3 (a :: k1 -> *) (b :: k2 -> k1) (c :: k3 -> k2) d
+  = ExtractParam3 (a (b (c d)))
 
 extractParam2 :: e (a b) -> ExtractParam2 e a b
 extractParam2 = ExtractParam2
 
 insertParam2 :: ExtractParam2 e a b -> e (a b)
 insertParam2 (ExtractParam2 x) = x
+
+extractParam3 :: e (a (b c)) -> ExtractParam3 e a b c
+extractParam3 = ExtractParam3
+
+insertParam3 :: ExtractParam3 e a b c -> e (a (b c))
+insertParam3 (ExtractParam3 x) = x
 
 
 sLengthInt :: SList ts -> Int

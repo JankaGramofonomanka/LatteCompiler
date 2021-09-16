@@ -51,7 +51,7 @@ getCallableInfo var = case var of
         let err = noClsMethodError memberPos ownerType id
         FuncInfo methId retT paramTs pp <- getMethodInfo err info id
 
-        return $ CallableInfo (Method p owner methId) retT paramTs pp
+        return $ CallableInfo (Method p ownerType owner methId) retT paramTs pp
         
       
       _ -> throwError $ noMethodError memberPos ownerType id
@@ -83,8 +83,12 @@ getAnyVar :: (MonadState TypeCheckState m, MonadError Error m)
 getAnyVar var = case var of
   S.Var p id -> do
     VarInfo x t _ <- getIdentInfo id
-    
-    return $ t :&: Var p x
+    case x of
+      Scoped {} -> return $ t :&: Var p x
+      SelfAttr attr -> do
+        _ :&: selfT' <- getSelfType p
+        let selfT = insertParam2 selfT'
+        return $ t :&: Attr p selfT (EVar p selfT $ Self p) attr
 
   S.Member p e id -> do
     
@@ -248,7 +252,7 @@ getExpr :: (MonadState TypeCheckState m, MonadError Error m)
 getExpr t expr = do
   tt :&: okExpr <- getAnyExpr expr
   let err = wrongExprTypeError (position okExpr) expr t tt
-  filterT (position expr) err t tt okExpr
+  filterNCastT (position expr) err t tt okExpr
 
 getTypeOfExpr :: (MonadState TypeCheckState m, MonadError Error m)
   => S.Expr -> m (Some SLatteType)
