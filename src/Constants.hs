@@ -54,3 +54,14 @@ constrLabel = "new"
 mkConstrLabel :: String -> String
 mkConstrLabel cls = mkMethodName cls constrLabel
 
+vtablePrefix :: String
+vtablePrefix = ".vtable"
+
+mkVtableName :: String -> String
+mkVtableName cls = vtablePrefix ++ "." ++ cls
+
+mkVtableType :: String -> String
+mkVtableType cls = ".type" ++ mkVtableName cls
+
+
+

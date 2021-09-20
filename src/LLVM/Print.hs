@@ -11,6 +11,7 @@
 
 module LLVM.Print where
 
+import qualified Data.Map as M
 import Prelude hiding ( EQ )
 import Data.Singletons.Sigma
 import Data.Singletons.TypeLits
@@ -21,6 +22,7 @@ import qualified Constants as C
 import Dependent
 import SingChar
 import GHC.Base (eqString)
+import LLVM.LLVM (SPrimType(SVTable))
 
 
 tab :: Int -> String -> String
@@ -39,6 +41,9 @@ sPaste sep SNil = ""
 sPaste sep (SCons x SNil) = prt x
 sPaste sep (SCons x xs) = prt x ++ sep ++ sPaste sep xs
 
+prtSomeType :: Some SPrimType -> String
+prtSomeType (Some x) = prt x
+
 
 -- Primitive Types ------------------------------------------------------------
 
@@ -55,12 +60,15 @@ printSNatural n = show (fromSNatural n)
 
 
 instance SimplePrint (SPrimType t) where
-  prt (SI n)        = "i" ++ printSNat n
-  prt SVoid         = "void"
-  prt (SPtr t)      = prt t ++ "*"
-  prt (SArray t n)  = "[" ++ printSNatural n ++ " x " ++ prt t ++ "]"
-  prt (SStruct s)   = "%" ++ singToString s
-  prt (SArrStruct t) = "%" ++ mkArrStructName t
+  prt (SI n)          = "i" ++ printSNat n
+  prt SVoid           = "void"
+  prt (SPtr t)        = prt t ++ "*"
+  prt (SArray t n)    = "[" ++ printSNatural n ++ " x " ++ prt t ++ "]"
+  prt (SStruct s)     = "%" ++ singToString s
+  prt (SArrStruct t)  = "%" ++ mkArrStructName t
+  prt (SVTable s)     = "%" ++ C.mkVtableType (singToString s)
+  prt (SFuncType retT paramTs)
+    = paste "" [prt retT, "(", sPaste ", " paramTs, ")"]
 
 mkArrStructName :: SPrimType t -> String
 mkArrStructName t
@@ -82,9 +90,11 @@ mkArrStructName t
 -- Simple Values --------------------------------------------------------------
 instance SimplePrint (Reg t) where
   prt (Reg s i) = "%" ++ s ++ "." ++  show i
+  prt (SpecialReg s) = "%" ++ s
 
 instance SimplePrint (Constant t) where
   prt (Const s i) = "@" ++ s ++ "." ++ show i
+  prt (SpecialConst s) = "@" ++ s
 
 instance SimplePrint (Value t) where
   prt (Var reg) = prt reg
@@ -93,6 +103,7 @@ instance SimplePrint (Value t) where
   prt (BoolLit False) = "false"
   prt (ConstPtr cst) = prt cst
   prt Null = "null"
+  prt (FuncConst l) = prt l
 
 
 -- Labels ---------------------------------------------------------------------
@@ -302,8 +313,10 @@ prtProg n m LLVM  { mainFunc    = mainFunc
     $ [prtExternFuncs externFuncs, prtStrLits strLits]
     ++ ["; -- array structs --------------------------------------------------"]
     ++ map prtSomeArrStructDef arrTs
-    ++ ["; -- custom types ---------------------------------------------------"]
-    ++ map (prtSomeClassDef n m) customTs
+    ++ ["; -- custom type definitions ----------------------------------------"]
+    ++ map prtSomeClassDef customTs
+    ++ ["; -- methods --------------------------------------------------------"]
+    ++ map (prtSomeMethods n m) customTs
     ++ ["; -- malloc functions -----------------------------------------------"]
     ++ map (prtSomeMallocFunc n) mallocTs
     ++ ["; -- newArr functions -----------------------------------------------"]
@@ -325,8 +338,11 @@ prtProg n m LLVM  { mainFunc    = mainFunc
       prtSomeArrStructDef :: Some SPrimType -> String
       prtSomeArrStructDef (Some t) = prtArrStructDef t
 
-      prtSomeClassDef :: Int -> Int -> Some StructDef -> String
-      prtSomeClassDef n m (Some def) = prtClassDef n m def
+      prtSomeClassDef :: Some StructDef -> String
+      prtSomeClassDef (Some def) = prtClassDef def
+
+      prtSomeMethods :: Int -> Int -> Some StructDef -> String
+      prtSomeMethods n m (Some def) = prtClassMethods n m def
 
       prtExternFuncs :: [SomeFuncLabel] -> String
       prtExternFuncs funcs = paste "\n" (map prtExternFunc funcs)
@@ -444,46 +460,111 @@ prtArrStructDef elemT = paste " "
   ]
 
 --------------------------------------------------------------------------------
-prtClassDef :: Int -> Int -> StructDef t -> String
-prtClassDef n m def@StructDef { structName = name, methods = methods, .. }
-  = paste "\n" $ sep : prtStructDef def : map (prtMethod n m) methods
+prtClassDef :: StructDef t -> String
+prtClassDef def = paste "\n" 
+    [ prtVtableTypeDef def
+    , prtVtableDef def
+    , prtStructDef def
+    ]
+
+prtClassMethods :: Int -> Int -> StructDef t -> String
+prtClassMethods n m def@StructDef
+                        { structName  = name
+                        , methods     = methods
+                        , constructor = constructor
+                        , .. }
+  = paste "\n\n"
+    $ sep
+    : map (prtMethod n m) 
+      ((constrType :&&: constructor) : getNewMethods methods)
 
   where
     clsName = singToString name
     sep = "; -- " ++ clsName ++ " " ++ replicate (63 - length clsName) '-'
+    constrType = (SVoid, SCons (SPtr $ SStruct name) SNil)
     
-    prtMethod
-      :: Int
-      -> Int
-      -> Sigma2 PrimType [PrimType] (TyCon2 Func)
-      -> String
+    getNewMethods :: [(String, FuncOrParent)] -> [SomeFunc]
+    getNewMethods l = foldl filterVal [] l where
+      filterVal :: [SomeFunc] -> (String, FuncOrParent) -> [SomeFunc]
+      filterVal acc (f, (argTs, retT) :&&: x) = case insertParam2' x of
+        Right func  -> acc ++ [(retT, argTs) :&&: func]
+        Left _      -> acc
+
+    prtMethod :: Int -> Int -> SomeFunc -> String
     prtMethod n m (_ :&&: (Func retT paramTs params (FuncLabel f) blocks))
-      = prtFunc n m (Func retT methodParamTs methodParams methodLabel blocks)
+      = prtFunc n m (Func retT paramTs params methodLabel blocks)
 
       where
-        methodParamTs = SCons (SPtr (SStruct name)) paramTs
-        methodParams = Reg C.selfParam 0 :> params
         methodLabel = FuncLabel $ C.mkMethodName clsName f
 
 
-    prtStructDef :: StructDef t -> String
-    prtStructDef StructDef { structName = name, attributes = attrs, .. }
-      = paste " "
-        [ prt (SStruct name)
-        , "= type"
-        , "{"
-        , paste ", " (map prtSomeType $ toList attrs)
-        , "}"
-        ]
+prtStructDef :: StructDef t -> String
+prtStructDef StructDef { structName = name, attributes = attrs, .. }
+  = paste " "
+    [ prt (SStruct name)
+    , "= type"
+    , "{"
+    , paste ", "
+      $ prt (SPtr $ SVTable name) : map prtSomeType (toList attrs)
+    , "}"
+    ]
 
+    where
+      
+      toList :: DList a ts -> [Some a]
+      toList DNil = []
+      toList (x :> xs) = Some x : toList xs
+
+prtVtableTypeDef :: StructDef t -> String
+prtVtableTypeDef StructDef { structName = name, methods = methods, .. }
+  = paste " " 
+    [ prt (SVTable name)
+    , "= type"
+    , "{"
+    , paste ", " $ map (prtSomeType . ptrToTypeOf) methods
+    , "}"
+    ]
+
+    where
+      ptrToTypeOf :: (String, FuncOrParent) -> Some SPrimType
+      ptrToTypeOf (_, (argTs, retT) :&&: x) = case insertParam2' x of
+        Left (Some parent) -> 
+          Some $ SPtr $ SFuncType retT argTs
+        
+        Right _-> 
+          Some $ SPtr $ SFuncType retT argTs
+        
+      
+
+prtVtableDef :: StructDef t -> String
+prtVtableDef StructDef { structName = name, methods = methods, .. }
+  = paste " " 
+    --[ prtVtableType (SStruct name)
+    [ prt (SpecialConst (C.mkVtableName $ singToString name))
+    , "= global"
+    , prt (SVTable name)
+    , "{"
+    , paste ", " $ map prtMethodLabel methods
+    , "}"
+    ]
+
+    where
+
+      prtMethodLabel :: (String, FuncOrParent) -> String
+      prtMethodLabel (method, (argTs, retT) :&&: x) = case insertParam2' x of
+        Right {} -> paste " " [fptrType name, mkMethod name method]
+        Left (Some cls) ->
+            paste " " [fptrType cls, mkMethod cls method]
+        
         where
-          prtSomeType :: Some SPrimType -> String
-          prtSomeType (Some x) = prt x
+          fptrType :: SStr s -> String
+          fptrType cls = prt $ SPtr
+            $ SFuncType retT argTs
 
-          toList :: DList a ts -> [Some a]
-          toList DNil = []
-          toList (x :> xs) = Some x : toList xs
+          mkMethod s method
+            = prt $ FuncLabel $ C.mkMethodName (singToString s) method
 
+      
 
 
 

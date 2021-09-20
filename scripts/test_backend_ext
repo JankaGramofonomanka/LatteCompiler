@@ -102,7 +102,11 @@ do
     execute $file
 done
 
-
+echo "-- OBJECTS2 --------------------------------------"
+for file in ./lattests/extensions/objects2/*.lat
+do
+    execute $file
+done
 
 make clean
 

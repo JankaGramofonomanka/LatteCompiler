@@ -39,6 +39,7 @@ import qualified Constants as C
 import Dependent
 import BuiltIns
 import SingChar
+import Dependent (Some(Some))
 
 
 
@@ -62,6 +63,62 @@ getAttrPtr attrT clsT clsV attrId = do
 
   return attrPtr
 
+getMethodPtr :: LLVMConverter m
+  => Sing (Struct s)
+  -> Value (Ptr (Struct s))
+  -> DS.FuncIdent t ts
+  -> m
+      (Reg (Ptr (Ptr (
+        FuncType (GetPrimType t) (Ptr (Struct s) : GetPrimTypes ts)
+      ))))
+getMethodPtr clsT@(SStruct s) clsV methodId = do
+
+  i <- getMethodNumber clsT methodId
+
+  vtable <- getVTable clsT clsV
+  
+  methodPtr <- getNewReg $ name methodId ++ C.ptrPostfix
+  addInstr $ Ass methodPtr
+    $ GetAttrPtr (SVTable s) i32 i32 (Var vtable) (ILit 0) (ILit i)
+
+  return methodPtr
+
+getMethod :: LLVMConverter m
+  => Sing (Struct s)
+  -> Value (Ptr (Struct s))
+  -> Sing (GetPrimType t)
+  -> Sing (GetPrimTypes ts)
+  -> DS.FuncIdent t ts
+  -> m 
+      (Reg (Ptr (
+        FuncType (GetPrimType t) (Ptr (Struct s) : GetPrimTypes ts)
+      )))
+getMethod clsT@(SStruct s) clsV retT paramTs methodId = do
+  methodPtr <- getMethodPtr clsT clsV methodId
+  method <- getNewReg $ name methodId
+  let methodType = SPtr (SFuncType retT $ SCons (SPtr clsT) paramTs)
+  addInstr $ Ass method $ Load methodType (Var methodPtr)
+  return method
+
+getVTablePtr :: LLVMConverter m
+  => Sing (Struct s)
+  -> Value (Ptr (Struct s))
+  -> m (Reg (Ptr (Ptr (VTable s))))
+getVTablePtr clsT clsV = do
+  vtablePtr <- getNewReg $ C.vtablePrefix ++ C.ptrPostfix
+  addInstr $ Ass vtablePtr $ GetAttrPtr clsT i32 i32 clsV (ILit 0) (ILit 0)
+  return vtablePtr
+
+
+getVTable :: LLVMConverter m
+  => Sing (Struct s)
+  -> Value (Ptr (Struct s))
+  -> m (Reg (Ptr (VTable s)))
+getVTable clsT@(SStruct s) clsV = do
+  vtablePtr <- getVTablePtr clsT clsV
+  vtable <- getNewReg C.vtablePrefix
+  addInstr $ Ass vtable $ Load (SPtr (SVTable s)) (Var vtablePtr)
+  return vtable
 
 getArrPtr :: LLVMConverter m
   => Sing t -> Value (Ptr (ArrStruct t)) -> m (Reg (Ptr (Ptr t)))
@@ -111,6 +168,21 @@ getArrLength arrT arrV = do
 
   return (Var length)
 
+getOwnerTypeName :: LLVMConverter m
+  => Sing (Struct s1)
+  -> DS.FuncIdent t ts
+  -> m (Some SStr)
+getOwnerTypeName clsT@(SStruct cls) fId@(DS.FuncIdent _ f) = do
+  i <- getMethodNumber clsT fId
+  ClassInfo { methods = methods, .. } <- getClassInfo cls
+  (_, argTs) :&&: label <- pure $ methods !! i
+  case argTs of
+    SNil -> throwError internalMethodWithNoArgsError
+    (SCons selfT _) -> case selfT of
+      SPtr (SStruct s) -> return $ Some s
+      _ -> throwError internalWrongTypeOfSelfPtrError
+
+
 
 -------------------------------------------------------------------------------
 getVarValue :: LLVMConverter m
@@ -148,18 +220,7 @@ getVarValue singT var = case var of
 
   DS.Null   {} -> throwTODOP (position var)
 
-  DS.Self p -> return $ Var (Reg C.selfParam 0)
-    {-
-    let SPtr (SStruct s1) = sGetPrimType singT
-    mbSelfInfo <- gets selfInfo
-    when (isNothing mbSelfInfo) $ throwError $ selfOutsideClassError p
-    case fromJust mbSelfInfo of
-      s2 :&: selfPtr -> do
-        let err = internalSelfTypeMismatchError
-        okSelfPtr <- filterStr err s1 s2 selfPtr
-        return $ insertParam3 okSelfPtr
-
-    -- -}
+  DS.Self p -> return self
 
 
 
@@ -186,24 +247,34 @@ getExprValue expr = case expr of
       let funcLabel = FuncLabel (name funcId)
 
       (argTypes, argList) <- getArgs argTs args
-      getAppValue t funcLabel argTypes argList
+      getAppValue t (FuncConst funcLabel) argTypes argList
 
     DS.Method _ cls@(DS.SCustom clsName) e methodId -> do
       eVal <- getExprValue e
 
-      let methodName = C.mkMethodName (singToString clsName) (name methodId)      
-      let methodLabel = FuncLabel methodName
-      
       (argTypes, argList) <- getArgs argTs args
-      let argTypes' = SCons (sGetPrimType cls) argTypes
-      let argList' = eVal :> argList
-      getAppValue t methodLabel argTypes' argList'
+
+      -- determine the class from wich the function is inherited
+      let clsT = SStruct clsName
+      Some clsName' <- getOwnerTypeName clsT methodId
+      let clsT' = SStruct clsName'
+
+      reg <- getNewRegDefault
+      addInstr $ Ass reg $ BitCast (SPtr clsT) eVal (SPtr clsT')
+      
+      -- get the method pointer
+      let retT = sGetPrimType t
+      method <- getMethod clsT' (Var reg) retT argTypes methodId
+
+      let argTypes' = SCons (SPtr clsT') argTypes
+      let argList' = Var reg :> argList
+      getAppValue t (Var method) argTypes' argList'
 
     where
 
       getAppValue :: LLVMConverter m
         => DS.SLatteType t
-        -> FuncLabel (GetPrimType t) ts
+        -> Value (Ptr (FuncType (GetPrimType t) ts))
         -> SList ts
         -> ArgList ts
         -> m (Value (GetPrimType t))
@@ -331,7 +402,7 @@ getExprValue expr = case expr of
     let retT = SPtr (SArrStruct elemT)
     let argTs = SCons i32 SNil
     let args = eVal :> DNil
-    addInstr $ Ass arr $ Call retT (newArrLabel elemT) argTs args
+    addInstr $ Ass arr $ Call retT (FuncConst $ newArrLabel elemT) argTs args
 
     addArrType elemT
 
@@ -343,9 +414,10 @@ getExprValue expr = case expr of
 
     let argTs = SCons i32 SNil
     let args = ILit 1 :> DNil
-    addInstr $ Ass reg $ Call (SPtr singT) (mallocLabel singT) argTs args
+    addInstr $ Ass reg
+      $ Call (SPtr singT) (FuncConst $ mallocLabel singT) argTs args
 
-    let constructor = FuncLabel $ C.mkConstrLabel (singToString s)
+    let constructor = FuncConst $ FuncLabel $ C.mkConstrLabel (singToString s)
     let argTs = SCons (SPtr singT) SNil
     let args = Var reg :> DNil
     addInstr $ VoidExpr $ Call SVoid constructor argTs args
@@ -374,7 +446,7 @@ getExprValue expr = case expr of
     let singT = sing @(Ptr (I 8))
     let singTs = SCons singT $ SCons singT SNil
     let args = v1 :> v2 :> DNil
-    addInstr $ Ass reg $ Call singT strConcatLabel singTs args
+    addInstr $ Ass reg $ Call singT (FuncConst $ strConcatLabel) singTs args
     return $ Var reg
 
 getBinOp :: DS.BinOp -> BinOp (I n)

@@ -58,6 +58,7 @@ data TypedIdent t = TypedIdent (Sing t) String Int
 
 typedIdent :: SLatteType t -> ScopedIdent t -> TypedIdent (GetPrimType t)
 typedIdent t (Scoped lvl (Ident _ s)) = TypedIdent (sGetPrimType t) s lvl
+--typedIdent t (SelfAttr (Ident _ s)) = TypedIdent (sGetPrimType t) s 0
 
 
 -- GEq ------------------------------------------------------------------------
@@ -180,14 +181,24 @@ instance GCompare SPrimType where
   gcompare SPtr {} SVoid = GGT
   gcompare SPtr {} _ = GLT
   
-  gcompare SArray {} SStruct {} = GLT
-  gcompare SArray {} SArrStruct {} = GLT
-  gcompare SArray {} _ = GGT
+  gcompare SArray {} SI {} = GGT
+  gcompare SArray {} SVoid {} = GGT
+  gcompare SArray {} SPtr {} = GGT
+  gcompare SArray {} _ = GLT
 
   gcompare SStruct {} SArrStruct {} = GLT
+  gcompare SStruct {} SVTable {} = GLT
+  gcompare SStruct {} SFuncType {} = GLT
   gcompare SStruct {} _ = GGT
 
+  gcompare SArrStruct {} SVTable {} = GLT
+  gcompare SArrStruct {} SFuncType {} = GLT
   gcompare SArrStruct {} _ = GGT
+
+  gcompare SVTable {} SFuncType {} = GLT
+  gcompare SVTable {} _ = GGT
+
+  gcompare SFuncType {} _ = GGT
 
 
 instance GCompare TypedIdent where  

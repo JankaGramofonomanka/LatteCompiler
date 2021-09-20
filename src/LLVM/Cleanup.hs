@@ -26,7 +26,8 @@ import Data.Singletons.Sigma
 import Data.Singletons.Prelude hiding ( Error )
 import Data.Kind ( Type )
 import qualified Data.Dependent.Map as DM
-import qualified Data.Some as D
+import qualified Data.Some as Sm
+import Data.GADT.Compare
 
 import LLVM.LLVM
 import LLVM.State
@@ -39,6 +40,7 @@ import Position.Position
 import Position.SyntaxDepPosition
 
 import Dependent
+import qualified Constants as C
 
 
 -------------------------------------------------------------------------------
@@ -63,7 +65,7 @@ finishFunc p = do
   
   case owner of
     Nothing -> addFunc p retT argTs func
-    Just cls -> addMethod cls (sGetPrimType retT) argTs func
+    Just cls -> addMethod' cls (sGetPrimType retT) argTs func
 
   where
     getBlock retT label = do
@@ -108,7 +110,28 @@ addFunc p t singTs func@(Func singT _ _ (FuncLabel funcName) _) = do
     putCurrentProg
       $ PotProg { funcs = funcs ++ [(singT, singTs) :&&: func], .. }
 
+addMethod' :: LLVMConverter m
+  => DS.ClassIdent cls -> Sing t -> Sing ts -> Func t ts -> m ()
+addMethod' cls retT argTs func = do
+  if f == C.constrLabel then
+    case (retT, argTs) of
+      (SVoid, SCons (SPtr (SStruct ss)) SNil) -> case gcompare ss s of
+        GEQ -> do
+          ClassInfo { constr = _, .. } <- getClassInfo s
+          putClassInfo cls $ ClassInfo { constr = Just func, .. }
 
+        _ -> throwError internalConstructorTypeMismatchError
+      
+      _ -> addMethod cls retT argTs func
+  
+  else
+    addMethod cls retT argTs func
+  
+  
+  where
+    Func _ _ _ (FuncLabel f) _ = func
+    DS.ClassIdent _ s = cls
+    
 
 
 -------------------------------------------------------------------------------
@@ -132,8 +155,8 @@ fillInheritanceMaps = do
       return $ accChanges || changesMade
       
     propagInheritance :: LLVMConverter m
-      => Label -> m Bool -> D.Some TypedIdent -> m Bool
-    propagInheritance label acc (D.Some x) = do
+      => Label -> m Bool -> Sm.Some TypedIdent -> m Bool
+    propagInheritance label acc (Sm.Some x) = do
       accChanges <- acc
       PotBlock { inputs = ins, .. } <- getPotBlock label
       changesMade <- any fst <$> mapM (getIdentValue' x) ins
@@ -143,7 +166,7 @@ addPhi :: LLVMConverter m => Label -> TypedIdent t -> m ()
 addPhi label x@(TypedIdent singT _ lvl) = do
   m <- getInheritanceMap label
   let inheritedIds = DM.keys m
-  unless (D.Some x `elem` inheritedIds)
+  unless (Sm.Some x `elem` inheritedIds)
     $ throwError internalPhiNotPartOfInheritedError
 
   block <- getPotBlock label
@@ -164,7 +187,7 @@ addPhis label = do
   mapM_ (addPhi' label) inheritedIds
 
   where
-    addPhi' l (D.Some x) = addPhi l x
+    addPhi' l (Sm.Some x) = addPhi l x
 
 
 addAllPhis :: LLVMConverter m => m ()

@@ -27,10 +27,24 @@ deriving instance Ord (SNatural n)
 
 
 data DList (f :: k -> Type) (ts :: [k]) where
-  DNil :: DList f '[]
+  DNil  :: DList f '[]
   (:>)  :: f t -> DList f ts -> DList f (t : ts)  
 infixr 5 :>
 
+(<:) :: DList f ts -> f t -> DList f (ts ++ '[t])
+DNil <: y = y :> DNil
+(x :> xs) <: y = x :> (xs <: y)
+infixr 5 <:
+
+data DList2 (f :: k1 -> k2 -> Type) (ts1 :: [k1]) (ts2 :: [k2]) where
+  DNil2 :: DList2 f '[] '[]
+  (:>>) :: f t1 t2 -> DList2 f ts1 ts2 -> DList2 f (t1 : ts1) (t2 : ts2)
+infixr 5 :>>
+
+(<<:) :: DList2 f ts1 ts2 -> f t1 t2 -> DList2 f (ts1 ++ '[t1]) (ts2 ++ '[t2])
+DNil2 <<: y = y :>> DNil2
+(x :>> xs) <<: y = x :>> (xs <<: y)
+infixr 5 <<:
 
 data Sigma2 t1 t2 :: (t1 ~> t2 ~> *) -> * where
   (:&&:) 

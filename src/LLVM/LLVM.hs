@@ -15,6 +15,7 @@
 
 module LLVM.LLVM where
 
+import qualified Data.Map as M
 import Data.Kind ( Type )
 import Data.Singletons.TH
 import Data.Singletons.TypeLits
@@ -23,6 +24,7 @@ import Data.Singletons.Sigma
 
 import Dependent
 import SingChar
+import Dependent (ExtractParam1(ExtractParam1))
 
 deriving instance Eq (SNat n)
 deriving instance Ord (SNat n)
@@ -42,6 +44,8 @@ data PrimType
 
   | Struct Str
   | ArrStruct PrimType
+  | VTable Str
+  | FuncType PrimType [PrimType]
 
 type SPrimType :: PrimType -> Type
 data SPrimType t where
@@ -51,6 +55,10 @@ data SPrimType t where
   SArray      :: SPrimType t -> SNatural n -> SPrimType (Array t n)
   SStruct     :: SStr s -> SPrimType (Struct s)
   SArrStruct  :: SPrimType t -> SPrimType (ArrStruct t)
+  SVTable     :: SStr s -> SPrimType (VTable s)
+  SFuncType   :: SPrimType t
+              -> SList (ts :: [PrimType])
+              -> SPrimType (FuncType t ts)
 
 
 genDefunSymbols [''PrimType]
@@ -85,15 +93,20 @@ deriving instance Show (SPrimType t)
 deriving instance Eq (SPrimType t)
 deriving instance Ord (SPrimType t)
 
+deriving instance Eq (SList (ts :: [PrimType]))
+deriving instance Ord (SList (ts :: [PrimType]))
 
 -- Simple Values --------------------------------------------------------------
 type Reg :: PrimType -> Type 
 data Reg t where
   Reg :: String -> Int -> Reg t
+  SpecialReg :: String -> Reg t
 
 type Constant :: PrimType -> Type
 data Constant t where
   Const :: String -> Int -> Constant t
+  SpecialConst :: String -> Constant t
+
 
 type Value :: PrimType -> Type
 data Value t where
@@ -102,6 +115,7 @@ data Value t where
   BoolLit   :: Bool -> Value (I 1)
   ConstPtr  :: Constant t -> Value (Ptr t)
   Null      :: Value (Ptr t)
+  FuncConst :: FuncLabel t ts -> Value (Ptr (FuncType t ts))
 
 
 deriving instance Show (Reg t)
@@ -124,7 +138,7 @@ type FuncLabel :: PrimType -> [PrimType] -> Type
 data FuncLabel t ts where
   FuncLabel :: String -> FuncLabel t ts
 
-  deriving Show
+  deriving (Show, Eq, Ord)
 
 
 -- Operators ------------------------------------------------------------------
@@ -170,7 +184,10 @@ type family ElemOf (t :: PrimType) :: PrimType where
 type Expr :: PrimType -> Type
 data Expr t where
   BinOperation  :: Sing t -> BinOp t -> Value t -> Value t -> Expr t
-  Call          :: Sing t -> FuncLabel t ts -> SList ts -> ArgList ts -> Expr t
+  Call          :: Sing t -> Value (Ptr (FuncType t ts))
+                          -> SList ts
+                          -> ArgList ts
+                          -> Expr t
   GetElemPtr    :: Sing t
                 -> Sing (I n) -> Value (Ptr t)
                               -> Value (I n)
@@ -183,12 +200,12 @@ data Expr t where
                               -> Value (I m)
                               -> Expr (Ptr t)
 
-  GetAttrPtr    :: Sing (Struct s)
+  GetAttrPtr    :: Sing t1
                 -> Sing (I n)
-                -> Sing (I m) -> Value (Ptr (Struct s))
+                -> Sing (I m) -> Value (Ptr t1)
                               -> Value (I n)
                               -> Value (I m)
-                              -> Expr (Ptr t)
+                              -> Expr (Ptr t2)
 
   GetArrAttrPtr :: Sing (ArrStruct s)
                 -> Sing (I n)
@@ -268,9 +285,16 @@ data StructDef t where
   StructDef ::
     { structName  :: SStr t
     , attributes  :: DList SPrimType ts
-    , methods     :: [Sigma2 PrimType [PrimType] (TyCon2 Func)]
+    --, methods     :: [Sigma2 PrimType [PrimType] (TyCon2 Func)]
+    --, methods     :: [(String, Either (Some SStr) SomeFunc)]
+    , methods     ::  [(String, FuncOrParent)]
+    , constructor  :: Func 'Void '[Ptr (Struct t)]
     } -> StructDef t
 
+type FuncOrParent = Sigma2 
+                      [PrimType] 
+                      PrimType                        
+                      (TyCon2 (ExtractParam2' (Either (Some SStr)) Func))
 
 data LLVMProg
   = LLVM 

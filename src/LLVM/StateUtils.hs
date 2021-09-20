@@ -26,7 +26,6 @@ import Data.Singletons.Sigma
 import Data.Singletons.Prelude hiding ( Error )
 import Data.Kind ( Type )
 import qualified Data.Dependent.Map as DM
-import qualified Data.Some as D
 
 import LLVM.LLVM
 import LLVM.State
@@ -39,6 +38,7 @@ import Position.SyntaxDepPosition
 import qualified Constants as C
 
 import Dependent
+import SingChar
 
 
 
@@ -53,6 +53,11 @@ strConstLen s = case toSing $ len s of
     len (_ : s)         = Succ $ len s
 
 
+self :: Value (Ptr (Struct s))
+self = Var $ SpecialReg C.selfParam
+
+mkVTableConst :: SStr s -> Constant (VTable s)
+mkVTableConst cls = SpecialConst (C.mkVtableName $ singToString cls)
 
 -- getters --------------------------------------------------------------------
 getNewReg :: MonadState LLVMState m => String -> m (Reg t)

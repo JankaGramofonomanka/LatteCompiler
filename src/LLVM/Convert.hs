@@ -10,6 +10,7 @@
   , TypeFamilies
   , GADTs
   , StandaloneKindSignatures
+  , PolyKinds
 #-}
 
 module LLVM.Convert where
@@ -23,7 +24,9 @@ import Control.Monad.Except
 import Data.Singletons.Sigma
 import Data.Singletons.Prelude hiding ( Error, SLT )
 import Data.Singletons
-
+import qualified Data.Dependent.Map as DM
+import qualified Data.Some as Sm
+import Data.GADT.Compare
 
 import LLVM.LLVM
 import LLVM.State
@@ -41,6 +44,8 @@ import Dependent
 import BuiltIns
 import qualified Constants as C
 import SingChar
+import LLVM.StateUtils (mkVTableConst)
+import qualified Syntax.SyntaxDep as C
 
 
 addStmt :: LLVMConverter m => DS.Stmt -> m ()
@@ -249,11 +254,13 @@ addCallableDef :: LLVMConverter m
 addCallableDef mbOwner (DS.FnDef p t funcId params (DS.Block _ stmts))
   = subScope $ do
 
+  --resetCounters
   (primTs, primArgs) <- getParams params
+  primTs' :&: primArgs' <- getParams' mbOwner primTs primArgs
   let currentFunc = PotFunc { label       = FuncLabel (name funcId)
                             , retType     = DS.singFromKW t
-                            , argTypes    = primTs
-                            , args        = primArgs
+                            , argTypes    = primTs'
+                            , args        = primArgs'
                             , body        = M.empty
                             , blockOrder  = []
 
@@ -268,6 +275,25 @@ addCallableDef mbOwner (DS.FnDef p t funcId params (DS.Block _ stmts))
 
   mapM_ addStmt stmts
   finishFunc p
+
+  where
+
+    getParams' :: LLVMConverter m
+      => Maybe (DS.ClassIdent cls)
+      -> SList ts
+      -> ParamList ts
+      -> m (Sigma [PrimType] (TyCon1 (DList Reg)))
+    getParams' mbOwner primTs primArgs = case mbOwner of
+      Nothing -> return
+          $ primTs :&: primArgs
+
+      Just (DS.ClassIdent _ cls) -> return
+          $ SCons (SPtr $ SStruct cls) primTs
+        :&: SpecialReg C.selfParam :> primArgs
+                          
+      
+            
+
 
 
 getParams :: LLVMConverter m
@@ -294,27 +320,52 @@ addClassDef (DS.ClassDef p clsId mbParent (DS.ClassBody _ memberDecls)) = do
   addCustomType clsId
   declareParentMembers mbParent
   mapM_ declareAttr memberDecls
+  mapM_ convertMethod' memberDecls
   addConstructor clsId
   
   where
     declareParentMembers :: LLVMConverter m => Maybe DS.SomeClassIdent -> m ()
     declareParentMembers Nothing = return ()
-    declareParentMembers (Just (_ :&: parent)) = do
+    declareParentMembers (Just (_ :&: (DS.ClassIdent _ parent))) = do
       
       ClassInfo
-        { attrs = attrs
-        , attrTypes = attrTypes
+        { vtableInfo = vtable
         , .. } <- getClassInfo parent
 
       putClassInfo clsId
-        $ ClassInfo { attrs = attrs , attrTypes = attrTypes, methods = [] }
+        $ ClassInfo
+          { vtableInfo = mkChildVTable parent vtable
+          , constr = Nothing
+          , .. }
 
     declareAttr :: LLVMConverter m => DS.MemberDecl -> m ()
     declareAttr (DS.AttrDecl p t x)
-      -- = addAttr clsId (sGetPrimType $ DS.singFromKW t) x
       = addAttr clsId (DS.singFromKW t) x
       
-    declareAttr (DS.MethodDecl def) = addMethodDef clsId def
+    declareAttr (DS.MethodDecl (DS.FnDef _ t (DS.FuncIdent _ f) ts _))
+      = do
+        let singT = sGetPrimType $ DS.singFromKW t
+        (singTs, _) <- getParams ts
+        declareMethod clsId singT singTs (FuncLabel f)
+
+
+    convertMethod' (DS.MethodDecl def) = addMethodDef clsId def
+    convertMethod' (DS.AttrDecl p t x) = return ()
+
+    mkChildVTable :: SStr cls
+      -> M.Map String FuncOrParent
+      -> M.Map String FuncOrParent
+    
+    mkChildVTable cls m = M.fromList $ mkList m where
+      mkList :: M.Map String FuncOrParent -> [(String, FuncOrParent)]
+      mkList m = foldl inheritMethod [] (M.toList m)
+
+      inheritMethod l (methodName, t :&&: x) = case insertParam2' x of
+        Left (Some cls1)
+          -> l ++ [(methodName, t :&&: extractParam2' (Left $ Some cls1))]
+
+        Right _
+          -> l ++ [(methodName, t :&&: extractParam2' (Left $ Some cls))]
 
 
 addConstructor :: LLVMConverter m => DS.ClassIdent cls -> m ()
@@ -322,12 +373,12 @@ addConstructor clsId@(DS.ClassIdent _ cls) = subScope $ do
   ClassInfo
     { attrs = attrs
     , attrTypes = attrTypes
-    , .. } <- getClassInfo clsId
+    , .. } <- getClassInfo cls
 
   let currentFunc = PotFunc { label       = FuncLabel C.constrLabel
                             , retType     = DS.STVoid
-                            , argTypes    = SNil
-                            , args        = DNil
+                            , argTypes    = SCons (SPtr $ SStruct cls) SNil
+                            , args        = SpecialReg C.selfParam :> DNil
                             , body        = M.empty
                             , blockOrder  = []
 
@@ -338,8 +389,14 @@ addConstructor clsId@(DS.ClassIdent _ cls) = subScope $ do
 
   l <- getNewLabel C.entryLabel
   newEntryBlock l
-  
 
+  -- store the vtable
+  vtablePtr <- getVTablePtr (SStruct cls) self
+  
+  let vtableVal = ConstPtr $ mkVTableConst cls
+  addInstr $ Store (SPtr $ SVTable cls) vtableVal (Var vtablePtr)
+
+  -- initialize attributes
   initAttrs attrTypes attrs
   finishFunc fakePos
 
@@ -363,9 +420,18 @@ addConstructor clsId@(DS.ClassIdent _ cls) = subScope $ do
 
 -------------------------------------------------------------------------------
 addProg :: LLVMConverter m => DS.Program -> m ()
-addProg (DS.Program _ defs) = mapM_ addFnDef' defs where
-  addFnDef' (Left def) = addClassDef def
-  addFnDef' (Right def) = addFnDef def
+addProg (DS.Program _ defs) = do
+  mapM_ addClassDef' defs
+  mapM_ addFnDef' defs
+
+  where
+    addFnDef' (Left def) = pass
+    addFnDef' (Right def) = addFnDef def
+
+    addClassDef' (Left def) = addClassDef def
+    addClassDef' (Right def) = pass
+
+    pass = return ()
 
 
 extractLLVM :: LLVMConverter m => m LLVMProg
@@ -376,7 +442,8 @@ extractLLVM = do
     Just main -> do
 
       strConstnts <- gets $ M.toList . strLitMap
-      customTs <- gets $ map mkStructDef . M.toList . classMap
+      clsM <- gets classMap
+      customTs <- mapM mkStructDef $ dmToList clsM
       
       mallocTs <- gets mallocTypes
       arrTs <- gets arrTypes
@@ -394,14 +461,52 @@ extractLLVM = do
       return prog
 
   where
-    mkStructDef :: (Str, ClassInfo) -> Some StructDef
-    mkStructDef (name, ClassInfo { attrTypes = ts, methods = methods, .. })
-      = case toSing name of
-        SomeSing s -> Some $ StructDef s (dGetPrimTypes ts) methods
+    dmToList :: GCompare (Sing :: t -> *)
+      => DM.DMap (Sing :: t -> *) a -> [Sigma t (TyCon1 a)]
+    dmToList m = map (getValue m) (DM.keys m)
+
+    getValue  :: GCompare (Sing :: t -> *)
+              => DM.DMap (Sing :: t -> *) a
+              -> Sm.Some (Sing :: t -> *)
+              -> Sigma t (TyCon1 a)
+    getValue m (Sm.Some k) = case DM.lookup k m of
+      Nothing -> undefined
+      Just v -> k :&: v
+
+    mkStructDef :: LLVMConverter m
+      => Sigma Str (TyCon1 ClassInfo) -> m (Some StructDef)
+    mkStructDef (_ :&: ClassInfo { constr = Nothing , .. })
+      = throwError internalNoConstructorError
+
+    mkStructDef (name :&: ClassInfo
+                          { attrTypes = ts
+                          , vtableInfo = vtableInfo
+                          , methods = methods
+                          , constr = Just constr
+                          , .. })
+      = do
+        vtable <- mkVTable methods vtableInfo
+        return $ 
+          Some $ StructDef name (dGetPrimTypes ts) vtable constr
 
       where
         dGetPrimTypes ::
           DList DS.SLatteType ts -> DList SPrimType (GetPrimTypes ts)
         dGetPrimTypes DNil = DNil
         dGetPrimTypes (x :> xs) = sGetPrimType x :> dGetPrimTypes xs
+
+        mkVTable  :: LLVMConverter m =>
+                  [SomeFuncLabel]
+                  -> M.Map String FuncOrParent
+                  -> m [(String, FuncOrParent)]
+        mkVTable [] _ = return $ []
+        mkVTable ((_ :&&: FuncLabel f) : funcs) table
+          = case M.lookup f table of
+              Nothing -> throwError internalMethodInfoMismatchError
+              Just x -> do
+                funcs' <- mkVTable funcs table
+                return $ (f, x) : funcs'
+        
+    
+    
 

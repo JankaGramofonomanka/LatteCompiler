@@ -264,7 +264,11 @@ internalNoInputsError
 
 internalNoAttrError :: Error
 internalNoAttrError
-  = SimpleError "INTERNAL EROR (attribute not defined)"
+  = SimpleError "INTERNAL ERROR (attribute not defined)"
+
+internalNoMethodError :: Error
+internalNoMethodError
+  = SimpleError "INTERNAL ERROR (method not defined)"
 
 internalClassAlredyDeclaredError :: Error
 internalClassAlredyDeclaredError
@@ -274,3 +278,24 @@ internalSelfTypeMismatchError :: Error
 internalSelfTypeMismatchError
   = SimpleError 
   $ "INTERNAL ERROR (type of `self` does not equal the type of current class)"
+
+internalMethodInfoMismatchError :: Error
+internalMethodInfoMismatchError
+  = SimpleError "INTERNAL ERROR (method info mismatch)"
+
+internalNoConstructorError :: Error
+internalNoConstructorError
+  = SimpleError "INTERNAL ERROR (constructor not defiend)"
+
+internalConstructorTypeMismatchError :: Error
+internalConstructorTypeMismatchError
+  = SimpleError "INTERNAL ERROR (constructor type mismatch)"
+
+internalMethodWithNoArgsError :: Error
+internalMethodWithNoArgsError
+  = SimpleError "INTERNAL ERROR (method with no arguments)"
+
+internalWrongTypeOfSelfPtrError :: Error
+internalWrongTypeOfSelfPtrError
+  = SimpleError "INTERNAL ERROR (pointer to self has wrong type)"
+
