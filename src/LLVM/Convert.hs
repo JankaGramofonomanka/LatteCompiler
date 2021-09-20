@@ -424,7 +424,7 @@ addConstructor clsId@(DS.ClassIdent _ cls) = subScope $ do
   where
     initAttrs :: LLVMConverter m => DList DS.SLatteType ts -> DList DS.Ident ts -> m ()
     initAttrs DNil DNil = return ()
-    initAttrs (t :> ts) (attr :> attrs) = initAttr t attr
+    initAttrs (t :> ts) (attr :> attrs) = initAttr t attr >> initAttrs ts attrs
 
     initAttr :: LLVMConverter m => Sing t -> DS.Ident t -> m ()
     initAttr t attr = do
