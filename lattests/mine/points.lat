@@ -1,0 +1,112 @@
+class Point2 {
+  int x;
+  int y;
+
+  void move (int dx, int dy) {
+     x = x + dx;
+     y = y + dy;
+  }
+
+  int getX () { return x; }
+
+  int getY () { return y; }
+}
+
+class Point3 extends Point2 {
+  int z;
+
+  void moveZ (int dz) {
+    z = z + dz;
+  }
+
+  int getZ () { return z; }
+
+}
+
+class Point4 extends Point3 {
+  int w;
+
+  void moveW (int dw) {
+    w = w + dw;
+  }
+
+  int getW () { return w; }
+
+}
+
+void printP(Point2 p) {
+  printString("\np:");
+  printInt(p.getX());
+  printInt(p.getY());
+} 
+
+void printQ(Point3 p) {
+  printString("\nq:");
+  printInt(p.getX());
+  printInt(p.getY());
+  printInt(p.getZ());
+} 
+
+void printR(Point4 p) {
+  printString("\nr:");
+  printInt(p.getX());
+  printInt(p.getY());
+  printInt(p.getZ());
+  printInt(p.getW());
+} 
+
+void printAll(Point2 p, Point3 q, Point4 r) {
+  printP(p);
+  printQ(q);
+  printR(r);
+}
+
+int main () {
+  Point2 p = new Point3;
+
+  Point3 q = new Point3;
+
+  Point4 r = new Point4;
+
+  printAll(p, q, r);
+
+  printString("\n--------------------------------------");
+  printString("\nq.move(2,4);");
+  q.move(2,4);
+  printQ(q);
+
+  printString("\nq.moveZ(7);");
+  q.moveZ(7);
+  printQ(q);
+
+  printString("\np = q;");
+  p = q;
+
+  printP(p);
+  printQ(q);
+
+  printString("\n--------------------------------------");
+  printString("\np.move(3,5);");
+  p.move(3,5);
+  
+  printP(p);
+  printQ(q);
+  
+  
+  printString("\n--------------------------------------");
+  printString("\nr.move(1,3);");
+  r.move(1,3);
+  printR(r);
+
+  printString("\nr.moveZ(6);");
+  r.moveZ(6);
+  printR(r);
+
+  printString("\nr.moveW(2);");
+  r.moveW(2);
+  printR(r);
+
+  printAll(p, q, r);
+  return 0;
+
+}

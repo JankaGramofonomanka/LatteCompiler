@@ -246,7 +246,7 @@ addAttr (DS.ClassIdent _ cls) t attrId = do
       pure $ ClassInfo (attrId :> DNil) (t :> DNil) [] M.empty Nothing
 
     Just ClassInfo { attrs = attrs, attrTypes = ts, .. } -> 
-      pure $ ClassInfo { attrs = attrId :> attrs, attrTypes = t :> ts, .. }
+      pure $ ClassInfo { attrs = attrs <: attrId, attrTypes = ts <: t, .. }
 
   let newClsMap = DM.insert cls newClsInfo m
   putClassMap newClsMap
