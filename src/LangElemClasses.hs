@@ -235,3 +235,21 @@ instance IsOp DS.BoolOp where
     DS.Or _  -> printTree $ (bloat :: S.BoolOp -> BNFC.OrOp)  $ bloat op
 
 
+-- IsStmt ---------------------------------------------------------------------
+class IsStmt s where
+  toBNFCStmt :: s -> BNFC.Stmt
+  printStmt :: s -> String
+  printStmt s = printTree (toBNFCStmt s)
+
+instance IsStmt BNFC.Stmt where
+  toBNFCStmt = id
+
+instance IsStmt S.Stmt where
+  toBNFCStmt = bloat
+
+instance IsStmt DS.Stmt where
+  toBNFCStmt = bloat . (bloat :: DS.Stmt -> S.Stmt)
+
+
+
+  

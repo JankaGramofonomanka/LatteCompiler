@@ -128,6 +128,11 @@ addInstr instr = do
   -- ignore the instruction if it is after a branch instruction
   when (isNothing mbInstr) $ appendInstr l (Instr instr Nothing)
 
+addComment :: LLVMConverter m => String -> m ()
+addComment cmt = do
+  l <- getCurrentBlockLabel
+  appendInstr l $ Comment cmt
+
 appendInstr :: LLVMConverter m => Label -> ComSimpleInstr -> m ()
 appendInstr label instr = do
   PotBlock { blockBody = body, .. } <- getPotBlock label

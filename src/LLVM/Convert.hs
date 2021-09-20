@@ -48,8 +48,29 @@ import LLVM.StateUtils (mkVTableConst)
 import qualified Syntax.SyntaxDep as C
 
 
+addComment' :: LLVMConverter m => DS.Stmt -> m ()
+addComment' stmt = case stmt of
+  DS.Empty {} -> pass
+  DS.BStmt {} -> pass
+  DS.Cond _ cond _ -> addComment $ "if (" ++ printExpr cond ++ ") { ... }"
+  DS.CondElse _ cond _ _ ->
+    addComment $ "if (" ++ printExpr cond ++ ") { ... } else { ... }"
+
+  DS.While _ cond _ -> addComment $ "while (" ++ printExpr cond ++ ") { ... }"
+
+  DS.For p t i var stm -> addComment
+    $ "for (" ++ printType t ++ " " ++ printIdent i ++ " : " ++ printVar var
+    ++ ") { ... }"
+
+  DS.Forever {} -> addComment "while (true) { ... }"
+
+  _ -> addComment (printStmt stmt)
+
+  where
+    pass = return ()
+
 addStmt :: LLVMConverter m => DS.Stmt -> m ()
-addStmt stmt = case stmt of
+addStmt stmt = addComment' stmt >> case stmt of
   DS.Empty    p -> return ()
   DS.BStmt    p (DS.Block _ stmts) -> do
     
