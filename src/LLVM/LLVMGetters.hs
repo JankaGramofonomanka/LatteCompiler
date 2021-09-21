@@ -227,7 +227,7 @@ getVarValue singT var = case var of
 
 -------------------------------------------------------------------------------
 getExprValue :: LLVMConverter m => DS.Expr t -> m (Value (GetPrimType t))
-getExprValue expr = case expr of
+getExprValue expr = handleType (DS.exprType expr) >> case expr of
   DS.EVar p singT v -> getVarValue singT v
 
   ---------------------------------------------------------------------
@@ -404,7 +404,7 @@ getExprValue expr = case expr of
     let args = eVal :> DNil
     addInstr $ Ass arr $ Call retT (FuncConst $ newArrLabel elemT) argTs args
 
-    addArrType elemT
+    --addArrType elemT
 
     return (Var arr)
 
@@ -422,7 +422,7 @@ getExprValue expr = case expr of
     let args = Var reg :> DNil
     addInstr $ VoidExpr $ Call SVoid constructor argTs args
 
-    addMallocType singT
+    --addMallocType singT
 
     return (Var reg)
 
@@ -476,3 +476,8 @@ getArgs (SCons t ts) (arg :> args) = do
   v <- getExprValue arg
   (tts, vs) <- getArgs ts args
   return (SCons (sGetPrimType t) tts, v :> vs)
+
+handleType :: LLVMConverter m => DS.SLatteType t -> m ()
+handleType (DS.SArr elemT) = addArrType (sGetPrimType elemT)
+handleType (DS.SCustom s) = addMallocType (SStruct s)
+handleType _ = return ()

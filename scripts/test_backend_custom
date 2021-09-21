@@ -98,5 +98,12 @@ do
     execute $file
 done
 
+echo ""
+echo "-- VIRTUAL ---------------------------------------"
+for file in ./mrjp-tests/good/virtual/*.lat
+do 
+    execute $file
+done
+
 make clean
 
