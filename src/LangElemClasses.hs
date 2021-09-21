@@ -41,6 +41,7 @@ instance IsIdent (DS.Ident a) where
 
 instance IsIdent (DS.ScopedIdent a) where
   name (DS.Scoped _ x) = name x
+  name (DS.SelfAttr x) = name x
 
 
 instance IsIdent (DS.FuncIdent t ts) where
@@ -61,8 +62,11 @@ class IsType t where
   
   toBNFCType :: t -> BNFC.Type
 
+  prtType :: t -> String
+  prtType = printTree . toBNFCType
+
   printType :: t -> String
-  printType = ticks . printTree . toBNFCType
+  printType = ticks . prtType
 
   someType :: t -> Some DS.SLatteType
   someType = debloat . (debloat :: BNFC.Type -> S.Type) . toBNFCType
@@ -120,8 +124,12 @@ instance IsType (Some DS.SLatteType) where
 
 class IsVar v where
   toBNFCVar :: v -> BNFC.Var
+
+  prtVar :: v -> String
+  prtVar = printTree . toBNFCVar
+
   printVar :: v -> String
-  printVar = ticks . printTree . toBNFCVar
+  printVar = ticks . prtVar
 
 instance IsVar BNFC.Var where
   toBNFCVar = id
@@ -168,8 +176,10 @@ instance IsLit Bool where
 
 class IsExpr e where
   toBNFCExpr :: e -> BNFC.Expr
+  prtExpr :: e -> String
+  prtExpr = printTree . toBNFCExpr
   printExpr :: e -> String
-  printExpr = ticks . printTree . toBNFCExpr
+  printExpr = ticks . prtExpr
 
 instance IsExpr BNFC.Expr where
   toBNFCExpr = id
@@ -238,8 +248,12 @@ instance IsOp DS.BoolOp where
 -- IsStmt ---------------------------------------------------------------------
 class IsStmt s where
   toBNFCStmt :: s -> BNFC.Stmt
+
+  prtStmt :: s -> String
+  prtStmt = printTree . toBNFCStmt
+  
   printStmt :: s -> String
-  printStmt s = printTree (toBNFCStmt s)
+  printStmt = ticks . prtStmt
 
 instance IsStmt BNFC.Stmt where
   toBNFCStmt = id

@@ -252,7 +252,7 @@ prtBranchInstr n instr = tab n (prt instr)
 
 
 prtComSimpleInstr :: Int -> Int -> ComSimpleInstr -> String
-prtComSimpleInstr n m (Comment cmt) = tab n ("; " ++ cmt)
+prtComSimpleInstr n m (Comment cmt) = "\n" ++ tab n ("; " ++ cmt)
 prtComSimpleInstr n m (Instr instr Nothing) = tab n (prt instr)
 prtComSimpleInstr n m (Instr instr (Just cmt))
   = tab n (prt instr ++ replicate mm ' ' ++ "; " ++ cmt) where

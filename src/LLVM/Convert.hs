@@ -52,19 +52,19 @@ addComment' :: LLVMConverter m => DS.Stmt -> m ()
 addComment' stmt = case stmt of
   DS.Empty {} -> pass
   DS.BStmt {} -> pass
-  DS.Cond _ cond _ -> addComment $ "if (" ++ printExpr cond ++ ") { ... }"
+  DS.Cond _ cond _ -> addComment $ "if (" ++ prtExpr cond ++ ") { ... }"
   DS.CondElse _ cond _ _ ->
-    addComment $ "if (" ++ printExpr cond ++ ") { ... } else { ... }"
+    addComment $ "if (" ++ prtExpr cond ++ ") { ... } else { ... }"
 
-  DS.While _ cond _ -> addComment $ "while (" ++ printExpr cond ++ ") { ... }"
+  DS.While _ cond _ -> addComment $ "while (" ++ prtExpr cond ++ ") { ... }"
 
   DS.For p t i arr stm -> addComment
-    $ "for (" ++ printType t ++ " " ++ printIdent i ++ " : " ++ printExpr arr
+    $ "for (" ++ prtType t ++ " " ++ name i ++ " : " ++ prtExpr arr
     ++ ") { ... }"
 
   DS.Forever {} -> addComment "while (true) { ... }"
 
-  _ -> addComment (printStmt stmt)
+  _ -> addComment (filter (/= '\n') $ prtStmt stmt)
 
   where
     pass = return ()
