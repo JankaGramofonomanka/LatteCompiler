@@ -58,8 +58,8 @@ addComment' stmt = case stmt of
 
   DS.While _ cond _ -> addComment $ "while (" ++ printExpr cond ++ ") { ... }"
 
-  DS.For p t i var stm -> addComment
-    $ "for (" ++ printType t ++ " " ++ printIdent i ++ " : " ++ printVar var
+  DS.For p t i arr stm -> addComment
+    $ "for (" ++ printType t ++ " " ++ printIdent i ++ " : " ++ printExpr arr
     ++ ") { ... }"
 
   DS.Forever {} -> addComment "while (true) { ... }"
@@ -159,10 +159,10 @@ addStmt stmt = addComment' stmt >> case stmt of
     _ <- getExprValue expr
     return ()
 
-  DS.For p t i var stm -> subScope $ do
+  DS.For p t i expr stm -> subScope $ do
     let singT = DS.singFromKW t
     let elemT = sGetPrimType singT
-    arr <- getVarValue (DS.SArr singT) var
+    arr <- getExprValue expr
     declareItem t (DS.NoInit i)
 
     iter0 <- getNewReg C.regIter

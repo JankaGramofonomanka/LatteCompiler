@@ -286,7 +286,7 @@ instance ToBeTypeChecked S.Stmt Stmt where
 
         lvl <- gets currentScopeLevel
         declareId p (Just lvl) tt id
-        okArr <- getVar (SArr tt) arr
+        okArr <- getExpr (SArr tt) arr
         okLoopBody <- typeCheck loopBody
 
         dropVarScope

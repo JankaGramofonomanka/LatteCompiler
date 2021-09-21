@@ -66,6 +66,13 @@ do
 done
 
 echo ""
+echo "-- VIRTUAL ---------------------------------------"
+for file in ./mrjp-tests/good/virtual/*.lat
+do 
+    compile $file
+done
+
+echo ""
 echo "-- E X E C U T I O N -----------------------------"
 
 echo ""

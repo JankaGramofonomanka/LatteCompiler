@@ -51,7 +51,7 @@ data Stmt where
   CondElse  :: Pos -> Expr -> Stmt -> Stmt -> Stmt
   While     :: Pos -> Expr -> Stmt -> Stmt
   SExp      :: Pos -> Expr -> Stmt
-  For       :: Pos -> Type -> Ident -> Var -> Stmt -> Stmt
+  For       :: Pos -> Type -> Ident -> Expr -> Stmt -> Stmt
 
   deriving (Eq, Ord, Show, Read)
 
@@ -117,10 +117,6 @@ data MemberDecl where
   MethodDecl :: TopDef -> MemberDecl
   
   deriving (Eq, Ord, Show, Read)
-
-
-
-
 
 
 

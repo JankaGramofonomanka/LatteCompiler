@@ -215,9 +215,8 @@ instance MayHaveConstants Stmt where
 
     SExp p t expr -> SExp p t (evalConstants expr)
 
-    -- TODO `arr` may have be turned into an expression and need evaluation
     For p t id arr loopBody -> 
-      For p t id arr (evalConstants loopBody)
+      For p t id (evalConstants arr) (evalConstants loopBody)
     
     Forever p stmt -> Forever p (evalConstants stmt)
 

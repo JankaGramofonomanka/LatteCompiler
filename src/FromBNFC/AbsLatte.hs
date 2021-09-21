@@ -102,7 +102,7 @@ data Stmt
     | CondElse PIf Expr Stmt PElse Stmt
     | While PWhile Expr Stmt
     | SExp Expr PSemiColon
-    | For PFor Type PIdent Var Stmt
+    | For PFor Type PIdent Expr Stmt
   deriving (Eq, Ord, Show, Read)
 
 data Item = NoInit PIdent | Init PIdent Expr

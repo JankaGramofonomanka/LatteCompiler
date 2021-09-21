@@ -13,6 +13,7 @@ instance HasPosition (Ident t) where
 
 instance HasPosition (ScopedIdent t) where
   position (Scoped _ x) = position x
+  position (SelfAttr x) = position x
 
 instance HasPosition (FuncIdent t ts) where
   position (FuncIdent p _) = p

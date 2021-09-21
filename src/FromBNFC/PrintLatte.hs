@@ -259,7 +259,7 @@ instance Print Stmt where
     CondElse pif expr stmt1 pelse stmt2 -> prPrec i 0 (concatD [prt 0 pif, doc (showString "("), prt 0 expr, doc (showString ")"), prt 0 stmt1, prt 0 pelse, prt 0 stmt2])
     While pwhile expr stmt -> prPrec i 0 (concatD [prt 0 pwhile, doc (showString "("), prt 0 expr, doc (showString ")"), prt 0 stmt])
     SExp expr psemicolon -> prPrec i 0 (concatD [prt 0 expr, prt 0 psemicolon])
-    For pfor type_ pident var stmt -> prPrec i 0 (concatD [prt 0 pfor, doc (showString "("), prt 0 type_, prt 0 pident, doc (showString ":"), prt 0 var, doc (showString ")"), prt 0 stmt])
+    For pfor type_ pident expr stmt -> prPrec i 0 (concatD [prt 0 pfor, doc (showString "("), prt 0 type_, prt 0 pident, doc (showString ":"), prt 0 expr, doc (showString ")"), prt 0 stmt])
   prtList _ [] = (concatD [])
   prtList _ (x:xs) = (concatD [prt 0 x, prt 0 xs])
 instance Print Item where

@@ -145,7 +145,7 @@ transStmt x = case x of
   CondElse pif expr stmt1 pelse stmt2 -> failure x
   While pwhile expr stmt -> failure x
   SExp expr psemicolon -> failure x
-  For pfor type_ pident var stmt -> failure x
+  For pfor type_ pident expr stmt -> failure x
 transItem :: Item -> Result
 transItem x = case x of
   NoInit pident -> failure x

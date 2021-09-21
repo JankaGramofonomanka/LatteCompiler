@@ -14,7 +14,6 @@ import Control.Monad.State
 import Control.Monad.Except
 import Data.Maybe
 
-import Unsafe.Coerce
 
 import Data.Singletons
 import Data.Singletons.Sigma

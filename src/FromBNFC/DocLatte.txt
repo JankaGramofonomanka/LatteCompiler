@@ -204,7 +204,7 @@ All other symbols are terminals.
   |  |  **|**  | //PIf// ``(`` //Expr// ``)`` //Stmt// //PElse// //Stmt// 
   |  |  **|**  | //PWhile// ``(`` //Expr// ``)`` //Stmt// 
   |  |  **|**  | //Expr// //PSemiColon// 
-  |  |  **|**  | //PFor// ``(`` //Type// //PIdent// ``:`` //Var// ``)`` //Stmt// 
+  |  |  **|**  | //PFor// ``(`` //Type// //PIdent// ``:`` //Expr// ``)`` //Stmt// 
   | //Item// | -> | //PIdent// 
   |  |  **|**  | //PIdent// ``=`` //Expr// 
   | //[Item]// | -> | //Item// 

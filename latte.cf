@@ -83,7 +83,7 @@ comment     "/*" "*/" ;
 -- arrays --------------------------------------------------
 Arr.        Type ::= Type "[]" ;
 NewArr.     Expr ::= PNew Type "[" Expr "]" ;
-For.        Stmt ::= PFor "(" Type PIdent ":" Var ")" Stmt ;
+For.        Stmt ::= PFor "(" Type PIdent ":" Expr ")" Stmt ;
 
 Member.     Var ::= Expr6 "." PIdent ;
 Elem.       Var ::= Expr6 "[" Expr "]" ;
