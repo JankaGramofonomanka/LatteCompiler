@@ -178,7 +178,7 @@ addPhi label x@(TypedIdent singT _ lvl) = do
   reg <- getInherited label x
   vals <- mapM (getIdentValue x) ins
   prependInstr label
-    $ Instr (Ass reg $ Phi singT (zip ins vals)) (Just $ show lvl)
+    $ Instr (Ass reg $ Phi singT (zip ins vals)) Nothing
 
 addPhis :: LLVMConverter m => Label -> m ()
 addPhis label = do
