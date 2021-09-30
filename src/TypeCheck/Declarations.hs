@@ -123,7 +123,7 @@ declareClass id maybeParent body = do
 
 getAttrMap :: (MonadState TypeCheckState m, MonadError Error m)
   => S.Ident -> S.ClassBody -> m VarMap
-getAttrMap clsId (S.ClassBody _ memberDecls)
+getAttrMap clsId (S.ClassBody _ _ memberDecls)
   = foldl addAttr (pure M.empty) memberDecls
 
   where
@@ -144,7 +144,7 @@ getAttrMap clsId (S.ClassBody _ memberDecls)
 
 getMethodMap :: (MonadState TypeCheckState m, MonadError Error m)
   => S.Ident -> S.ClassBody -> m FuncMap
-getMethodMap clsId (S.ClassBody p memberDecls)
+getMethodMap clsId (S.ClassBody p _ memberDecls)
   = foldl addMethod (pure M.empty) memberDecls
 
   where

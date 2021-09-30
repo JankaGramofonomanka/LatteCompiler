@@ -172,7 +172,7 @@ instance MayHaveConstants (Expr a) where
 
 
 instance MayHaveConstants Block where
-  evalConstants (Block p stmts) = Block p (map evalConstants stmts)
+  evalConstants (Block p1 p2 stmts) = Block p1 p2 (map evalConstants stmts)
 
 instance MayHaveConstants (Item t) where
   evalConstants item = case item of
@@ -239,8 +239,8 @@ instance MayHaveConstants ClassDef where
 
 
 instance MayHaveConstants ClassBody where
-  evalConstants (ClassBody p memberDecls)
-    = ClassBody p (map evalConstants memberDecls)
+  evalConstants (ClassBody p1 p2 memberDecls)
+    = ClassBody p1 p2 (map evalConstants memberDecls)
 
 
 instance MayHaveConstants MemberDecl where

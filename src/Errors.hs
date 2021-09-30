@@ -4,6 +4,7 @@ module Errors where
 import Control.Monad.Except
 import Syntax.LangElemClasses
 import Position.Position (Pos)
+import GHC.RTS.Flags (GiveGCStats(OneLineGCStats))
 
 data Error
   = SimpleError String
@@ -189,6 +190,12 @@ mainNotIntError p = OnePosError p "`main` function should return `int`."
   
 noMainError :: Error
 noMainError = SimpleError "`main` function is not defined."
+
+missingReturnError :: IsIdent i => Pos -> i -> Error
+missingReturnError p f = OnePosError p
+  $ "Missing return statement in function " ++ printIdent f ++ "."
+
+
 
 -- INTERNAL -------------------------------------------------------------------
 

@@ -36,7 +36,7 @@ data TopDef where
 
 data Param = Param Type Ident deriving (Eq, Ord, Show, Read)
 
-data Block = Block Pos [Stmt] deriving (Eq, Ord, Show, Read)
+data Block = Block Pos Pos [Stmt] deriving (Eq, Ord, Show, Read)
 
 data Stmt where
   Empty     :: Pos -> Stmt
@@ -109,7 +109,7 @@ data BoolOp = And Pos | Or Pos
 
 
 
-data ClassBody = ClassBody Pos [MemberDecl]
+data ClassBody = ClassBody Pos Pos [MemberDecl]
   deriving (Eq, Ord, Show, Read)
 
 data MemberDecl where

@@ -17,6 +17,7 @@ import qualified Syntax.Syntax as S
 import qualified Syntax.SyntaxDep as DS
 
 import TypeCheck.TypeCheck ( ToBeTypeChecked(typeCheck) )
+import TypeCheck.CheckReturns
 import Syntax.Debloater ( ToBeDebloated(debloat) )
 import Optimization.EvalConstants
 
@@ -42,7 +43,8 @@ success (Left _) = False
 processTree :: MonadError Error m => S.Program -> m LLVM.LLVMProg
 processTree tree = do
   typeChecked <- evalStateT (typeCheck tree) initTypeCheckState
-  evalStateT (addProg (evalConstants typeChecked) >> extractLLVM) emptyState
+  progWithReturns <- checkReturns $ evalConstants typeChecked
+  evalStateT (addProg progWithReturns >> extractLLVM) emptyState
   
 
 

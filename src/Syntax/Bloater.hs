@@ -76,7 +76,7 @@ instance ToBeBloated (DS.ParamList ts) [S.Param] where
 
 
 instance ToBeBloated DS.Block S.Block where
-  bloat (DS.Block p stmts) = S.Block p (map bloat stmts)
+  bloat (DS.Block p1 p2 stmts) = S.Block p1 p2 (map bloat stmts)
 
 
 instance ToBeBloated DS.Stmt S.Stmt where
@@ -198,7 +198,7 @@ instance ToBeBloated DS.BoolOp S.BoolOp where
 
 
 instance ToBeBloated DS.ClassBody S.ClassBody where
-    bloat (DS.ClassBody p decls) = S.ClassBody p (map bloat decls)
+    bloat (DS.ClassBody p1 p2 decls) = S.ClassBody p1 p2 (map bloat decls)
 
 
 instance ToBeBloated DS.MemberDecl S.MemberDecl where
@@ -279,7 +279,7 @@ instance ToBeBloated S.Param BNFC.Param where
   bloat (S.Param t id) = BNFC.Param (bloat t) (bloat id)
 
 instance ToBeBloated S.Block BNFC.Block where
-  bloat (S.Block p stmts) = BNFC.Block lBrace (map bloat stmts) rBrace
+  bloat (S.Block _ _ stmts) = BNFC.Block lBrace (map bloat stmts) rBrace
 
 
 instance ToBeBloated S.Stmt BNFC.Stmt where
@@ -401,7 +401,7 @@ instance ToBeBloated S.BoolOp BNFC.OrOp where
 
 
 instance ToBeBloated S.ClassBody BNFC.ClassBody where
-  bloat (S.ClassBody p decls) = BNFC.ClassBody lBrace (map bloat decls) rBrace
+  bloat (S.ClassBody _ _ decls) = BNFC.ClassBody lBrace (map bloat decls) rBrace
 
 
 instance ToBeBloated S.MemberDecl BNFC.MemberDecl where

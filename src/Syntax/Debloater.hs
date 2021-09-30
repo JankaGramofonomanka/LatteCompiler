@@ -12,6 +12,7 @@ import qualified FromBNFC.AbsLatte as BNFC
 import qualified Syntax.Syntax as S
 import qualified Syntax.SyntaxDep as DS
 import Position.Position (position)
+import Position.EndPosition
 import Dependent
 import SingChar
 
@@ -66,7 +67,7 @@ instance ToBeDebloated BNFC.Param S.Param where
 
 instance ToBeDebloated BNFC.Block S.Block where
   debloat block@(BNFC.Block _ stmts _)
-    = S.Block (position block) (map debloat stmts)
+    = S.Block (position block) (endPosition block) (map debloat stmts)
 
 
 instance ToBeDebloated BNFC.Stmt S.Stmt where
@@ -198,9 +199,11 @@ instance ToBeDebloated BNFC.OrOp S.BoolOp where
 
 instance ToBeDebloated BNFC.ClassBody S.ClassBody where
   debloat body@(BNFC.ClassBody _ memberDecls _)
-    = S.ClassBody pos (map debloat memberDecls)
+    = S.ClassBody p1 p2 (map debloat memberDecls)
 
-    where pos = position body
+    where 
+      p1 = position body
+      p2 = endPosition body
 
 
 instance ToBeDebloated BNFC.MemberDecl S.MemberDecl where

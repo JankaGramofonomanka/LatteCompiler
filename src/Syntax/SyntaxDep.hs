@@ -100,7 +100,7 @@ type SomeClassIdent = Sigma Str (TyCon1 ClassIdent)
   
 
 
-data Block = Block Pos [Stmt] deriving Show
+data Block = Block Pos Pos [Stmt] deriving Show
 
 data Stmt where
   Empty     :: Pos -> Stmt
@@ -248,7 +248,7 @@ data BoolOp = And Pos | Or Pos
 
 
 
-data ClassBody = ClassBody Pos [MemberDecl] deriving Show
+data ClassBody = ClassBody Pos Pos [MemberDecl] deriving Show
 
 
 data MemberDecl where

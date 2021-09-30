@@ -47,6 +47,7 @@ library
       LLVM.StateUtils
       LLVM.TypeConversion
       Optimization.EvalConstants
+      Position.EndPosition
       Position.Position
       Position.SyntaxDepPosition
       Position.SyntaxPosition
@@ -59,6 +60,7 @@ library
       Syntax.Syntax
       Syntax.SyntaxDep
       TypeCheck.Castable
+      TypeCheck.CheckReturns
       TypeCheck.Declarations
       TypeCheck.LatteGetters
       TypeCheck.State

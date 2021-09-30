@@ -72,7 +72,7 @@ addComment' stmt = case stmt of
 addStmt :: LLVMConverter m => DS.Stmt -> m ()
 addStmt stmt = addComment' stmt >> case stmt of
   DS.Empty    p -> return ()
-  DS.BStmt    p (DS.Block _ stmts) -> do
+  DS.BStmt    p (DS.Block _ _ stmts) -> do
     
     enter <- getNewLabel "EnterSubScope"
     exit <- getNewLabel "ExitSubScope"
@@ -259,7 +259,7 @@ overwriteVar singT var val = case var of
 
 addStmtIgnoreBlock :: LLVMConverter m => DS.Stmt -> m ()
 addStmtIgnoreBlock stmt = case stmt of
-  DS.BStmt _ (DS.Block _ stmts) -> subScope $ mapM_ addStmt stmts
+  DS.BStmt _ (DS.Block _ _ stmts) -> subScope $ mapM_ addStmt stmts
 
   _ -> addStmt stmt
 
@@ -272,7 +272,7 @@ addMethodDef cls = addCallableDef (Just cls)
 
 addCallableDef :: LLVMConverter m
   => Maybe (DS.ClassIdent cls) ->  DS.FnDef -> m ()
-addCallableDef mbOwner (DS.FnDef p t funcId params (DS.Block _ stmts))
+addCallableDef mbOwner (DS.FnDef p t funcId params (DS.Block _ _ stmts))
   = subScope $ do
 
   --resetCounters
@@ -337,7 +337,7 @@ declareParams l (reg :> regs) (DS.Param kw x :> params) = do
 
 -------------------------------------------------------------------------------
 addClassDef :: LLVMConverter m => DS.ClassDef -> m ()
-addClassDef (DS.ClassDef p clsId mbParent (DS.ClassBody _ memberDecls)) = do
+addClassDef (DS.ClassDef p clsId mbParent (DS.ClassBody _ _ memberDecls)) = do
   addCustomType clsId
   declareParentMembers mbParent
   mapM_ declareAttr memberDecls

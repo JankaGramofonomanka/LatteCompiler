@@ -27,7 +27,7 @@ instance HasPosition Param where
   position (Param t _) = position t
 
 instance HasPosition Block where
-    position (Block p _) = p
+    position (Block p _ _) = p
 
 instance HasPosition Stmt where
   position stmt = case stmt of
@@ -118,7 +118,7 @@ instance HasPosition BoolOp where
 
 
 instance HasPosition ClassBody where
-    position (ClassBody p _) = p
+    position (ClassBody p _ _) = p
 
 
 instance HasPosition MemberDecl where

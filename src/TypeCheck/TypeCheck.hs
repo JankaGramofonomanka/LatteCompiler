@@ -86,7 +86,7 @@ instance ToBeTypeChecked S.TopDef (Either ClassDef FnDef) where
 
 
 instance ToBeTypeChecked S.TopDef FnDef where
-  typeCheck (S.FnDef p retType id params (S.Block blPos stmts))
+  typeCheck (S.FnDef p retType id params (S.Block p1 p2 stmts))
     = case someType retType of
         Some retT -> do
           subVarScope
@@ -101,7 +101,7 @@ instance ToBeTypeChecked S.TopDef FnDef where
           dropVarScope
 
           _ :&: okParams <- getParamList params
-          let okBlock = Block blPos okStmts
+          let okBlock = Block p1 p2 okStmts
           retTKW <- getTypeKW (position retType) retT
           let okDef = FnDef p retTKW (debloat id) okParams okBlock
           return okDef
@@ -120,7 +120,7 @@ instance ToBeTypeChecked S.TopDef FnDef where
           
 
 instance ToBeTypeChecked S.TopDef ClassDef where
-  typeCheck (S.ClassDef p id maybeParent (S.ClassBody pp memberDecls)) = do
+  typeCheck (S.ClassDef p id maybeParent (S.ClassBody p1 p2 memberDecls)) = do
     info@ClassInfo { classId = clsId, className = clsN, .. } <- getClassInfo id
 
     putSlefType $ SCustom clsN
@@ -133,7 +133,7 @@ instance ToBeTypeChecked S.TopDef ClassDef where
     dropSlefType
 
     okMaybeParent <- getMbParent maybeParent
-    let okBody = ClassBody pp okMemberDecls
+    let okBody = ClassBody p1 p2 okMemberDecls
     return $ ClassDef p clsId okMaybeParent okBody
 
     where
@@ -194,11 +194,11 @@ instance ToBeTypeChecked S.TopDef ClassDef where
 
 
 instance ToBeTypeChecked S.Block Block where
-  typeCheck (S.Block p stmts) = do
+  typeCheck (S.Block p1 p2 stmts) = do
     subVarScope
     okStmts <- foldl appendTypeChecked (pure []) stmts
     dropVarScope
-    return $ Block p okStmts
+    return $ Block p1 p2 okStmts
 
 instance ToBeTypeChecked S.Stmt Stmt where
   typeCheck stmt = case stmt of
