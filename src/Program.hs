@@ -39,9 +39,6 @@ success :: Either a b -> Bool
 success (Right _) = True
 success (Left _) = False
 
-processTreeTemp :: MonadError Error m => S.Program -> m DS.Program
-processTreeTemp tree = evalStateT (typeCheck tree) initTypeCheckState
-
 processTree :: MonadError Error m => S.Program -> m LLVM.LLVMProg
 processTree tree = do
   typeChecked <- evalStateT (typeCheck tree) initTypeCheckState

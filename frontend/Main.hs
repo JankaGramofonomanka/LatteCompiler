@@ -32,8 +32,8 @@ processFileContents fileCts = case parse fileCts of
   Bad s -> (getExitCode $ Left s, getOutput $ Left s)
 
   Ok bloatedAbsTree -> (exitCode, output) where
-      
-    result = runExcept (processTreeTemp (debloat bloatedAbsTree))
+    
+    result = runExcept (processTree (debloat bloatedAbsTree))
 
     exitCode = getExitCode result
     output = getOutput result
