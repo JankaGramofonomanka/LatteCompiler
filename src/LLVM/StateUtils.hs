@@ -173,7 +173,7 @@ addBranchInstr label instr preprocess = do
     
     Just (BrInstr Ret {} _) -> return ()
     Just (BrInstr RetVoid _) -> return ()
-    Just (BrInstr instr _) -> throwError internalMultipleBranchesError
+    Just (BrInstr ins _) -> throwError internalMultipleBranchesError  
 
 
 branch :: LLVMConverter m => Label -> Label -> m ()

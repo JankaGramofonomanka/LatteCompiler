@@ -9,6 +9,7 @@ import Control.Monad.Except
 
 import Errors
 import Position.Position
+import Position.SyntaxDepPosition
 import Position.EndPosition
 import qualified Syntax.Syntax as S
 import qualified Syntax.SyntaxDep as DS
@@ -37,20 +38,28 @@ instance HasReturnsInFunc DS.Stmt where
     DS.BStmt _ block -> assertReturnsInFunc p f block
     
     DS.CondElse _ _ stm1 stm2 ->
-      assertReturnsInFunc p f stm1 >> assertReturnsInFunc p f stm2
+      assertReturnsInFunc p1 f stm1 >> assertReturnsInFunc p2 f stm2
+      
+      where
+        p1 = position stm1
+        p2 = position stm2
 
-    DS.While _ _ stm          -> assertOneReturn p f stm
-    DS.For _ _ _ _ stm        -> assertOneReturn p f stm
-    DS.Forever _ stm          -> assertOneReturn p f stm
+    DS.While _ _ stm          -> assertOneReturn (position stm) f stm
+    DS.For _ _ _ _ stm        -> assertOneReturn (position stm) f stm
+    DS.Forever _ stm          -> assertOneReturn (position stm) f stm
     
     _ -> throwError $ missingReturnError p f
 
   assertOneReturn p f stmt = case stmt of
     DS.Cond _ _ stm ->
-      assertOneReturn p f stm
+      assertOneReturn (position stm) f stm
 
     DS.CondElse _ _ stm1 stm2 ->
-      catchError (assertOneReturn p f stm1) (\_ -> assertOneReturn p f stm2)
+      catchError (assertOneReturn p1 f stm1) (\_ -> assertOneReturn p2 f stm2)
+
+      where
+        p1 = position stm1
+        p2 = position stm2
     
     DS.BStmt _ block -> assertOneReturn p f block
 
@@ -65,14 +74,15 @@ instance HasReturnsInFunc [DS.Stmt] where
     []  -> throwError $ missingReturnError p f
     _   -> assertReturnsInFunc p f (last stmts)
 
-  assertOneReturn p f (stm : stmts) = do
-    catchError (assertOneReturn p f stm) (\_ -> assertOneReturn p f stmts)
-  
-  assertOneReturn p f [] = throwError $ missingReturnError p f
+  assertOneReturn p f stmts = case stmts of
+    [] -> throwError $ missingReturnError p f
+    (_ : _) ->
+      catchError  (assertOneReturn p f $ last stmts) 
+                  (\_ -> assertOneReturn p f $ init stmts)
 
 instance HasReturnsInFunc DS.Block where
-  assertReturnsInFunc p f (DS.Block _ _ stmts) = assertReturnsInFunc p f stmts
-  assertOneReturn p f (DS.Block _ _ stmts) = assertOneReturn p f stmts
+  assertReturnsInFunc p f (DS.Block _ pp stmts) = assertReturnsInFunc pp f stmts
+  assertOneReturn p f (DS.Block _ pp stmts) = assertOneReturn pp f stmts
 
 
 
