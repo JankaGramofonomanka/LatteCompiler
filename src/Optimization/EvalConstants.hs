@@ -5,6 +5,7 @@
   , TypeFamilies
   , FlexibleContexts
   , StandaloneKindSignatures
+  , FlexibleInstances
 #-}
 
 module Optimization.EvalConstants where
@@ -172,7 +173,7 @@ instance MayHaveConstants (Expr a) where
 
 
 instance MayHaveConstants Block where
-  evalConstants (Block p1 p2 stmts) = Block p1 p2 (map evalConstants stmts)
+  evalConstants (Block p1 p2 stmts) = Block p1 p2 (evalConstants stmts)
 
 instance MayHaveConstants (Item t) where
   evalConstants item = case item of
@@ -219,6 +220,17 @@ instance MayHaveConstants Stmt where
       For p t id (evalConstants arr) (evalConstants loopBody)
     
     Forever p stmt -> Forever p (evalConstants stmt)
+
+instance MayHaveConstants [Stmt] where
+  evalConstants [] = []
+  evalConstants (stm : stmts) = case stm' of
+    Empty   {}  -> evalConstants stmts
+    Forever {}  -> [stm']
+    _           -> stm' : evalConstants stmts
+
+    where stm' = evalConstants stm
+    
+
 
 
 instance MayHaveConstants Program where
