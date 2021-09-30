@@ -38,7 +38,7 @@ import LLVM.Cleanup
 
 import qualified Syntax.SyntaxDep as DS
 import Position.Position
-import LangElemClasses
+import Syntax.LangElemClasses
 import Errors
 import Dependent
 import BuiltIns

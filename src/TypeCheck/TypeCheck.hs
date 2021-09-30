@@ -26,7 +26,7 @@ import Errors
 import Syntax.Debloater ( ToBeDebloated(debloat), bloatId, debloatScopedId )
 import Syntax.Bloater
 import Position.Position
-import LangElemClasses
+import Syntax.LangElemClasses
 
 import Dependent
 

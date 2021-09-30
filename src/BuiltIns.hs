@@ -22,7 +22,7 @@ import qualified Syntax.Syntax as S
 import Syntax.SyntaxDep
 import LLVM.LLVM
 import Errors
-import LangElemClasses
+import Syntax.LangElemClasses
 import Dependent
 import LLVM.Print
 import SingChar

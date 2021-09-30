@@ -34,7 +34,7 @@ import LLVM.State
 import LLVM.StateUtils
 import qualified Syntax.SyntaxDep as DS
 import LLVM.TypeConversion
-import LangElemClasses
+import Syntax.LangElemClasses
 import Errors
 import Position.Position
 import Position.SyntaxDepPosition

@@ -19,7 +19,7 @@ import qualified Syntax.Syntax as S
 import Syntax.SyntaxDep
 import Position.Position
 import Errors
-import LangElemClasses
+import Syntax.LangElemClasses
 import Syntax.Debloater
 import qualified Scope as Sc
 import TypeCheck.State

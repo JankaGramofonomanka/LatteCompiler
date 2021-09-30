@@ -2,7 +2,7 @@
 module Errors where
 
 import Control.Monad.Except
-import LangElemClasses
+import Syntax.LangElemClasses
 import Position.Position (Pos)
 
 data Error

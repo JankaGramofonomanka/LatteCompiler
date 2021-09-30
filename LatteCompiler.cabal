@@ -38,7 +38,6 @@ library
       FromBNFC.PrintLatte
       FromBNFC.SkelLatte
       FromBNFC.TestLatte
-      LangElemClasses
       LLVM.Cleanup
       LLVM.Convert
       LLVM.LLVM
@@ -56,6 +55,7 @@ library
       SingChar
       Syntax.Bloater
       Syntax.Debloater
+      Syntax.LangElemClasses
       Syntax.Syntax
       Syntax.SyntaxDep
       TypeCheck.Castable

@@ -4,7 +4,7 @@
 #-}
 
 
-module LangElemClasses where
+module Syntax.LangElemClasses where
 
 import qualified FromBNFC.AbsLatte as BNFC
 import FromBNFC.PrintLatte ( printTree )
