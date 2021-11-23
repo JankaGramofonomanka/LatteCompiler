@@ -42,6 +42,7 @@ filterT :: (MonadState TypeCheckState m, MonadError Error m)
 filterT _ _ STInt   STInt   x = return x
 filterT _ _ STStr   STStr   x = return x
 filterT _ _ STBool  STBool  x = return x
+filterT _ _ STVoid  STVoid  x = return x
 filterT p err (SArr t1) (SArr t2) x = do
   xx <- filterT p err t1 t2 (extractParam2 x)
   
@@ -64,6 +65,7 @@ filterNCastT :: (MonadState TypeCheckState m, MonadError Error m, Castable e)
 filterNCastT _ _ STInt   STInt   x = return x
 filterNCastT _ _ STStr   STStr   x = return x
 filterNCastT _ _ STBool  STBool  x = return x
+filterNCastT _ _ STVoid  STVoid  x = return x
 filterNCastT p err (SArr t1) (SArr t2) x = do
   xx <- filterNCastT p err t1 t2 (extractParam2 x)
   

@@ -248,6 +248,7 @@ instance ToBeTypeChecked S.Stmt Stmt where
       assertRetTypeIsSomething p
 
       Some retType <- gets $ fromJust . returnType
+      when (isVoid retType) $ throwError $ returnNonVoidError p
 
       okExpr <- getExpr retType expr
       return $ Ret p retType okExpr

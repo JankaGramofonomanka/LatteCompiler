@@ -159,6 +159,10 @@ returnVoidError p t = OnePosError p
   $ "Function returns `void` while it is expected to return " 
     ++ printType t ++ "."
 
+returnNonVoidError :: Pos -> Error
+returnNonVoidError p = OnePosError p
+  $ "Non-void return statement in a `void` function."
+
 voidDeclarationError :: Pos -> Error
 voidDeclarationError p = OnePosError p
   $ "Attempt to declare a variable of type `void`"
