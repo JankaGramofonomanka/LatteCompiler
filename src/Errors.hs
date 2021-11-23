@@ -119,7 +119,7 @@ notAFuncError p var = OnePosError p
 wrongNOParamsError :: IsVar v => Pos -> v -> Int -> Int -> Error
 wrongNOParamsError p v expected actual = OnePosError p
   $ "Function / Method " ++ printVar v 
-    ++ " applied to wrong number of parameters."
+    ++ " applied to wrong number of parameters"
     ++ ". Expected: " ++ show expected
     ++ ", Actual: " ++ show actual ++ "."
 
