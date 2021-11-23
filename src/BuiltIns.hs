@@ -31,15 +31,32 @@ import SingChar
 ident :: String -> S.Ident
 ident = S.Ident fakePos
 
+printInt, printString, errorF, readInt, readString :: String
+printInt    = "printInt"
+printString = "printString"
+errorF      = "error"
+readInt     = "readInt"
+readString  = "readString"
+
+builtInIds :: [String]
+builtInIds = 
+  [ printInt
+  , printString
+  , errorF
+  , readInt
+  , readString
+  ]
+  
+
 declareBuiltIn :: (MonadState TypeCheckState m, MonadError Error m)
   => m ()
 
 declareBuiltIn = do
-  declareFunc (ident "printInt")    STVoid  (SCons STInt SNil)
-  declareFunc (ident "printString") STVoid  (SCons STStr SNil)
-  declareFunc (ident "error")       STVoid  SNil
-  declareFunc (ident "readInt")     STInt   SNil
-  declareFunc (ident "readString")  STStr   SNil
+  declareFunc (ident printInt)    STVoid  (SCons STInt SNil)
+  declareFunc (ident printString) STVoid  (SCons STStr SNil)
+  declareFunc (ident errorF)      STVoid  SNil
+  declareFunc (ident readInt)     STInt   SNil
+  declareFunc (ident readString)  STStr   SNil
   subFuncScope
 
 
@@ -56,11 +73,11 @@ initTypeCheckState
 
 externFuncLabels :: [SomeFuncLabel]
 externFuncLabels
-  = [ (SVoid,             sing @'[I 32])      :&&: FuncLabel "printInt"
-    , (SVoid,             sing @'[Ptr (I 8)]) :&&: FuncLabel "printString"
-    , (SVoid,             sing @'[])          :&&: FuncLabel "error"
-    , (sing @(I 32),      sing @'[])          :&&: FuncLabel "readInt"
-    , (sing @(Ptr (I 8)), sing @'[])          :&&: FuncLabel "readString"
+  = [ (SVoid,             sing @'[I 32])      :&&: FuncLabel printInt
+    , (SVoid,             sing @'[Ptr (I 8)]) :&&: FuncLabel printString
+    , (SVoid,             sing @'[])          :&&: FuncLabel errorF
+    , (sing @(I 32),      sing @'[])          :&&: FuncLabel readInt
+    , (sing @(Ptr (I 8)), sing @'[])          :&&: FuncLabel readString
     
     , (sing @(Ptr (I 8)), sing @'[Ptr (I 8), Ptr (I 8)]) :&&: strConcatLabel
     , (sing @(Ptr (I 1)), sing @'[I 32])      :&&: FuncLabel "malloc"

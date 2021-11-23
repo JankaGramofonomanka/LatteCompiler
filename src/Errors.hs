@@ -199,7 +199,9 @@ missingReturnError :: IsIdent i => Pos -> i -> Error
 missingReturnError p f = OnePosError p
   $ "Missing return statement in function " ++ printIdent f ++ "."
 
-
+builtInFuncRedefinitionError :: IsIdent i => Pos -> i -> Error
+builtInFuncRedefinitionError p f = OnePosError p
+  $ "Redefinition of built in function " ++ printIdent f ++ "."
 
 -- INTERNAL -------------------------------------------------------------------
 

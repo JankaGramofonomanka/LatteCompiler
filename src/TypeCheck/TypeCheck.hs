@@ -27,6 +27,7 @@ import Syntax.Debloater ( ToBeDebloated(debloat), bloatId, debloatScopedId )
 import Syntax.Bloater
 import Position.Position
 import Syntax.LangElemClasses
+import BuiltIns
 
 import Dependent
 
@@ -65,6 +66,9 @@ instance ToBeTypeChecked S.Program Program where
       declare acc def = acc >> case def of
         S.FnDef _ retType id params _ -> case someType retType of
           Some retT -> do
+            when (name id `elem` builtInIds) 
+              $ throwError $ builtInFuncRedefinitionError (position id) id
+
             paramTypes :&: _ <- getParamList params
             declareFunc id retT paramTypes
         
