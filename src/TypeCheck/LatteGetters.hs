@@ -278,14 +278,17 @@ getOp t op = case (op, t) of
 
 validateArgs :: (MonadState TypeCheckState m, MonadError Error m)
   => Pos -> S.Var -> [S.Expr] -> SList ts -> m (ExprList ts)
-validateArgs p v [] SNil = return DNil
+validateArgs p v args paramTypes = go args paramTypes where
+  
+  go :: (MonadState TypeCheckState m, MonadError Error m)
+    => [S.Expr] -> SList ts -> m (ExprList ts)
+  go [] SNil = return DNil
 
-validateArgs p v (expr : exprs) (SCons t ts) = do
-  okExpr <- getExpr t expr
-  okExprs <- validateArgs p v exprs ts
-  return $ okExpr :> okExprs
-      
-validateArgs p v args paramTypes
-  = throwError $ wrongNOParamsError p v (sLengthInt paramTypes) (length args)
-
+  go (expr : exprs) (SCons t ts) = do
+    okExpr <- getExpr t expr
+    okExprs <- go exprs ts
+    return $ okExpr :> okExprs
+        
+  go _ _ = throwError
+    $ wrongNOParamsError p v (sLengthInt paramTypes) (length args)
 
