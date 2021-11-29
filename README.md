@@ -64,6 +64,75 @@ The following language extensions are implemented:
 - objects
 - virtual methods
 
+## Design decisions
+
+- Syntax / Semanics
+
+  - `null` and `self` are keywords, and cannot be used as identifiers, 
+    no mater the context.
+
+  - A non-void function must have a return statement as the last statement 
+    in all its reachable branches that do not have a successor.
+
+    A reachable branch is a branch that is not discarded after evaluating 
+    constant expressions, that is expressions that do not contain variables and 
+    function calls.
+
+    In particular `4 + 23` is a constant expression, but in `int x = 4;x + 3;`,
+    `x + 3` is not a constant expression.
+
+    If a constant expression is a condition in an if statement, it will be 
+    evaluated and an appropriate branch of the statement will be selected to be put in place of the entire if statement.
+
+    Similarly, if a constant expression is a condition in a while loop, 
+    the body of the loop will be discarded if it evaluates to `false`, 
+    or if it evaluates to `true`, the loop will be replaced with a `forever` loop,
+    which is a special construct that exists only in the abstract 
+    representation of the code, not in the Latte syntax. In such case the code 
+    after the loop will be discarded.
+
+    In particular, the following code is incorrect:
+    ```
+    int f() {}
+
+      while (true) {
+        # no return statement here
+      }
+
+      # this gets ignored
+      return 5;
+    }
+    ```
+    However this is correct:
+    ```
+    int f() {
+
+      if (true) {
+        return 5;
+
+      } else {
+        # no return statement here
+        # this gets ignored
+      }
+    }
+    ```
+  - When defining a class that inherits from another class, 
+    the definition of the parent class must be above the child class. 
+    This is to avoid searchong for circular inheritance 
+    (ie. A inherits from B, B inherits from A).
+
+    In particular this code is correct:
+    ```
+    class A {}
+    class B extends A {}
+    ```
+
+    while this is not:
+    ```
+    class A extends B {}
+    class B {}
+    ```
+
 ## Project directory structure:
 
 A file in parenthesis means that it will exist after the project is built.
