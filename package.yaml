@@ -30,12 +30,12 @@ dependencies:
 - filepath
 
 library:
-  source-dirs: src
+  source-dirs: src/src
 
 executables:
   latc:
     main:                Main.hs
-    source-dirs:         frontend
+    source-dirs:         src/frontend
     ghc-options:
     - -threaded
     - -rtsopts
@@ -45,7 +45,7 @@ executables:
   
   latc_llvm:
     main:                Main.hs
-    source-dirs:         llvm
+    source-dirs:         src/llvm
     ghc-options:
     - -threaded
     - -rtsopts
@@ -56,7 +56,7 @@ executables:
 tests:
   LatteCompiler-test:
     main:                Spec.hs
-    source-dirs:         test
+    source-dirs:         src/test
     ghc-options:
     - -threaded
     - -rtsopts
