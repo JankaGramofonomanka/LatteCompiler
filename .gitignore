@@ -31,3 +31,5 @@ latc_llvm
 .toignore/
 .vscode/
 test_one
+LatteCompiler.cabal
+stack.yaml.lock
