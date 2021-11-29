@@ -32,5 +32,11 @@ found here: https://www.mimuw.edu.pl/~ben/Zajecia/Mrj2020/Latte/
   ./latc_llvm [FILE].lat
   ```
   where `FILE.lat` is the file with code you want to compile.
-  the llvm code will be outputed to a file `FILE.ll`.
+  the llvm code will be outputed to a file `FILE.ll` and then linked with 
+  `./lib/runtime.ll`. The linked bytecode will be outputed to `FILE.bc`
+
+  You can then run the program using `lli`:
+  ```
+  lli [FILE].bc
+  ```
 

@@ -33,7 +33,7 @@ library:
   source-dirs: src/src
 
 executables:
-  latc:
+  latc_exe:
     main:                Main.hs
     source-dirs:         src/frontend
     ghc-options:
@@ -43,7 +43,7 @@ executables:
     dependencies:
     - LatteCompiler
   
-  latc_llvm:
+  latc_llvm_exe:
     main:                Main.hs
     source-dirs:         src/llvm
     ghc-options:

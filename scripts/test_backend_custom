@@ -8,8 +8,6 @@ compile () {
 
     echo "$filename.lat"
     ./latc_llvm $1
-    
-    llvm-link -o "$dir/$filename.bc" "$dir/$filename.ll" runtime.ll
 }
 
 execute () {

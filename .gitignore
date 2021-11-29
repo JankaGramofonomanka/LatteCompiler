@@ -33,3 +33,5 @@ latc_llvm
 test_one
 LatteCompiler.cabal
 stack.yaml.lock
+bin/latc_exe
+bin/latc_llvm_exe

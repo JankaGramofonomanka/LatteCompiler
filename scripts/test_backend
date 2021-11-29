@@ -12,8 +12,6 @@ do
     filename="$(basename $file .lat)" 
     echo "$filename.lat"
     ./latc_llvm $file
-    
-    llvm-link -o "$dir/$filename.bc" "$dir/$filename.ll" runtime.ll
 done
 
 
@@ -32,7 +30,11 @@ do
 
     echo "$filename.lat"
     
-    rm $output_dir
+    if test -f $output_dir
+    then
+        rm $output_dir
+    fi
+    
     if test -f $input
     then
         (cat $input | lli $execfile) >> $output_dir
