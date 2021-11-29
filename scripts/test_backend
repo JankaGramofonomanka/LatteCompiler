@@ -48,4 +48,5 @@ done
 
 
 make clean
+./scripts/cleanup_tests
 

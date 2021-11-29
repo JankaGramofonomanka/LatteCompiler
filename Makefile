@@ -17,4 +17,3 @@ clean:
 	rm ./bin/latc_exe
 	rm ./bin/latc_llvm_exe
 
-	./scripts/cleanup_tests
