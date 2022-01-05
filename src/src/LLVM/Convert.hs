@@ -78,10 +78,10 @@ addStmt stmt = addComment' stmt >> case stmt of
     exit <- getNewLabel "ExitSubScope"
     
     branch' enter
-    subScope $ do
-      newBlock enter
-      mapM_ addStmt stmts
-      branch' exit
+  
+    newBlock enter
+    mapM_ addStmt stmts
+    branch' exit
 
     newBlock exit    
 
@@ -159,7 +159,7 @@ addStmt stmt = addComment' stmt >> case stmt of
     _ <- getExprValue expr
     return ()
 
-  DS.For p t i expr stm -> subScope $ do
+  DS.For p t i expr stm -> do
     let singT = DS.singFromKW t
     let elemT = sGetPrimType singT
     arr <- getExprValue expr
@@ -259,7 +259,7 @@ overwriteVar singT var val = case var of
 
 addStmtIgnoreBlock :: LLVMConverter m => DS.Stmt -> m ()
 addStmtIgnoreBlock stmt = case stmt of
-  DS.BStmt _ (DS.Block _ _ stmts) -> subScope $ mapM_ addStmt stmts
+  DS.BStmt _ (DS.Block _ _ stmts) -> mapM_ addStmt stmts
 
   _ -> addStmt stmt
 
@@ -273,7 +273,7 @@ addMethodDef cls = addCallableDef (Just cls)
 addCallableDef :: LLVMConverter m
   => Maybe (DS.ClassIdent cls) ->  DS.FnDef -> m ()
 addCallableDef mbOwner (DS.FnDef p t funcId params (DS.Block _ _ stmts))
-  = subScope $ do
+  = do
 
   --resetCounters
   (primTs, primArgs) <- getParams params
@@ -390,7 +390,7 @@ addClassDef (DS.ClassDef p clsId mbParent (DS.ClassBody _ _ memberDecls)) = do
 
 
 addConstructor :: LLVMConverter m => DS.ClassIdent cls -> m ()
-addConstructor clsId@(DS.ClassIdent _ cls) = subScope $ do
+addConstructor clsId@(DS.ClassIdent _ cls) = do
   ClassInfo
     { attrs = attrs
     , attrTypes = attrTypes

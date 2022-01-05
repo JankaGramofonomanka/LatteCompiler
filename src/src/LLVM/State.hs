@@ -114,7 +114,6 @@ data LLVMState where
     , currentBlockLabel :: Maybe Label
     , currentFunc       :: Maybe PotentialFunc
     , currentProg       :: PotentialProg
-    , currentScopeLevel :: Int
 
     , mallocTypes :: [Some SPrimType]
     , arrTypes    :: [Some SPrimType]   -- list of types of array elements
@@ -133,7 +132,6 @@ emptyState = LLVMState
   , currentBlockLabel = Nothing
   , currentFunc       = Nothing
   , currentProg       = PotProg { mainFunc = Nothing, funcs = [] }
-  , currentScopeLevel = 0
   
   , mallocTypes = []
   , arrTypes    = []
@@ -338,25 +336,6 @@ putCurrentVarMap m = do
   l <- getCurrentBlockLabel
   putLocalVarMap l m
   
-incrScopeLevel :: MonadState LLVMState m => m ()
-incrScopeLevel = do
-  LLVMState { currentScopeLevel = l, .. } <- get
-  put $ LLVMState { currentScopeLevel = l + 1, .. }
-
-decrScopeLevel :: LLVMConverter m => m ()
-decrScopeLevel = do
-  LLVMState { currentScopeLevel = l, .. } <- get
-  when (l <= 0) $ throwError internalScopeLevelBelowZeroError
-  put $ LLVMState { currentScopeLevel = l - 1, .. }
-
-subScope :: LLVMConverter m => m a -> m a
-subScope action = do
-  incrScopeLevel
-  result <- action
-  decrScopeLevel
-  return result
-
-
 getBlockOrder :: LLVMConverter m => m [Label]
 getBlockOrder = blockOrder <$> getCurrentFunc
 
