@@ -40,6 +40,7 @@ import Dependent
 import BuiltIns
 import SingChar
 import Dependent (Some(Some))
+import LLVM.LLVM (Label(Label))
 
 
 
@@ -357,42 +358,21 @@ getExprValue expr = handleType (DS.exprType expr) >> case expr of
 
 
   DS.EBool p op e1 e2 -> do
+
     (labelIf, labelElse, labelJoin) <- getIfElseLabels
+    addIfology expr labelIf labelElse
 
-    
-    val1 <- getExprValue e1
-    condBranch' val1 labelIf labelElse
-    
-    case op of
-      DS.And _ -> do
-        newBlock labelIf
-        val2 <- getExprValue e2
-        labelIfExit <- getCurrentBlockLabel
-        branch' labelJoin
+    newBlock labelIf
+    branch' labelJoin
 
-        newBlock labelElse
-        branch' labelJoin
+    newBlock labelElse
+    branch' labelJoin
 
-        newBlock labelJoin
-        reg <- getNewRegDefault
-        addInstr $ Ass reg $ Phi i1 [(labelIfExit, val2), (labelElse, false)]
-        return $ Var reg
+    newBlock labelJoin
+    reg <- getNewRegDefault
+    addInstr $ Ass reg $ Phi i1 [(labelIf, true), (labelElse, false)]
+    return $ Var reg
 
-        
-      DS.Or _ -> do
-        newBlock labelIf
-        branch' labelJoin
-
-        newBlock labelElse
-        val2 <- getExprValue e2
-        labelElseExit <- getCurrentBlockLabel
-        branch' labelJoin
-
-        newBlock labelJoin
-        reg <- getNewRegDefault
-        addInstr $ Ass reg $ Phi i1 [(labelIf, true), (labelElseExit, val2)]
-        return $ Var reg
-    
   ---------------------------------------------------------------------
   DS.NewArr p t e -> do
     let elemT = sGetPrimType (DS.singFromKW t)
@@ -481,3 +461,39 @@ handleType :: LLVMConverter m => DS.SLatteType t -> m ()
 handleType (DS.SArr elemT) = addArrType (sGetPrimType elemT)
 handleType (DS.SCustom s) = addMallocType (SStruct s)
 handleType _ = return ()
+
+
+
+--------------------------------------------------------------------------------
+addIfology :: LLVMConverter m
+  => DS.Expr DS.TBool
+  -> Label
+  -> Label
+  -> m ()
+addIfology expr labelIf labelElse = do
+
+    case expr of
+      
+      
+      DS.EBool p op e1 e2 -> case op of
+        DS.And _ -> do
+          labelMid <- getNewLabelMid
+          addIfology e1 labelMid labelElse
+
+          newBlock labelMid
+          addIfology e2 labelIf labelElse
+
+        DS.Or _ -> do
+          labelMid <- getNewLabelMid
+          addIfology e1 labelIf labelMid
+
+          newBlock labelMid
+          addIfology e2 labelIf labelElse
+
+      DS.Not p e -> addIfology e labelElse labelIf
+
+      _ -> do
+        val <- getExprValue expr
+        condBranch' val labelIf labelElse
+      
+      

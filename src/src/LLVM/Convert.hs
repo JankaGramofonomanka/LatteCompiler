@@ -113,9 +113,9 @@ addStmt stmt = addComment' stmt >> case stmt of
 
   DS.Cond     p expr stm -> do
     (labelIf, _, labelJoin) <- getIfElseLabels
-    cond <- getExprValue expr
-    condBranch' cond labelIf labelJoin
 
+    addIfology expr labelIf labelJoin
+    
     newBlock labelIf
     addStmtIgnoreBlock stm
     branch' labelJoin
@@ -123,9 +123,9 @@ addStmt stmt = addComment' stmt >> case stmt of
     newBlock labelJoin
 
   DS.CondElse p expr stmIf stmElse -> do
-    (labelIf, labelElse,  labelJoin) <- getIfElseLabels
-    cond <- getExprValue expr
-    condBranch' cond labelIf labelElse
+    (labelIf, labelElse, labelJoin) <- getIfElseLabels
+    
+    addIfology expr labelIf labelElse
 
     newBlock labelIf
     addStmtIgnoreBlock stmIf
@@ -140,7 +140,7 @@ addStmt stmt = addComment' stmt >> case stmt of
   DS.While p expr stm -> do
     (labelCond, labelLoop, labelJoin) <- getWhileLabels
     
-    -- jimp to cond
+    -- jump to cond
     branch' labelCond
 
     -- loop

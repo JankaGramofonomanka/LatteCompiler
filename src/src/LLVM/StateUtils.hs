@@ -87,6 +87,9 @@ getNewLabel s = do
 getNewLabelDefault :: MonadState LLVMState m => m Label
 getNewLabelDefault = getNewLabel ""
 
+getNewLabelMid :: MonadState LLVMState m => m Label
+getNewLabelMid = getNewLabel "Mid"
+
 getIfElseLabels :: MonadState LLVMState m => m (Label, Label, Label)
 getIfElseLabels = do
   labelIf   <- getNewLabel "If"
