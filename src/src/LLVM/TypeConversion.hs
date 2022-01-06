@@ -67,13 +67,13 @@ instance GEq SNat where
     = if fromSing n1 == fromSing n2 
       then 
         -- It seems impossible to proove n1 :~: n2
-        Just (admit n1 n2) 
+        Just admit
       else 
         Nothing
 
     where
-      admit :: SNat n1 -> SNat n2 -> n1 :~: n2
-      admit n1 n2 = unsafeCoerce Refl
+      admit :: a :~: b
+      admit = unsafeCoerce Refl
 
 instance GEq SNatural where
   geq SZero SZero = Just Refl

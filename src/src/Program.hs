@@ -28,6 +28,7 @@ import LLVM.Print
 
 import Errors
 import BuiltIns ( initTypeCheckState )
+import Optimization.PhiElimination
 
 parse :: String -> Err BNFC.Program
 parse = pProgram . myLexer
@@ -44,7 +45,9 @@ processTree :: MonadError Error m => S.Program -> m LLVM.LLVMProg
 processTree tree = do
   typeChecked <- evalStateT (typeCheck tree) initTypeCheckState
   progWithReturns <- checkReturns $ evalConstants typeChecked
-  evalStateT (addProg progWithReturns >> extractLLVM) emptyState
+  prog <- evalStateT (addProg progWithReturns >> extractLLVM) emptyState
+  return $ eliminatePhisProg prog
+  
   
 
 
