@@ -1,0 +1,9 @@
+#!/bin/bash
+
+dir="$(dirname $1)"
+filename="$(basename $1 .lat)" 
+
+./bin/latc_llvm_exe $1
+
+llvm-link -o "$dir/$filename.bc" "$dir/$filename.ll" ./lib/runtime.ll
+
