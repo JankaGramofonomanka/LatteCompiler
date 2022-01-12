@@ -183,6 +183,9 @@ A file in parenthesis means that it will exist after the project is built.
 |  |  |
 |  |  |- Optimization
 |  |  |  |- EvalConstants.hs
+|  |  |  |- Overwrite.hs
+|  |  |  |- PhiElimination.hs
+|  |  |  |- RemoveAss.hs
 |  |  |
 |  |  |- Position
 |  |  |  | # contains definitions of functions returning position of syntax elements
